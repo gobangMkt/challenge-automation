@@ -1,0 +1,11 @@
+{
+  "name": "blog-challenge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "블로그 챌린지 운영·자동화 앱 (GAS + Google Sheets + GitHub Pages + SOLAPI)",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python -m http.server 3060 --directory public"
+  }
+}
