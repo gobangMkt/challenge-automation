@@ -32,8 +32,14 @@ design-system/ MASTER.md (테마: 갓생 코랄)
 - **포트**: 3060 (로컬 정적 서버)
 
 ## 배포링크
-- **프로덕션 URL**: `배포 예정` (GitHub Pages, S1 이후 갱신)
-- **GitHub repo**: `배포 예정` (생성 후 갱신)
+- **프로덕션 URL(참가자/운영자)**: https://gobangmkt.github.io/challenge-automation/
+  - 참가자 신청: `…/?c=<challengeId>` · 운영센터: `…/#/admin`
+- **GitHub repo**: https://github.com/gobangMkt/challenge-automation
+- **GAS Web App 엔드포인트**: `public/js/config.js`의 `GAS_ENDPOINT` (시트 바인딩 Apps Script, 익명 접근)
+- **데이터 시트**: container-bound 스프레드시트 (시트ID는 운영자 보관)
 
 ## 현재 상태
-1단계 스펙✅ · 2단계 디자인✅ · 3단계 슬라이스✅ · 3.5 리소스✅ · **4단계 구현 S1~S7 코드 완료**(순수로직 79 test pass, 멀티에이전트 병렬 구현 후 통합). 남은 건 사용자 GAS 배포·시크릿·트리거·E2E. 상세는 `docs/TODO.md`.
+1단계 스펙✅ · 2 디자인✅ · 3 슬라이스✅ · 3.5 리소스✅ · 4 구현 S1~S7✅(79 test pass).
+**배포 완료** — GAS Web App 배포 + GitHub Pages 라이브 + E2E(생성→신청→명단조회) 검증 통과.
+운영자 토큰은 Script Property `OPERATOR_TOKEN`에 보관(최초 `setup()` 실행 시 발급).
+**남은 2차 작업**: SOLAPI 알림톡 템플릿 승인·시크릿, Notion 토큰·DB공유, `dailyTrigger` 시간트리거 등록. 상세 `docs/TODO.md`.
