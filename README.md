@@ -32,14 +32,19 @@ design-system/ MASTER.md (테마: 갓생 코랄)
 - **포트**: 3060 (로컬 정적 서버)
 
 ## 배포링크
-- **프로덕션 URL(참가자/운영자)**: https://gobangmkt.github.io/challenge-automation/
-  - 참가자 신청: `…/?c=<challengeId>` · 운영센터: `…/#/admin`
+- **운영자 허브(admin)**: https://gobangmkt.github.io/challenge-automation/admin.html
+  - 사이드바 hub: 캠페인 허브 · 캠페인 생성 · 관리·마케팅 · 운영(주차). 운영 토큰으로 인증.
+- **참가자 신청 상세페이지**: https://gobangmkt.github.io/challenge-automation/?c=`<challengeId>`
+  - 리치 랜딩(태그라인·혜택·일정·활동비) + 신청. `#submit` 주차제출 · `#wrapup` 마무리.
 - **GitHub repo**: https://github.com/gobangMkt/challenge-automation
 - **GAS Web App 엔드포인트**: `public/js/config.js`의 `GAS_ENDPOINT` (시트 바인딩 Apps Script, 익명 접근)
-- **데이터 시트**: container-bound 스프레드시트 (시트ID는 운영자 보관)
+- **데이터 시트**: container-bound 스프레드시트 (Participants/Challenges/WeekMissions/Submissions/Wrapup/NotifyLog/Campaigns)
 
 ## 현재 상태
-1단계 스펙✅ · 2 디자인✅ · 3 슬라이스✅ · 3.5 리소스✅ · 4 구현 S1~S7✅(79 test pass).
-**배포 완료** — GAS Web App 배포 + GitHub Pages 라이브 + E2E(생성→신청→명단조회) 검증 통과.
-운영자 토큰은 Script Property `OPERATOR_TOKEN`에 보관(최초 `setup()` 실행 시 발급).
+**Admin Hub 재설계 완료** (2026-06-13) — 0.CS도움앱식 사이드바 레지스트리 hub 차용.
+- 캠페인 생성(노션 상세데이터→신청 상세랜딩 자동생성) / 관리·마케팅(명단·선발·우수선정·배포링크·QR) / 운영(주차 오픈·검수).
+- GAS 신규 액션: campaigns·campaignDetail·saveCampaign·setExcellent·missions·openWeek·weekSubmissions·reviewSubmission.
+- 풀 E2E 11단계 통과: 캠페인생성→랜딩→신청→선발→우수→주차오픈→제출→검수→집계.
+- ⚠️ 함수명 충돌 주의: Automation.gs의 `openWeek_(c,week)`와 분리 위해 hub용은 `hubOpenWeek_`.
+
 **남은 2차 작업**: SOLAPI 알림톡 템플릿 승인·시크릿, Notion 토큰·DB공유, `dailyTrigger` 시간트리거 등록. 상세 `docs/TODO.md`.
