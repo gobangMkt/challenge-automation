@@ -71,6 +71,11 @@ function operatorToken_() {
 
 // ---------- 엔드포인트 ----------
 function doPost(e) {
+  try { return doPostInner_(e); }
+  catch (err) { return json_({ ok: false, error: 'exception', message: String(err && err.message || err) }); }
+}
+
+function doPostInner_(e) {
   var body = {};
   try { body = JSON.parse(e.postData.contents); } catch (err) { body = {}; }
   switch (body.action) {
@@ -84,7 +89,7 @@ function doPost(e) {
     case 'resend': return resend_(body);                // S6 수동 재발송
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
-    case 'openWeek': return openWeek_(body);            // Hub 주차 오픈/마감
+    case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
     case 'reviewSubmission': return reviewSubmission_(body); // Hub 제출 검수
     default: return json_({ ok: false, error: 'unknown_action' });
   }

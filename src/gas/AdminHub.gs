@@ -175,7 +175,8 @@ function missions_(p) {
 }
 
 // ---------- 액션: 주차 오픈/마감/대기 (운영 — 주단위 페이지 생성) ----------
-function openWeek_(body) {
+// 주의: Automation.gs에 동명 openWeek_(c,week)가 있어 hub 접두사로 분리.
+function hubOpenWeek_(body) {
   if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
   if (!body.challengeId) return json_({ ok: false, error: 'challenge_required' });
   var round = parseInt(body.round, 10);
