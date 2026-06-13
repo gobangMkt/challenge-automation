@@ -82,6 +82,10 @@ function doPost(e) {
     case 'submit': return submit_(body);                // S4 주차제출
     case 'wrapup': return wrapup_(body);                // S7 마무리
     case 'resend': return resend_(body);                // S6 수동 재발송
+    case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
+    case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
+    case 'openWeek': return openWeek_(body);            // Hub 주차 오픈/마감
+    case 'reviewSubmission': return reviewSubmission_(body); // Hub 제출 검수
     default: return json_({ ok: false, error: 'unknown_action' });
   }
 }
@@ -94,6 +98,10 @@ function doGet(e) {
     case 'matrix': return matrix_(p);                   // S5 매트릭스
     case 'notifyLog': return notifyLog_(p);             // S6 알림로그
     case 'settlement': return settlement_(p);           // S7 정산
+    case 'campaigns': return campaigns_(p);             // Hub 캠페인 목록
+    case 'campaignDetail': return campaignDetail_(p);   // Hub 캠페인 상세(공개)
+    case 'missions': return missions_(p);               // Hub 주차 미션 목록
+    case 'weekSubmissions': return weekSubmissions_(p); // Hub 그 주 제출현황
     default: return json_({ ok: false, error: 'unknown_action' });
   }
 }
