@@ -113,16 +113,15 @@ a { color: var(--lp-primary); }
 
 /* 자동변환 리스트(소개·프로즈) */
 .rich-p { margin: 0 0 10px; } .rich-p:last-child { margin-bottom: 0; }
-.rich-list { list-style: none; margin: 4px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.rich-list li { position: relative; padding-left: 24px; line-height: 1.6; }
+.rich-list { list-style: none; margin: 4px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.rich-list li { position: relative; padding-left: 24px; line-height: 1.5; }
 ul.rich-list li::before { content: ''; position: absolute; left: 7px; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-primary); }
 ol.rich-list { counter-reset: ri; } ol.rich-list li { counter-increment: ri; }
 ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 6px; background: var(--lp-surface2); color: var(--lp-primary); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-/* 붙여넣은 문건 소제목(섹션 구분 강조)·구분선 */
-.rich-h { font-weight: 800; font-size: 17px; color: var(--lp-ink); margin: 26px 0 12px; padding-top: 20px; border-top: 1px solid var(--color-border); display: flex; align-items: center; gap: 9px; letter-spacing: -0.01em; }
-.rich-h:first-child { padding-top: 0; border-top: 0; margin-top: 2px; }
-.rich-h::before { content: ''; width: 6px; height: 18px; border-radius: 3px; background: var(--lp-primary); flex: none; }
-.rich-hr { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0; }
+/* 붙여넣은 문건 소제목 = 섹션 헤더 밴드 (작성가이드/참고하세요 구분) */
+.rich-h { background: var(--lp-surface2); border-left: 4px solid var(--lp-primary); border-radius: 8px; padding: 11px 14px; font-weight: 800; font-size: 16px; color: var(--lp-ink); margin: 24px 0 12px; letter-spacing: -0.01em; }
+.rich-h:first-child { margin-top: 4px; }
+.rich-hr { border: 0; border-top: 1px solid var(--color-border); margin: 18px 0; }
 
 /* 주차 미션 (제출 페이지) */
 .wk-title { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--lp-ink); margin: 4px 0 14px; }
@@ -140,17 +139,23 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-body { color: #4A4F5C; }
 .wk-body .rich-h:first-child { margin-top: 0; }
 
-/* 교재 상시 배너 (상단) */
-.edu-banner { display: flex; align-items: center; gap: 12px; background: var(--lp-hero-bg); color: #fff; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; text-decoration: none; }
-.edu-banner__tag { flex: none; font-size: 11px; font-weight: 700; background: var(--lp-pop); color: var(--lp-pop-ink); padding: 4px 10px; border-radius: 6px; }
-.edu-banner__txt { flex: 1; font-weight: 700; }
+/* 교재 상시 배너 = 버튼형 (상단) */
+.edu-banner { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--lp-primary); color: #fff; border-radius: 12px; padding: 15px 18px; margin-bottom: 18px; text-decoration: none; font-weight: 800; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); transition: filter .15s, transform .12s; }
+.edu-banner:hover { filter: brightness(.94); transform: translateY(-1px); }
+.edu-banner:active { transform: translateY(0); }
+.edu-banner__tag { flex: none; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.22); color: #fff; padding: 4px 10px; border-radius: 6px; }
+.edu-banner__txt { font-weight: 800; }
 .edu-banner__go { flex: none; font-weight: 800; }
 
 /* 이번 주 미션 자료 세트 */
 .wk-set { background: var(--lp-surface2); border: 1px solid var(--color-border); border-radius: 14px; padding: 16px; margin: 4px 0 18px; }
 .wk-set__head { font-size: 12px; font-weight: 800; color: var(--lp-primary); letter-spacing: .03em; margin-bottom: 12px; }
-.wk-set .wk-ref { margin-bottom: 12px; }
-.wk-set .wk-kw { margin-bottom: 0; }
+.wk-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+.wk-row + .wk-row { border-top: 1px solid var(--color-border); }
+.wk-row__tag { flex: none; width: 58px; text-align: center; font-size: 11px; font-weight: 700; color: #fff; background: var(--lp-primary); padding: 6px 0; border-radius: 7px; }
+.wk-row__val { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.wk-row__val .wk-ref__a { font-size: 15px; }
+.wk-row__val .wk-kw__chip { font-size: 14px; }
 
 /* 제출 섹션 강조 */
 .wk-submit { border: 2px solid var(--lp-primary); }
