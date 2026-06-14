@@ -1,5 +1,17 @@
-/* 블로그 챌린지 — 공유 디자인 토큰 + 컴포넌트 (테마: 갓생 코랄) */
+/* 블로그 챌린지 — 공유 디자인 토큰 + 컴포넌트 (테마: 갓생 워크북) */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+/* 디스플레이 폰트 — Gmarket Sans (둥글·친근, 갓생 톤) */
+@font-face {
+  font-family: 'GmarketSans';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');
+  font-weight: 700; font-display: swap;
+}
+@font-face {
+  font-family: 'GmarketSans';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+  font-weight: 500; font-display: swap;
+}
 
 :root {
   /* 컬러 (MASTER.md 시맨틱 토큰) */
@@ -33,7 +45,9 @@
   --shadow-pop: 0 8px 24px rgba(42,35,32,.12);
 
   --font-ui: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'GmarketSans', 'Pretendard Variable', system-ui, sans-serif;
   --sidebar-w: 244px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,13 +55,25 @@ html, body { height: 100%; }
 body {
   font-family: var(--font-ui);
   color: var(--color-ink);
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  /* 웜 그레인/도트 텍스처 — 단색 배경 탈피, 깊이감 */
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(232,80,63,0.05) 1px, transparent 0);
+  background-size: 22px 22px;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
+h1, h2, h3, .display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; }
 .mono, .tnum { font-variant-numeric: tabular-nums; }
 a { color: var(--color-primary); }
+
+/* 페이지 로드 스태거 진입 */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.reveal { animation: fadeUp .5s var(--ease-out) both; }
+.reveal-1 { animation-delay: .05s; } .reveal-2 { animation-delay: .12s; }
+.reveal-3 { animation-delay: .19s; } .reveal-4 { animation-delay: .26s; }
+:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: 2px; border-radius: 6px; }
 
 /* ---------- 버튼 ---------- */
 .btn {
@@ -59,8 +85,9 @@ a { color: var(--color-primary); }
   white-space: nowrap;
 }
 .btn:active { transform: translateY(1px); }
-.btn--primary { background: var(--color-primary); color: #fff; }
-.btn--primary:hover { background: var(--color-primary-hover); }
+.btn--primary { background: var(--color-primary); color: #fff; box-shadow: 0 2px 0 var(--color-primary-hover); }
+.btn--primary:hover { background: var(--color-primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,80,63,.3); }
+.btn--primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--color-primary-hover); }
 .btn--secondary { background: transparent; color: var(--color-primary); box-shadow: inset 0 0 0 1.5px var(--color-primary); }
 .btn--ghost { background: transparent; color: var(--color-ink-muted); min-height: 36px; padding: 0 10px; }
 .btn--ghost:hover { background: var(--color-primary-soft); color: var(--color-primary); }
@@ -136,4 +163,4 @@ a { color: var(--color-primary); }
 .btn .spinner { width: 16px; height: 16px; border-width: 2px; border-top-color: #fff; border-color: rgba(255,255,255,.4); border-top-color: #fff; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .spinner { animation-duration: 1.4s; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .reveal { animation: none !important; } .spinner { animation-duration: 1.4s; } }

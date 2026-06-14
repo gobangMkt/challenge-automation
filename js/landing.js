@@ -42,10 +42,10 @@ function rewardSection(d, c) {
       const range = next ? (next.min - 1 > t.min ? `${t.min}~${next.min - 1}개` : `${t.min}개`) : `${t.min}개 이상`;
       return `<tr><td>${esc(range)} 작성</td><td class="num"><b>${Number(t.amount).toLocaleString()}P</b></td></tr>`;
     }).join('');
-    return `<section class="sec"><h2 class="sec__title">리워드 (네이버페이 포인트)</h2>
-      <div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr>
-        <th>작성 개수</th><th class="num">네이버페이</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted center" style="margin-top:8px">작성 개수가 많을수록 ↑ · 우수활동자는 ×2</p></section>`;
+    return `<section class="sec"><h2 class="sec__title">리워드</h2>
+      <div class="card" style="padding:6px;overflow:hidden"><table class="reward-table"><thead><tr>
+        <th>작성 개수</th><th class="num">네이버페이 포인트</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted center" style="margin-top:10px">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 ×2</p></section>`;
   }
   const amt = Number(d.rewardAmount || c.rewardPerPost || 0);
   if (!amt) return '';
@@ -61,12 +61,12 @@ function renderLanding() {
   const benefits = Array.isArray(d.benefits) ? d.benefits : [];
   app.innerHTML = `
     <header class="hero">
-      ${d.tagline ? `<span class="hero__tag">${esc(d.tagline)}</span>` : ''}
-      <h1 class="hero__title">${esc(c.name)} <span class="star">★</span></h1>
-      ${d.concept ? `<p class="hero__sub">${esc(d.concept)}</p>` : ''}
-      <div class="hero__meta">
+      ${d.tagline ? `<span class="hero__tag reveal reveal-1">${esc(d.tagline)}</span>` : ''}
+      <h1 class="hero__title reveal reveal-2"><span class="hl">${esc(c.name)}</span> <span class="star">★</span></h1>
+      ${d.concept ? `<p class="hero__sub reveal reveal-3">${esc(d.concept)}</p>` : ''}
+      <div class="hero__meta reveal reveal-4">
         <span class="badge badge--accent">${esc(c.totalRounds || 10)}주 과정</span>
-        ${c.rewardPerPost ? `<span class="badge badge--primary">제출당 활동비 지급</span>` : ''}
+        ${(d.rewardAmount || c.rewardPerPost) ? `<span class="badge badge--primary">네이버페이 리워드</span>` : ''}
         <span class="badge ${closed ? 'badge--danger' : 'badge--success'}">${closed ? '모집 마감' : '모집 중'}</span>
       </div>
     </header>

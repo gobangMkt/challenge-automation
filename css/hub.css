@@ -85,8 +85,22 @@
 .copybox { display: flex; gap: 8px; align-items: center; }
 .copybox input { font-size: 14px; }
 
+/* 디스플레이 폰트 강조 */
+.brand, .crumbs__cur, .page-head__title, .camp-card__name, .sechead__title, .card__title { font-family: var(--font-display); }
+.stat__n, .statbar .pill b { font-family: var(--font-display); }
+
+/* 홈 카드 스태거 진입 */
+.grid .camp-card { animation: fadeUp .45s var(--ease-out) both; }
+.grid .camp-card:nth-child(1) { animation-delay: .03s; }
+.grid .camp-card:nth-child(2) { animation-delay: .09s; }
+.grid .camp-card:nth-child(3) { animation-delay: .15s; }
+.grid .camp-card:nth-child(4) { animation-delay: .21s; }
+.grid .camp-card:nth-child(5) { animation-delay: .27s; }
+.grid .camp-card:nth-child(n+6) { animation-delay: .33s; }
+
 @media (max-width: 720px) {
   .appbar__in, .appbar__tabs, .content { padding-left: 16px; padding-right: 16px; }
   .row2 { grid-template-columns: 1fr; }
   .appbar__tab { padding: 12px 12px; }
 }
+@media (prefers-reduced-motion: reduce) { .grid .camp-card { animation: none; } }
