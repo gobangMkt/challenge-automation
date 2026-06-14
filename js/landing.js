@@ -23,6 +23,9 @@ const maskPhone = (v) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 const bindPhone = (input) => { if (input) input.addEventListener('input', () => { input.value = maskPhone(input.value); }); };
+// 키워드 문자열 → 칩 (쉼표/줄 구분, # 자동)
+const kwChips = (s) => String(s || '').split(/[,\n]/).map((k) => k.trim()).filter(Boolean)
+  .map((k) => `<span class="wk-kw__chip">${esc(k[0] === '#' ? k : '#' + k)}</span>`).join('');
 
 // 줄머리 불렛/번호 마커 제거 (★·☆·▶ 등 포함)
 const BULLET = '[-•*·–—▪◦‣★☆◆▶▷✓✔]';
@@ -294,9 +297,10 @@ async function loadStatus() {
     <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
       ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
       <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
-      <h3 class="wk-title">${esc(cur.title || '이번 주 미션')}</h3>
+      <h3 class="wk-title">${esc(DATA.challenge.name)}</h3>
       ${materials.length ? `<div class="wk-links">${materials.join('')}</div>` : ''}
-      ${cur.body ? `<div class="prose wk-body">${richText(cur.body)}</div>` : ''}
+      ${cur.body ? `<div class="wk-kw"><span class="wk-kw__label">이번 주 키워드</span><span class="wk-kw__chips">${kwChips(cur.body)}</span></div>` : ''}
+      ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}
       <div class="field" style="margin-top:18px"><label class="field__label">이번 주 작성한 게시물 URL</label>
         <input class="input" id="s-url" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(cur.submittedUrl || '')}" /></div>
       <button class="btn btn--primary btn--block" id="s-do">${cur.submitted ? '제출 수정' : '제출하기'}</button>

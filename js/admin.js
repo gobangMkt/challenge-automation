@@ -642,6 +642,9 @@ async function drawOperate(camp) {
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
         ${gd.eduName ? `<div class="field__hint">현재: <b>${esc(gd.eduName)}</b></div>` : '<div class="field__hint">저장 시 링크 제목을 자동으로 가져옵니다.</div>'}</div>
+      <div class="field"><label class="field__label">작성 가이드 (매주 공통 · 미션 안내 본문)</label>
+        <textarea class="textarea" id="g-guide" style="min-height:240px" placeholder="콘텐츠 작성 방식 · 제목 작성 규칙 · 이미지 사용 · 게시물 하단 문구 등 (매주 동일)">${esc(gd.guide || '')}</textarea>
+        <div class="field__hint">자동 서식: ★★소제목★★ / ------- / 리스트 / **강조**.</div></div>
       <div class="field"><label class="field__label">참고하세요 (유의사항 · 제출 화면 하단 노출)</label>
         <textarea class="textarea" id="g-notice" style="min-height:200px" placeholder="제출 마감 정책 · 리워드 안내 · 우등생 선정기준 · 제외 대상 등">${esc(gd.notice || '')}</textarea>
         <div class="field__hint">자동 서식: ★★소제목★★ / ------- / 리스트 / **강조**.</div></div>
@@ -649,7 +652,7 @@ async function drawOperate(camp) {
     </div>`;
   el('g-save').addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), notice: el('g-notice').value })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), guide: el('g-guide').value, notice: el('g-notice').value })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
     if (rr.ok) { toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
@@ -682,17 +685,17 @@ async function drawWeek(camp, round, weeks) {
           ${status === '오픈' ? `<button class="btn btn--secondary btn--sm" id="close">마감</button>` : ''}
         </div>
       </div>
-      <div class="field" style="margin-top:16px"><label class="field__label">미션 제목</label>
-        <input class="input" id="m-title" value="${esc(wm['미션제목'] || '')}" placeholder="예: 1주차 키워드 글쓰기" /></div>
-      <div class="field"><label class="field__label">참고 아티클 URL</label>
-        <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명은 URL에서 자동 추출)" />
-        ${wm['articleName'] ? `<div class="field__hint">현재 아티클: <b>${esc(wm['articleName'])}</b></div>` : '<div class="field__hint">저장 시 링크 제목을 자동으로 가져옵니다.</div>'}</div>
-      <div class="field"><label class="field__label">주차 안내문 (전체)</label>
-        <textarea class="textarea" id="m-body" style="min-height:340px" placeholder="교재·아티클·키워드·작성가이드·제출마감·리워드·우등생 선정기준·유의사항 등 안내문 전체를 붙여넣기.">${esc(wm['미션본문'] || '')}</textarea>
-        <div class="field__hint">자동 서식: 빈 줄=문단, <b>★★ 소제목 ★★</b>=소제목, <b>-------</b>=구분선, <b>- / 1.</b>=리스트, <b>**굵게**</b>·느낌표 문장=강조.</div></div>
+      <p class="muted" style="margin-top:14px;font-size:13px">이번 주는 <b>아티클 URL · 키워드</b>만 입력하면 됩니다. 작성가이드·교육자료·유의사항은 <b>전역 설정</b>에서 관리됩니다.</p>
+      <div class="row2">
+        <div class="field"><label class="field__label">참고 아티클 URL</label>
+          <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명 자동 추출)" />
+          ${wm['articleName'] ? `<div class="field__hint">현재: <b>${esc(wm['articleName'])}</b></div>` : '<div class="field__hint">저장 시 제목 자동 추출</div>'}</div>
+        <div class="field"><label class="field__label">키워드</label>
+          <input class="input" id="m-keyword" value="${esc(wm['미션본문'] || '')}" placeholder="예: #고시원준비물 (여러 개면 쉼표)" /></div>
+      </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn--secondary btn--sm" id="m-save">미션 저장</button>
-        <span class="muted" style="font-size:13px">발송(열기) 전에 미션을 저장하세요.</span>
+        <button class="btn btn--secondary btn--sm" id="m-save">이번 주 저장</button>
+        <span class="muted" style="font-size:13px">발송(열기) 전에 저장하세요.</span>
       </div>
     </div>
     <div class="statbar">
@@ -714,8 +717,8 @@ async function drawWeek(camp, round, weeks) {
     </tbody></table></div>`;
   el('m-save')?.addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
-    e.target.disabled = false; e.target.textContent = '미션 저장';
+    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: el('m-keyword').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
+    e.target.disabled = false; e.target.textContent = '이번 주 저장';
     if (rr.ok) { toast(`${round}주차 미션 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
