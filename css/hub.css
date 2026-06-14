@@ -66,6 +66,14 @@
 .stat__n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; display: block; }
 .stat__l { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); }
 .camp-card--new { border-style: dashed; align-items: center; justify-content: center; color: var(--color-primary); font-weight: 700; min-height: 160px; font-size: 16px; }
+.camp-card__actions { display: flex; gap: 4px; align-items: center; flex: none; }
+
+/* 홈 카드 진행률 */
+.camp-prog { margin-top: 4px; }
+.camp-prog__head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--color-ink-faint); margin-bottom: 6px; }
+.camp-prog__head b { font-family: var(--font-mono); font-size: 13px; color: var(--color-primary); font-weight: 600; }
+.camp-prog__track { height: 7px; border-radius: var(--radius-pill); background: var(--color-surface-2); overflow: hidden; }
+.camp-prog__track i { display: block; height: 100%; background: var(--color-primary); border-radius: var(--radius-pill); transition: width .3s var(--ease-out); }
 
 /* 통계 띠 */
 .statbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
