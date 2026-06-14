@@ -54,7 +54,10 @@ function renderLanding() {
         <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(b)}</span></li>`).join('')}</ul></section>` : ''}
       ${d.scheduleText ? `<section class="sec"><h2 class="sec__title">일정</h2><p class="prose">${esc(d.scheduleText)}</p></section>` : ''}
       ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><p class="prose">${esc(d.eligibility)}</p></section>` : ''}
-      ${c.rewardPerPost ? `<section class="sec"><div class="reward-card">매주 실습 제출마다 활동비 적립<br><b>제출 1건당 ${Number(c.rewardPerPost).toLocaleString()}원</b><br><span class="muted">우수활동자는 리워드 2배</span></div></section>` : ''}
+      ${(d.rewardAmount || c.rewardPerPost) ? `<section class="sec"><div class="reward-card">
+        ${d.rewardType === 'per_milestone' ? '목표 달성 시 리워드 지급' : '매주 실습 제출마다 리워드 적립'}<br>
+        <b>${d.rewardType === 'per_milestone' ? '달성당' : '건당'} ${Number(d.rewardAmount || c.rewardPerPost).toLocaleString()}원</b><br>
+        <span class="muted">우수활동자는 리워드 ×2 (그레이드)</span></div></section>` : ''}
 
       <section class="sec apply-card" id="apply">
         <h2 class="sec__title">참가 신청</h2>
