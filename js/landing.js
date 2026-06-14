@@ -295,8 +295,8 @@ async function loadStatus() {
       <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
       <h3 class="wk-title">${esc(DATA.challenge.name)}</h3>
       ${(articleRef || cur.body) ? `<div class="wk-set"><div class="wk-set__head">이번 주 미션 자료</div>
-        ${articleRef ? `<div class="wk-ref"><span class="wk-ref__tag wk-ref__tag--hot">아티클</span>${articleRef}</div>` : ''}
-        ${cur.body ? `<div class="wk-kw"><span class="wk-kw__label">키워드</span><span class="wk-kw__chips">${kwChips(cur.body)}</span></div>` : ''}
+        ${articleRef ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val">${articleRef}</div></div>` : ''}
+        ${cur.body ? `<div class="wk-row"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(cur.body)}</div></div>` : ''}
       </div>` : ''}
       ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}` }
     </div>
