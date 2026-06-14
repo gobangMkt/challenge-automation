@@ -15,6 +15,14 @@ const normPhone = (raw) => {
   const d = String(raw || '').replace(/\D/g, '');
   return /^010\d{8}$/.test(d) ? d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7) : null;
 };
+// 입력 중 자동 하이픈 (010-0000-0000)
+const maskPhone = (v) => {
+  const d = String(v || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length < 4) return d;
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+};
+const bindPhone = (input) => { if (input) input.addEventListener('input', () => { input.value = maskPhone(input.value); }); };
 
 // 줄머리 불렛/번호 마커 제거 (★·☆·▶ 등 포함)
 const BULLET = '[-•*·–—▪◦‣★☆◆▶▷✓✔]';
@@ -203,6 +211,7 @@ function renderLanding() {
     </div>`;
 
   if (closed) return;
+  bindPhone($('#a-phone'));
   $('#a-submit').addEventListener('click', async (e) => {
     const name = $('#a-name').value.trim();
     const phone = $('#a-phone').value.trim();
@@ -227,8 +236,8 @@ function renderDone(title, sub) {
   const c = DATA.challenge;
   app.innerHTML = `<div class="wrap"><div class="done">
     <div class="done__icon">✓</div>
-    <h1 style="font-size:24px;font-weight:800">${esc(title)}</h1>
-    <p class="muted" style="margin-top:10px">${esc(sub)}</p>
+    <h1 class="done__title">${esc(title)}</h1>
+    <p class="muted" style="margin-top:12px">${esc(sub)}</p>
     <div class="linkbtns">
       <a class="btn btn--secondary btn--sm" href="#submit">주차 제출하기</a>
       ${c.openchatUrl ? `<a class="btn btn--primary btn--sm" href="${esc(c.openchatUrl)}" target="_blank">오픈카톡</a>` : ''}
@@ -251,6 +260,7 @@ function renderSubmit() {
     <div id="s-status"></div>
     <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#wrapup">마무리 제출</a></p>
   </div>`;
+  bindPhone($('#s-phone'));
   $('#s-check').addEventListener('click', loadStatus);
   $('#s-phone').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
 }
@@ -305,6 +315,7 @@ function renderWrapup() {
     </div>
     <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a></p>
   </div>`;
+  bindPhone($('#w-phone'));
   $('#w-do').addEventListener('click', async (e) => {
     const phone = $('#w-phone').value.trim();
     const blogUrl = $('#w-blog').value.trim();
