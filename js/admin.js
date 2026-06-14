@@ -408,10 +408,38 @@ async function renderWorkspace(id, tab) {
   return drawMarketing(camp);
 }
 
+/* ---------- 업로드 사이트 (Notion '서포터즈 모집 사이트 리스트' 상태=사용 기준) ---------- */
+const UPLOAD_SITES = [
+  { name: '요즘것들', url: 'https://allforyoung.com/', loginId: 'neoflatworks2@gmail.com', tags: ['웹사이트'] },
+  { name: 'LINKareer', url: 'https://linkareer.com/', loginId: 'neoflatworks2', tags: ['웹사이트'] },
+  { name: 'Contest KOREA', url: 'https://www.contestkorea.com/', loginId: 'neoflatworks2', tags: ['웹사이트'] },
+  { name: 'Spectory (스펙토리)', url: 'http://spectory.net/', loginId: 'neoflatworks2@gmail.com', tags: ['웹사이트'] },
+  { name: '스펙업', url: 'https://cafe.naver.com/specup', loginId: 'muggle0707', tags: ['네이버카페'], note: '대외활동│서포터즈' },
+  { name: '독취사', url: 'https://cafe.naver.com/dokchi', loginId: 'muggle0707', tags: ['네이버카페'] },
+  { name: '씽유', url: 'https://thinkyou.co.kr/', loginId: 'neoflatworks2', tags: ['웹사이트'] },
+  { name: '씽긋', url: 'https://www.thinkcontest.com/thinkgood/index.do', loginId: 'neoflatworks2', tags: ['웹사이트'] },
+];
+const uploadKey = (id) => `challenge.upload.${id}`;
+const getUploaded = (id) => { try { return new Set(JSON.parse(localStorage.getItem(uploadKey(id)) || '[]')); } catch (e) { return new Set(); } };
+const setUploaded = (id, set) => localStorage.setItem(uploadKey(id), JSON.stringify([...set]));
+
 /* ---------- 탭: 마케팅 ---------- */
 async function drawMarketing(camp) {
   const id = camp.challengeId;
   const link = landingUrl(id);
+  const done = getUploaded(id);
+  const sitesHtml = UPLOAD_SITES.map((s) => `
+    <li class="usite ${done.has(s.name) ? 'is-done' : ''}">
+      <label class="usite__chk"><input type="checkbox" data-name="${esc(s.name)}" ${done.has(s.name) ? 'checked' : ''} /></label>
+      <div class="usite__main">
+        <div class="usite__top"><span class="usite__name">${esc(s.name)}</span>
+          ${s.tags.map((t) => `<span class="badge">${esc(t)}</span>`).join('')}</div>
+        <div class="usite__meta"><span>ID <b>${esc(s.loginId)}</b></span>
+          <button class="btn btn--ghost btn--sm js-cpid" data-id="${esc(s.loginId)}">ID 복사</button>
+          ${s.note ? `<span class="usite__note">${esc(s.note)}</span>` : ''}</div>
+      </div>
+      <a class="btn btn--secondary btn--sm" href="${esc(s.url)}" target="_blank" rel="noopener">열기</a>
+    </li>`).join('');
   el('content').innerHTML = `
     ${sechead('mkt')}
     <div class="card"><div class="card__title">신청 상세페이지 배포</div>
@@ -422,14 +450,30 @@ async function drawMarketing(camp) {
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn--primary btn--sm" id="editCamp">상세 내용 수정</button>
         <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
-        ${camp.openchatUrl ? `<a class="btn btn--secondary btn--sm" target="_blank" href="${esc(camp.openchatUrl)}">오픈카톡으로 공유</a>` : ''}
       </div>
+    </div>
+    <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
+      <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
+      <ul class="usites">${sitesHtml}</ul>
     </div>
     <div class="card"><div class="card__title">상세페이지 미리보기</div>
       <iframe src="${esc(link)}" style="width:100%;height:560px;border:1px solid var(--color-border);border-radius:12px"></iframe>
     </div>`;
   el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
+  const refreshCount = () => { el('uploadCount').textContent = `${getUploaded(id).size}/${UPLOAD_SITES.length}`; };
+  refreshCount();
+  el('content').querySelectorAll('.usite input[type=checkbox]').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      const set = getUploaded(id);
+      if (cb.checked) set.add(cb.dataset.name); else set.delete(cb.dataset.name);
+      setUploaded(id, set);
+      cb.closest('.usite').classList.toggle('is-done', cb.checked);
+      refreshCount();
+    });
+  });
+  el('content').querySelectorAll('.js-cpid').forEach((b) =>
+    b.addEventListener('click', () => { navigator.clipboard.writeText(b.dataset.id); toast('ID 복사됨'); }));
 }
 
 /* ---------- 탭: 관리 ---------- */

@@ -87,6 +87,21 @@
 .copybox { display: flex; gap: 8px; align-items: center; }
 .copybox input { font-size: 14px; }
 
+/* 업로드 사이트 체크리스트 */
+.usites { list-style: none; display: flex; flex-direction: column; gap: 0; }
+.usite { display: flex; align-items: center; gap: 14px; padding: 14px 2px; border-bottom: 1px solid var(--color-border); }
+.usite:last-child { border-bottom: 0; }
+.usite__chk { flex: none; display: flex; align-items: center; }
+.usite__chk input { width: 20px; height: 20px; accent-color: var(--color-primary); cursor: pointer; }
+.usite__main { flex: 1; min-width: 0; }
+.usite__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.usite__name { font-weight: 700; font-size: 15px; }
+.usite__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--color-ink-faint); }
+.usite__meta b { font-family: var(--font-mono); color: var(--color-ink-muted); font-weight: 500; }
+.usite__note { color: var(--color-ink-muted); }
+.usite.is-done { opacity: .55; }
+.usite.is-done .usite__name { text-decoration: line-through; }
+
 /* 생성/저장 진행률 */
 .genprog { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .genprog__track { flex: 1; max-width: 280px; height: 8px; border-radius: var(--radius-pill); background: var(--color-surface-2); overflow: hidden; }
