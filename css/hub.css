@@ -30,8 +30,8 @@
 .sechead { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: var(--radius-lg); margin-bottom: 22px; border: 1px solid var(--color-border); border-left-width: 5px; background: var(--color-surface); box-shadow: var(--shadow-card); }
 .sechead__icon { width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
 .sechead__icon svg { width: 24px; height: 24px; }
-.sechead__title { font-size: 18px; font-weight: 800; }
-.sechead__desc { font-size: 13px; color: var(--color-ink-muted); margin-top: 2px; }
+.sechead__title { font-size: 20px; font-weight: 800; }
+.sechead__desc { font-size: 14px; color: var(--color-ink-muted); margin-top: 3px; }
 .sec-mkt { border-left-color: var(--color-primary); }
 .sec-mkt .sechead__icon { background: var(--color-primary-soft); color: var(--color-primary); }
 .sec-manage { border-left-color: var(--color-success); }
@@ -43,7 +43,7 @@
 .content { padding: 28px; max-width: 1400px; margin: 0 auto; width: 100%; }
 .page-head { margin-bottom: var(--space-5); }
 .page-head__title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-.page-head__desc { color: var(--color-ink-muted); margin-top: 4px; }
+.page-head__desc { color: var(--color-ink-muted); margin-top: 4px; font-size: 15px; }
 .page-head__row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
 /* 토큰 게이트 */
