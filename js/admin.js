@@ -20,6 +20,7 @@ function toast(msg, err) {
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 const op = (extra) => ({ token: state.token, ...extra });
+const loading = (t = '불러오는 중…') => `<div class="loading"><span class="spinner"></span> ${t}</div>`;
 
 /* ---------- 아이콘 ---------- */
 const I = {
@@ -92,7 +93,7 @@ async function route() {
   const id = (location.hash.replace(/^#\//, '') || 'home').split('/')[0];
   const f = features.find((x) => x.id === id) || features[0];
   highlight(f.id);
-  el('content').innerHTML = '<p class="empty">불러오는 중…</p>';
+  el('content').innerHTML = loading();
   try { await f.render(); } catch (e) { el('content').innerHTML = `<div class="card">오류: ${esc(e.message)}</div>`; }
 }
 
@@ -280,7 +281,7 @@ async function drawPane(tab) {
   const pane = el('pane');
   if (!state.current) { pane.innerHTML = '<p class="empty">캠페인을 먼저 선택하세요.</p>'; return; }
   if (tab === 'mkt') return drawMarketing(pane);
-  pane.innerHTML = '<p class="empty">명단 불러오는 중…</p>';
+  pane.innerHTML = loading('명단 불러오는 중…');
   const r = await apiGet({ action: 'participants', token: state.token, challengeId: state.current });
   const rows = r.ok ? r.rows : [];
   const ex = await apiGet({ action: 'weekSubmissions', token: state.token, challengeId: state.current, round: 1 }).catch(() => ({}));
@@ -365,7 +366,7 @@ async function renderOperate() {
   if (state.current) loadWeeks();
 }
 async function loadWeeks() {
-  const wrap = el('weeks'); wrap.innerHTML = '<p class="empty">주차 불러오는 중…</p>';
+  const wrap = el('weeks'); wrap.innerHTML = loading('주차 불러오는 중…');
   const r = await apiGet({ action: 'missions', token: state.token, challengeId: state.current });
   const weeks = r.ok ? r.rows : [];
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; el('weekPane').innerHTML = ''; return; }
@@ -379,7 +380,7 @@ async function loadWeeks() {
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(Number(b.dataset.r), weeks); }));
 }
 async function drawWeek(round, weeks) {
-  const pane = el('weekPane'); pane.innerHTML = '<p class="empty">불러오는 중…</p>';
+  const pane = el('weekPane'); pane.innerHTML = loading();
   const wm = weeks.find((w) => Number(w['회차']) === round) || {};
   const status = wm['상태'] || '대기';
   const r = await apiGet({ action: 'weekSubmissions', token: state.token, challengeId: state.current, round });
