@@ -198,6 +198,29 @@ function hubOpenWeek_(body) {
   return json_({ ok: true, changed: changed, round: round, status: status });
 }
 
+// ---------- 액션: 단일 회차 미션 저장 (운영 — 발송 전 입력) ----------
+function saveMission_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  if (!body.challengeId) return json_({ ok: false, error: 'challenge_required' });
+  var round = parseInt(body.round, 10);
+  var sh = getSheet_(WEEKMISSIONS_SHEET, WEEKMISSION_HEADERS);
+  var values = sh.getDataRange().getValues();
+  var h = values[0];
+  var idC = h.indexOf('challengeId'), rC = h.indexOf('회차'),
+    tC = h.indexOf('미션제목'), bC = h.indexOf('미션본문'),
+    anC = h.indexOf('articleName'), auC = h.indexOf('articleUrl');
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idC]) === String(body.challengeId) && parseInt(values[i][rC], 10) === round) {
+      if (body.title != null) sh.getRange(i + 1, tC + 1).setValue(String(body.title));
+      if (body.body != null) sh.getRange(i + 1, bC + 1).setValue(String(body.body));
+      if (body.articleName != null) sh.getRange(i + 1, anC + 1).setValue(String(body.articleName));
+      if (body.articleUrl != null) sh.getRange(i + 1, auC + 1).setValue(String(body.articleUrl));
+      return json_({ ok: true, round: round });
+    }
+  }
+  return json_({ ok: false, error: 'not_found' });
+}
+
 // ---------- 액션: 그 주 제출현황 (운영 — 검수 대상) ----------
 function weekSubmissions_(p) {
   if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });

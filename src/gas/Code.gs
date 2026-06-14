@@ -90,6 +90,7 @@ function doPostInner_(e) {
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
     case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
+    case 'saveMission': return saveMission_(body);      // Hub 단일 회차 미션 저장
     case 'reviewSubmission': return reviewSubmission_(body); // Hub 제출 검수
     default: return json_({ ok: false, error: 'unknown_action' });
   }

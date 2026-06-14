@@ -150,17 +150,6 @@ async function renderHome() {
 
 /* ---------- 뷰: 캠페인 생성 ---------- */
 async function renderCampaign() {
-  const N = 10;
-  const missionRows = Array.from({ length: N }, (_, i) => `
-    <div class="mission-row">
-      <div class="mission-row__hd">${i + 1}회차</div>
-      <div class="row2">
-        <div class="field" style="margin:0"><input class="input" data-m="title" data-r="${i + 1}" placeholder="미션 제목 (예: 키워드 글쓰기)" /></div>
-        <div class="field" style="margin:0"><input class="input" data-m="articleUrl" data-r="${i + 1}" placeholder="참고 아티클 URL (선택)" /></div>
-      </div>
-      <div class="field" style="margin:8px 0 0"><textarea class="textarea" data-m="body" data-r="${i + 1}" placeholder="이번 주 미션 안내문 (알림톡·제출화면에 노출)"></textarea></div>
-    </div>`).join('');
-
   el('content').innerHTML = `
     <div class="page-head"><h1 class="page-head__title">캠페인 생성</h1>
       <p class="page-head__desc">노션에서 정리한 챌린지 상세를 입력하면 신청 상세페이지가 자동 생성됩니다.</p></div>
@@ -173,11 +162,17 @@ async function renderCampaign() {
           <input class="input tnum" id="f-rounds" type="number" value="10" min="1" /></div>
       </div>
       <div class="row2">
-        <div class="field"><label class="field__label">제출당 활동비(원)</label>
+        <div class="field"><label class="field__label">리워드 방식</label>
+          <select class="select" id="f-rewardType">
+            <option value="per_submission">건당 리워드 (제출 1건마다 적립)</option>
+            <option value="per_milestone">달성당 리워드 (목표 달성 시 지급)</option>
+          </select></div>
+        <div class="field"><label class="field__label">리워드 금액(원)</label>
           <input class="input tnum" id="f-reward" type="number" value="10000" min="0" /></div>
-        <div class="field"><label class="field__label">우수활동자 배수</label>
-          <input class="input tnum" id="f-mult" type="number" value="2" min="1" step="0.5" /></div>
       </div>
+      <div class="field" style="max-width:calc(50% - 6px)"><label class="field__label">우수활동자 배수 (그레이드)</label>
+        <input class="input tnum" id="f-mult" type="number" value="2" min="1" step="0.5" />
+        <div class="field__hint">우수 등급은 리워드 ×배수. 세부 등급은 추후 조정.</div></div>
       <div class="row2">
         <div class="field"><label class="field__label">모집 시작</label><input class="input" id="f-rs" type="date" /></div>
         <div class="field"><label class="field__label">모집 마감</label><input class="input" id="f-re" type="date" /></div>
@@ -205,8 +200,9 @@ async function renderCampaign() {
       </div>
     </div>
 
-    <div class="card"><div class="card__title">③ 회차별 미션 (선택 — 나중에 운영에서 입력 가능)</div>
-      ${missionRows}
+    <div class="card"><div class="card__title">③ 회차 미션</div>
+      <p class="muted">회차별 미션·참고 아티클은 <b>운영 탭</b>에서 매주 발송 전에 입력합니다.
+      여기서는 위 <b>총 회차</b> 수만큼 빈 회차가 자동 생성됩니다.</p>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:8px">
@@ -219,24 +215,20 @@ async function renderCampaign() {
   el('save').addEventListener('click', async (e) => {
     const name = el('f-name').value.trim();
     if (!name) return toast('캠페인명을 입력하세요.', true);
-    const missions = [];
-    el('content').querySelectorAll('.mission-row').forEach((row, i) => {
-      const g = (m) => row.querySelector(`[data-m="${m}"]`).value.trim();
-      const title = g('title'), body = g('body'), articleUrl = g('articleUrl');
-      if (title || body || articleUrl) missions.push({ round: i + 1, title, body, articleUrl });
-    });
+    const rewardType = el('f-rewardType').value;
+    const rewardAmount = Number(el('f-reward').value) || 0;
     const payload = op({
       action: 'saveCampaign', name,
       totalRounds: Number(el('f-rounds').value) || 10,
-      rewardPerPost: el('f-reward').value, excellentMultiplier: el('f-mult').value,
+      rewardPerPost: rewardAmount, excellentMultiplier: el('f-mult').value,
       모집시작: el('f-rs').value, 모집마감: el('f-re').value,
       발표일: el('f-ann').value, 시작일: el('f-start').value,
       openchatUrl: el('f-chat').value.trim(), status: '모집중',
-      missions,
       detail: {
         tagline: el('d-tag').value.trim(), concept: el('d-concept').value.trim(),
         benefits: el('d-benefits').value.split('\n').map((s) => s.trim()).filter(Boolean),
         eligibility: el('d-elig').value.trim(), scheduleText: el('d-sched').value.trim(),
+        rewardType, rewardAmount,
       },
     });
     e.target.disabled = true; e.target.textContent = '생성 중…';
@@ -266,15 +258,15 @@ async function renderManage() {
   el('content').innerHTML = `
     <div class="page-head"><h1 class="page-head__title">관리 · 마케팅</h1></div>
     ${campaignPicker()}
-    <div class="tabs"><button class="tab is-active" data-t="manage">관리 (명단·선발)</button>
-      <button class="tab" data-t="mkt">마케팅 (배포)</button></div>
+    <div class="tabs"><button class="tab is-active" data-t="mkt">마케팅 (배포)</button>
+      <button class="tab" data-t="manage">관리 (명단·선발)</button></div>
     <div id="pane"></div>`;
   const sel = el('campSel');
-  if (sel) sel.addEventListener('change', () => { setCurrent(sel.value); drawPane('manage'); setTab('manage'); });
+  if (sel) sel.addEventListener('change', () => { setCurrent(sel.value); drawPane('mkt'); setTab('mkt'); });
   el('content').querySelectorAll('.tab').forEach((t) =>
     t.addEventListener('click', () => { setTab(t.dataset.t); drawPane(t.dataset.t); }));
   function setTab(t) { el('content').querySelectorAll('.tab').forEach((x) => x.classList.toggle('is-active', x.dataset.t === t)); }
-  if (state.current) drawPane('manage'); else el('pane').innerHTML = '';
+  if (state.current) drawPane('mkt'); else el('pane').innerHTML = '';
 }
 
 async function drawPane(tab) {
@@ -387,14 +379,25 @@ async function drawWeek(round, weeks) {
   const submitted = r.ok ? r.submitted : [];
   const missing = r.ok ? r.missing : [];
   pane.innerHTML = `
-    <div class="card"><div class="page-head__row">
-      <div><div class="card__title" style="margin:0">${round}주차 — <span class="badge ${status === '오픈' ? 'badge--success' : 'badge'}">${esc(status)}</span></div>
-        <p class="muted" style="margin-top:6px">${esc(wm['미션제목'] || '미션 미입력')}</p></div>
-      <div style="display:flex;gap:8px">
-        ${status !== '오픈' ? `<button class="btn btn--primary btn--sm" id="open">이 주차 열기</button>` : ''}
-        ${status === '오픈' ? `<button class="btn btn--secondary btn--sm" id="close">마감</button>` : ''}
+    <div class="card">
+      <div class="page-head__row">
+        <div class="card__title" style="margin:0">${round}주차 <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? 'badge' : 'badge--accent'}">${esc(status)}</span></div>
+        <div style="display:flex;gap:8px">
+          ${status !== '오픈' ? `<button class="btn btn--primary btn--sm" id="open">이 주차 열기 (발송)</button>` : ''}
+          ${status === '오픈' ? `<button class="btn btn--secondary btn--sm" id="close">마감</button>` : ''}
+        </div>
       </div>
-    </div></div>
+      <div class="field" style="margin-top:16px"><label class="field__label">미션 제목</label>
+        <input class="input" id="m-title" value="${esc(wm['미션제목'] || '')}" placeholder="예: 1주차 키워드 글쓰기" /></div>
+      <div class="field"><label class="field__label">미션 안내문</label>
+        <textarea class="textarea" id="m-body" placeholder="이번 주 미션 안내 (제출화면·알림톡에 노출)">${esc(wm['미션본문'] || '')}</textarea></div>
+      <div class="field"><label class="field__label">참고 아티클 URL</label>
+        <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (이 자료 기반으로 미션 안내)" /></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn--secondary btn--sm" id="m-save">미션 저장</button>
+        <span class="muted" style="font-size:13px">발송(열기) 전에 미션을 저장하세요.</span>
+      </div>
+    </div>
     <div class="statbar">
       <div class="pill"><b class="tnum">${submitted.length}</b><span>제출</span></div>
       <div class="pill"><b class="tnum">${missing.length}</b><span>미제출(선발자)</span></div>
@@ -412,6 +415,16 @@ async function drawWeek(round, weeks) {
       ${missing.map((m) => `<tr><td class="muted">${esc(m.name)}</td><td colspan="3" class="muted">미제출</td>
         <td><span class="badge badge--danger">미제출</span></td></tr>`).join('')}
     </tbody></table></div>`;
+  el('m-save')?.addEventListener('click', async (e) => {
+    e.target.disabled = true; e.target.textContent = '저장 중…';
+    const r = await apiPost(op({
+      action: 'saveMission', challengeId: state.current, round,
+      title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleUrl: el('m-article').value.trim(),
+    })).catch(() => ({ ok: false }));
+    e.target.disabled = false; e.target.textContent = '미션 저장';
+    if (r.ok) { toast(`${round}주차 미션 저장됨`); loadWeeks().then(() => drawWeek(round, weeks)); }
+    else toast('저장 실패', true);
+  });
   el('open')?.addEventListener('click', () => setWeek(round, '오픈', weeks));
   el('close')?.addEventListener('click', () => setWeek(round, '마감', weeks));
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
