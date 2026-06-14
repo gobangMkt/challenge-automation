@@ -15,6 +15,39 @@ const normPhone = (raw) => {
   return /^010\d{8}$/.test(d) ? d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7) : null;
 };
 
+// 줄머리 불렛/번호 마커 제거
+const stripMarker = (s) => String(s || '').replace(/^\s*(?:[-•*·–▪◦‣]|\d+[.)])\s+/, '').trim();
+
+// 평문 → 불렛(-,•,*,·,–)·번호(1. 1)) 자동 리스트 변환. 빈 줄로 블록 분리.
+function richText(str) {
+  const lines = String(str == null ? '' : str).split('\n');
+  let html = '', type = null, buf = [];
+  const flush = () => {
+    if (type) html += `<${type} class="rich-list">${buf.map((li) => `<li>${esc(li)}</li>`).join('')}</${type}>`;
+    buf = []; type = null;
+  };
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (!l) { flush(); continue; }
+    const ul = l.match(/^(?:[-•*·–▪◦‣])\s+(.*)$/);
+    const ol = l.match(/^\d+[.)]\s+(.*)$/);
+    if (ul) { if (type !== 'ul') flush(), (type = 'ul'); buf.push(ul[1]); }
+    else if (ol) { if (type !== 'ol') flush(), (type = 'ol'); buf.push(ol[1]); }
+    else { flush(); html += `<p class="rich-p">${esc(l)}</p>`; }
+  }
+  flush();
+  return html;
+}
+
+// 태그라인 자동: 입력값 우선 → 소개 첫 문장(짧으면) → 회차 템플릿
+function autoTagline(c, d) {
+  if (d.tagline) return d.tagline;
+  const first = stripMarker(String(d.concept || '').split(/[\n.·]/)[0]);
+  if (first && [...first].length <= 22) return first;
+  const rounds = c.totalRounds || d.totalRounds;
+  return rounds ? `${rounds}주 블로그 챌린지` : '블로그 챌린지 모집 중';
+}
+
 let DATA = null;
 
 async function boot() {
@@ -61,9 +94,9 @@ function renderLanding() {
   const benefits = Array.isArray(d.benefits) ? d.benefits : [];
   app.innerHTML = `
     <header class="hero">
-      ${d.tagline ? `<span class="hero__tag reveal reveal-1">${esc(d.tagline)}</span>` : ''}
+      <span class="hero__tag reveal reveal-1">${esc(autoTagline(c, d))}</span>
       <h1 class="hero__title reveal reveal-2">${esc(c.name)}</h1>
-      ${d.concept ? `<p class="hero__sub reveal reveal-3">${esc(d.concept)}</p>` : ''}
+      ${d.concept ? `<div class="hero__sub reveal reveal-3">${richText(d.concept)}</div>` : ''}
       <div class="hero__meta reveal reveal-4">
         <span class="badge badge--accent">${esc(c.totalRounds || 10)}주 과정</span>
         ${(d.rewardAmount || c.rewardPerPost) ? `<span class="badge badge--primary">네이버페이 리워드</span>` : ''}
@@ -72,9 +105,9 @@ function renderLanding() {
     </header>
     <div class="wrap">
       ${benefits.length ? `<section class="sec"><h2 class="sec__title">참가 혜택</h2>
-        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(b)}</span></li>`).join('')}</ul></section>` : ''}
-      ${d.scheduleText ? `<section class="sec"><h2 class="sec__title">일정</h2><p class="prose">${esc(d.scheduleText)}</p></section>` : ''}
-      ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><p class="prose">${esc(d.eligibility)}</p></section>` : ''}
+        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></section>` : ''}
+      ${d.scheduleText ? `<section class="sec"><h2 class="sec__title">일정</h2><div class="prose">${richText(d.scheduleText)}</div></section>` : ''}
+      ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><div class="prose">${richText(d.eligibility)}</div></section>` : ''}
       ${rewardSection(d, c)}
 
       <section class="sec apply-card" id="apply">

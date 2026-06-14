@@ -27,7 +27,28 @@
   font-family: var(--font-display); font-size: 22px; font-weight: 800; margin-bottom: 18px;
   letter-spacing: -0.025em; color: var(--color-ink);
 }
-.prose { color: var(--color-ink-muted); line-height: 1.75; white-space: pre-line; font-size: 16px; }
+.prose { color: var(--color-ink-muted); line-height: 1.75; font-size: 16px; }
+
+/* 평문 자동변환 결과 — 문단/불렛/번호 */
+.rich-p { margin: 0 0 10px; }
+.rich-p:last-child { margin-bottom: 0; }
+.rich-list { list-style: none; margin: 4px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rich-list:last-child { margin-bottom: 0; }
+.rich-list li { position: relative; padding-left: 26px; line-height: 1.6; }
+ul.rich-list li::before {
+  content: ''; position: absolute; left: 8px; top: 11px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--color-primary);
+}
+ol.rich-list { counter-reset: ri; }
+ol.rich-list li { counter-increment: ri; }
+ol.rich-list li::before {
+  content: counter(ri); position: absolute; left: 0; top: 1px;
+  width: 19px; height: 19px; border-radius: 6px; background: var(--color-primary-soft); color: var(--color-primary-hover);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+}
+/* 히어로 소개 안의 리스트는 컴팩트 */
+.hero__sub .rich-p { color: var(--color-ink-muted); }
+.hero__sub .rich-list li { color: var(--color-ink-muted); }
 
 /* 혜택 (플랫 리스트 · 헤어라인) */
 .benefits { list-style: none; display: flex; flex-direction: column; gap: 0; }
