@@ -16,6 +16,27 @@ function toast(msg, err) {
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+/* 진행률 표시 — 버튼을 진행바로 교체. 응답 동안 ~92%까지 점근, done(ok)에서 100% 또는 복원 */
+function genProgress(btn, label) {
+  btn.disabled = true;
+  const box = document.createElement('div');
+  box.className = 'genprog';
+  box.innerHTML = `<div class="genprog__track"><i></i></div><span class="genprog__txt">${label}… <b>0%</b></span>`;
+  btn.insertAdjacentElement('afterend', box);
+  btn.style.display = 'none';
+  const bar = box.querySelector('i'), num = box.querySelector('b'), lab = box.querySelector('.genprog__txt');
+  let p = 0;
+  const tick = () => { p += Math.max(0.8, (92 - p) * 0.09); if (p > 92) p = 92; bar.style.width = p + '%'; num.textContent = Math.round(p) + '%'; };
+  tick(); const timer = setInterval(tick, 180);
+  return {
+    done(ok) {
+      clearInterval(timer);
+      if (ok) { bar.style.width = '100%'; num.textContent = '100%'; lab.childNodes[0].textContent = '완료 '; }
+      else { box.remove(); btn.style.display = ''; btn.disabled = false; }
+    },
+  };
+}
+
 /* ---------- 아이콘 (SVG, stroke 2) ---------- */
 const SVG = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const ICON = {
@@ -168,6 +189,7 @@ async function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   try {
     if (parts[0] === 'new') return await renderCreate();
+    if (parts[0] === 'edit' && parts[1]) return await renderCreate(decodeURIComponent(parts[1]));
     if (parts[0] === 'c' && parts[1]) return await renderWorkspace(decodeURIComponent(parts[1]), parts[2] || 'mkt');
     return await renderHome();
   } catch (e) { el('content').innerHTML = `<div class="card">오류: ${esc(e.message)}</div>`; }
@@ -219,13 +241,14 @@ async function renderHome() {
 }
 
 /* ---------- 캠페인 생성 ---------- */
-async function renderCreate() {
+async function renderCreate(editId) {
   appbarBare();
+  const editing = !!editId;
   el('content').innerHTML = `
     <div class="page-head"><div class="page-head__row">
-      <div><h1 class="page-head__title">새 캠페인</h1>
-        <p class="page-head__desc">입력하면 신청 상세페이지가 자동 생성됩니다.</p></div>
-      <button class="btn btn--ghost btn--sm" id="cancel">← 허브</button>
+      <div><h1 class="page-head__title">${editing ? '캠페인 수정' : '새 캠페인'}</h1>
+        <p class="page-head__desc">${editing ? '상세페이지 내용을 수정하면 저장 즉시 반영됩니다.' : '입력하면 신청 상세페이지가 자동 생성됩니다.'}</p></div>
+      <button class="btn btn--ghost btn--sm" id="cancel">← ${editing ? '취소' : '허브'}</button>
     </div></div>
 
     <div class="card" style="border-color:var(--color-primary)">
@@ -300,6 +323,25 @@ async function renderCreate() {
   DEFAULT_TIERS.forEach(tierRow);
   el('tier-add').addEventListener('click', () => tierRow({ min: 0, amount: 0 }));
 
+  // 수정 모드: 기존 값 불러와 채우기
+  let editStatus = '모집중';
+  if (editing) {
+    el('content').style.opacity = '.5';
+    const r = await apiGet({ action: 'campaignDetail', token: state.token, challengeId: editId }).catch(() => ({ ok: false }));
+    el('content').style.opacity = '';
+    if (!r.ok) { toast('캠페인을 불러오지 못했습니다.', true); location.hash = '#/'; return; }
+    const ch = r.challenge || {}, d = r.detail || {};
+    editStatus = ch.status || '모집중';
+    const setv = (id, v) => { if (el(id) != null) el(id).value = v == null ? '' : v; };
+    setv('f-name', ch.name); setv('f-rounds', ch.totalRounds || 10);
+    setv('f-rs', ch['모집시작']); setv('f-re', ch['모집마감']); setv('f-ann', ch['발표일']); setv('f-start', ch['시작일']);
+    if (ch.openchatUrl) setv('f-chat', ch.openchatUrl);
+    setv('d-tag', d.tagline); setv('d-concept', d.concept);
+    setv('d-benefits', Array.isArray(d.benefits) ? d.benefits.join('\n') : '');
+    setv('d-elig', d.eligibility); setv('d-sched', d.scheduleText);
+    if (Array.isArray(d.rewardTiers) && d.rewardTiers.length) { tbody.innerHTML = ''; d.rewardTiers.slice().sort((a, b) => a.min - b.min).forEach(tierRow); }
+  }
+
   // 빠른 채우기
   el('autofill').addEventListener('click', () => {
     const text = el('paste').value;
@@ -316,8 +358,10 @@ async function renderCreate() {
     toast(n ? `${n}개 항목 자동 채움 — 빈 곳을 확인하세요` : '추출된 항목이 없습니다', !n);
   });
 
-  el('cancel').addEventListener('click', () => { location.hash = '#/'; });
-  el('cancel2').addEventListener('click', () => { location.hash = '#/'; });
+  const backHash = editing ? `#/c/${encodeURIComponent(editId)}/mkt` : '#/';
+  el('save').textContent = editing ? '변경사항 저장' : '캠페인 생성';
+  el('cancel').addEventListener('click', () => { location.hash = backHash; });
+  el('cancel2').addEventListener('click', () => { location.hash = backHash; });
   el('save').addEventListener('click', async (e) => {
     const name = el('f-name').value.trim();
     if (!name) return toast('캠페인명을 입력하세요.', true);
@@ -328,11 +372,12 @@ async function renderCreate() {
     const rewardAmount = tiers.reduce((m, t) => Math.max(m, t.amount), 0);
     const payload = op({
       action: 'saveCampaign', name,
+      challengeId: editing ? editId : undefined,
       totalRounds: Number(el('f-rounds').value) || 10,
       rewardPerPost: rewardAmount, excellentMultiplier: 2,
       모집시작: el('f-rs').value, 모집마감: el('f-re').value,
       발표일: el('f-ann').value, 시작일: el('f-start').value,
-      openchatUrl: el('f-chat').value.trim(), status: '모집중',
+      openchatUrl: el('f-chat').value.trim(), status: editing ? editStatus : '모집중',
       detail: {
         tagline: el('d-tag').value.trim(), concept: el('d-concept').value.trim(),
         benefits: el('d-benefits').value.split('\n').map((s) => s.trim()).filter(Boolean),
@@ -340,12 +385,13 @@ async function renderCreate() {
         rewardType: 'grade', rewardTiers: tiers, rewardAmount, rewardUnit: '네이버페이 포인트',
       },
     });
-    e.target.disabled = true; e.target.textContent = '생성 중…';
+    const prog = genProgress(e.target, editing ? '저장 중' : '생성 중');
     const r = await apiPost(payload).catch(() => ({ ok: false }));
-    if (!r.ok) { e.target.disabled = false; e.target.textContent = '캠페인 생성'; return toast('생성 실패: ' + (r.error || JSON.stringify(r.errors || {})), true); }
+    prog.done(r.ok);
+    if (!r.ok) return toast((editing ? '저장' : '생성') + ' 실패: ' + (r.error || JSON.stringify(r.errors || {})), true);
     state.loaded = false;
-    toast('캠페인 생성 완료!');
-    location.hash = `#/c/${encodeURIComponent(r.challengeId)}/mkt`;
+    toast(editing ? '수정 완료!' : '캠페인 생성 완료!');
+    location.hash = `#/c/${encodeURIComponent(r.challengeId || editId)}/mkt`;
   });
 }
 
@@ -374,6 +420,7 @@ async function drawMarketing(camp) {
         <button class="btn btn--secondary btn--sm" id="copy">복사</button>
         <a class="btn btn--primary btn--sm" href="${esc(link)}" target="_blank">미리보기</a></div>
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn--primary btn--sm" id="editCamp">상세 내용 수정</button>
         <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
         ${camp.openchatUrl ? `<a class="btn btn--secondary btn--sm" target="_blank" href="${esc(camp.openchatUrl)}">오픈카톡으로 공유</a>` : ''}
       </div>
@@ -382,6 +429,7 @@ async function drawMarketing(camp) {
       <iframe src="${esc(link)}" style="width:100%;height:560px;border:1px solid var(--color-border);border-radius:12px"></iframe>
     </div>`;
   el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
+  el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 }
 
 /* ---------- 탭: 관리 ---------- */
