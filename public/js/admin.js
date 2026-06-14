@@ -231,6 +231,19 @@ async function route() {
   } catch (e) { el('content').innerHTML = `<div class="card">오류: ${esc(e.message)}</div>`; }
 }
 
+/* 홈 카드 진행률 — 제출 진행(제출 ÷ 선발×회차). 선발 전이면 모집 단계 */
+function campProgress(x) {
+  const sel = x.selected || 0, rounds = x.totalRounds || 0, subs = x.submissions || 0;
+  const exp = sel * rounds;
+  const started = sel > 0 && exp > 0;
+  const pct = started ? Math.min(100, Math.round((subs / exp) * 100)) : 0;
+  const label = started ? `제출 진행 ${subs}/${exp}` : '모집 단계';
+  return `<div class="camp-prog">
+    <div class="camp-prog__head"><span>${label}</span><b class="tnum">${started ? pct + '%' : '–'}</b></div>
+    <div class="camp-prog__track"><i style="width:${pct}%"></i></div>
+  </div>`;
+}
+
 /* ---------- 홈 (허브) ---------- */
 async function renderHome() {
   appbarHome();
@@ -250,8 +263,9 @@ async function renderHome() {
       ${c.map((x) => `
         <div class="camp-card" data-id="${esc(x.challengeId)}" role="button" tabindex="0">
           <div class="camp-card__top"><span class="camp-card__name">${esc(x.name)}</span>
-            <span style="display:flex;gap:6px;align-items:center">
+            <span class="camp-card__actions">
               <span class="badge ${x.status === '모집중' ? 'badge--primary' : ''}">${esc(x.status)}</span>
+              <button class="btn btn--ghost btn--sm js-edit" style="padding:2px 8px;color:var(--color-primary)">수정</button>
               <button class="btn btn--ghost btn--sm js-del" data-name="${esc(x.name)}" style="padding:2px 8px;color:var(--color-danger)">삭제</button>
             </span></div>
           <div class="camp-card__stats">
@@ -260,6 +274,7 @@ async function renderHome() {
             <div><span class="stat__n tnum">${x.submissions || 0}</span><span class="stat__l">제출</span></div>
             <div><span class="stat__n tnum">${x.totalRounds || '-'}</span><span class="stat__l">회차</span></div>
           </div>
+          ${campProgress(x)}
         </div>`).join('')}
       <button class="camp-card camp-card--new" id="newCard">+ 새 캠페인 만들기</button>
     </div>`;
@@ -267,6 +282,7 @@ async function renderHome() {
   el('grid').querySelectorAll('.camp-card[data-id]').forEach((card) => {
     const id = card.dataset.id;
     card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
+    card.querySelector('.js-edit')?.addEventListener('click', (e) => { e.stopPropagation(); location.hash = `#/edit/${encodeURIComponent(id)}`; });
     card.querySelector('.js-del')?.addEventListener('click', async (e) => {
       e.stopPropagation();
       const ok = await confirmModal({
