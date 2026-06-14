@@ -47,8 +47,18 @@ a { color: var(--lp-primary); }
 }
 .hero__sub { color: rgba(255,255,255,.88); margin: 24px auto 0; font-size: 16px; line-height: 1.55; max-width: 40ch; }
 .hero__sub .rich-p { margin: 0 0 20px; }
-.hero__sub .rich-list { margin: 0 auto 20px; width: fit-content; text-align: left; }
 .hero__sub .rich-p:last-child, .hero__sub .rich-list:last-child { margin-bottom: 0; }
+/* 첫 문단 = 리드(시선 잡기) */
+.hero__sub .rich-p:first-child { font-size: 19px; font-weight: 600; color: #fff; line-height: 1.5; margin-bottom: 22px; }
+/* ★ 항목 카드화 */
+.hero__sub ul.rich-list { width: 100%; max-width: 360px; margin: 6px auto 22px; gap: 10px; text-align: left; }
+.hero__sub ul.rich-list li { background: rgba(255,255,255,.10); border-radius: 13px; padding: 13px 16px 13px 42px; color: #fff; font-weight: 600; line-height: 1.45; }
+.hero__sub ul.rich-list li::before { content: '★'; background: none; width: auto; height: auto; border-radius: 0; left: 16px; top: 13px; font-size: 15px; color: var(--lp-pop); }
+.hero__sub ol.rich-list { margin: 6px auto 22px; width: fit-content; text-align: left; }
+/* 강조 */
+.hero__sub .hl { color: var(--lp-pop); font-weight: 700; }
+.hero__sub .hl-line { color: var(--lp-pop); font-weight: 700; }
+.prose .hl, .prose .hl-line { color: var(--lp-primary); font-weight: 700; }
 /* 제목 아래 핵심 정보 (상태·모집기간·리워드) */
 .hero__facts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 18px; position: relative; }
 .hfact { font-size: 13px; font-weight: 600; padding: 8px 15px; border-radius: var(--radius-pill); background: rgba(255,255,255,.12); color: #fff; }

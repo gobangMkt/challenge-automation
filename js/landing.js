@@ -26,16 +26,22 @@ function richText(str) {
   const blocks = String(str == null ? '' : str).replace(/\r/g, '').split(/\n[ \t]*\n+/);
   const ulRe = new RegExp(`^${BULLET}\\s+`);
   const olRe = /^\d+[.)]\s+/;
+  // 단어 강조(**굵게**) + 느낌표로 끝나는 문장 강조
+  const line = (l) => {
+    let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<span class="hl">$1</span>');
+    if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
+    return h;
+  };
   let html = '';
   for (const block of blocks) {
     const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
     if (!lines.length) continue;
     if (lines.every((l) => ulRe.test(l))) {
-      html += `<ul class="rich-list">${lines.map((l) => `<li>${esc(l.replace(ulRe, ''))}</li>`).join('')}</ul>`;
+      html += `<ul class="rich-list">${lines.map((l) => `<li>${line(l.replace(ulRe, ''))}</li>`).join('')}</ul>`;
     } else if (lines.every((l) => olRe.test(l))) {
-      html += `<ol class="rich-list">${lines.map((l) => `<li>${esc(l.replace(olRe, ''))}</li>`).join('')}</ol>`;
+      html += `<ol class="rich-list">${lines.map((l) => `<li>${line(l.replace(olRe, ''))}</li>`).join('')}</ol>`;
     } else {
-      html += `<p class="rich-p">${lines.map((l) => esc(l)).join('<br>')}</p>`;
+      html += `<p class="rich-p">${lines.map(line).join('<br>')}</p>`;
     }
   }
   return html;
