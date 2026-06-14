@@ -49,9 +49,11 @@ a { color: var(--lp-primary); }
 .hero__sub .rich-p { margin: 0 0 20px; }
 .hero__sub .rich-list { margin: 0 auto 20px; width: fit-content; text-align: left; }
 .hero__sub .rich-p:last-child, .hero__sub .rich-list:last-child { margin-bottom: 0; }
-.hero__meta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 22px; position: relative; }
-.hero__meta .badge { background: rgba(255,255,255,.16); color: #fff; border: 0; height: 34px; padding: 0 16px; font-size: 12px; }
-.hero__meta .badge--success { background: var(--lp-pop); color: var(--lp-pop-ink); }
+/* 제목 아래 핵심 정보 (상태·모집기간·리워드) */
+.hero__facts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 18px; position: relative; }
+.hfact { font-size: 13px; font-weight: 600; padding: 8px 15px; border-radius: var(--radius-pill); background: rgba(255,255,255,.12); color: #fff; }
+.hfact--status { background: var(--lp-pop); color: var(--lp-pop-ink); font-weight: 700; }
+.hfact--status.is-closed { background: rgba(255,255,255,.16); color: rgba(255,255,255,.65); }
 
 /* ── 섹션 공통 ── */
 .sec { margin-top: 40px; }

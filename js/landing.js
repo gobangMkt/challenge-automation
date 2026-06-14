@@ -149,6 +149,8 @@ function renderLanding() {
   const benefits = Array.isArray(d.benefits) ? d.benefits : [];
   const reward = d.rewardAmount || c.rewardPerPost;
   const rounds = c.totalRounds || 10;
+  const recruit = (c['모집시작'] && c['모집마감']) ? `모집 ${fmtMD(c['모집시작'])} – ${fmtMD(c['모집마감'])}`
+    : c['모집마감'] ? `~ ${fmtMD(c['모집마감'])} 모집 마감` : '';
   app.innerHTML = `
     <header class="hero">
       <div class="hero__badges reveal reveal-1">
@@ -159,11 +161,12 @@ function renderLanding() {
         <span class="hero__eyebrow">${esc(autoTagline(c, d))}</span>
         <h1 class="hero__title">${esc(c.name)}</h1>
       </div>
-      ${d.concept ? `<div class="hero__sub reveal reveal-3">${richText(d.concept)}</div>` : ''}
-      <div class="hero__meta reveal reveal-4">
-        <span class="badge ${closed ? 'badge--danger' : 'badge--success'}">${closed ? '모집 마감' : '모집 중'}</span>
-        ${reward ? `<span class="badge">네이버페이 리워드</span>` : ''}
+      <div class="hero__facts reveal reveal-3">
+        <span class="hfact hfact--status ${closed ? 'is-closed' : ''}">${closed ? '모집 마감' : '모집 중'}</span>
+        ${recruit ? `<span class="hfact">${esc(recruit)}</span>` : ''}
+        ${reward ? `<span class="hfact">네이버페이 리워드</span>` : ''}
       </div>
+      ${d.concept ? `<div class="hero__sub reveal reveal-4">${richText(d.concept)}</div>` : ''}
     </header>
     <div class="wrap">
       ${benefits.length ? `<section class="sec"><div class="infocard"><h2 class="sec__title">참가 혜택</h2>
