@@ -10,7 +10,7 @@
   --lp-ink: #15172B; --lp-surface2: #F1F3FF;
   --lp-display: 'Jalnan2', 'Pretendard Variable', sans-serif;
 }
-body { background: #fff; color: var(--lp-ink); }
+body { background: #fff; color: var(--lp-ink); word-break: keep-all; overflow-wrap: anywhere; }
 .wrap { max-width: 560px; margin: 0 auto; padding: 0 18px 100px; }
 .disp { font-weight: 700; }
 
