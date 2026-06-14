@@ -62,7 +62,7 @@ function renderLanding() {
   app.innerHTML = `
     <header class="hero">
       ${d.tagline ? `<span class="hero__tag reveal reveal-1">${esc(d.tagline)}</span>` : ''}
-      <h1 class="hero__title reveal reveal-2"><span class="hl">${esc(c.name)}</span> <span class="star">★</span></h1>
+      <h1 class="hero__title reveal reveal-2">${esc(c.name)}</h1>
       ${d.concept ? `<p class="hero__sub reveal reveal-3">${esc(d.concept)}</p>` : ''}
       <div class="hero__meta reveal reveal-4">
         <span class="badge badge--accent">${esc(c.totalRounds || 10)}주 과정</span>
@@ -133,7 +133,7 @@ function renderDone(title, sub) {
 function renderSubmit() {
   const c = DATA.challenge;
   app.innerHTML = `<div class="wrap">
-    <header class="hero" style="padding:36px 18px 24px"><h1 class="hero__title" style="font-size:26px">주차 미션 제출 <span class="star">★</span></h1>
+    <header class="hero" style="padding:40px 4px 28px"><span class="hero__tag">Weekly Mission</span><h1 class="hero__title" style="font-size:clamp(28px,7vw,38px)">주차 미션 제출</h1>
       <p class="hero__sub">${esc(c.name)}</p></header>
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
@@ -182,7 +182,7 @@ async function loadStatus() {
 function renderWrapup() {
   const c = DATA.challenge;
   app.innerHTML = `<div class="wrap">
-    <header class="hero" style="padding:36px 18px 24px"><h1 class="hero__title" style="font-size:26px">챌린지 마무리 🎉</h1>
+    <header class="hero" style="padding:40px 4px 28px"><span class="hero__tag">Wrap-up</span><h1 class="hero__title" style="font-size:clamp(28px,7vw,38px)">챌린지 마무리</h1>
       <p class="hero__sub">${esc(c.name)} 완주를 축하합니다</p></header>
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
@@ -204,7 +204,7 @@ function renderWrapup() {
     if (!/^https?:\/\/.+/.test(blogUrl)) return toast('블로그 URL 확인', true);
     e.target.disabled = true; e.target.textContent = '제출 중…';
     const r = await apiPost({ action: 'wrapup', challengeId: cid, phone, blogUrl, postCount, excellent: $('#w-ex').checked ? 'Y' : 'N', agree: true }).catch(() => ({ ok: false }));
-    if (r.ok) renderDone('마무리 제출 완료!', '활동비 정산 후 안내드릴게요. 수고하셨습니다 🎉');
+    if (r.ok) renderDone('마무리 제출 완료!', '활동비 정산 후 안내드릴게요. 수고하셨습니다.');
     else { e.target.disabled = false; e.target.textContent = '마무리 제출'; toast('실패: ' + (r.error || ''), true); }
   });
 }
