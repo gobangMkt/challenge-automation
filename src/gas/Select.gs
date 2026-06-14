@@ -33,9 +33,10 @@ function select_(body) {
 
   var phones = (Array.isArray(body.phones) ? body.phones : [])
     .map(function (p) { return normalizePhone(p) || String(p); });
+  // 기본 전체 선발 모델: 발표일 이후에도 운영자가 상시 탈락/선발 변경 가능(잠금 해제)
   var v = validateSelection_(
     { phones: phones, decision: body.decision },
-    { afterAnnounce: isAfterAnnounce_(challengeId) },
+    { afterAnnounce: false },
   );
   if (!v.ok) return json_({ ok: false, errors: v.errors });
 
