@@ -232,12 +232,33 @@ function saveMission_(body) {
     if (String(values[i][idC]) === String(body.challengeId) && parseInt(values[i][rC], 10) === round) {
       if (body.title != null) sh.getRange(i + 1, tC + 1).setValue(String(body.title));
       if (body.body != null) sh.getRange(i + 1, bC + 1).setValue(String(body.body));
-      if (body.articleName != null) sh.getRange(i + 1, anC + 1).setValue(String(body.articleName));
-      if (body.articleUrl != null) sh.getRange(i + 1, auC + 1).setValue(String(body.articleUrl));
-      return json_({ ok: true, round: round });
+      var articleName = null;
+      if (body.articleUrl != null) {
+        var url = String(body.articleUrl).trim();
+        sh.getRange(i + 1, auC + 1).setValue(url);
+        // 아티클명은 URL에서 자동 추출 (og:title > <title>)
+        articleName = url ? fetchPageTitle_(url) : '';
+        if (articleName) sh.getRange(i + 1, anC + 1).setValue(articleName);
+      }
+      return json_({ ok: true, round: round, articleName: articleName || '' });
     }
   }
   return json_({ ok: false, error: 'not_found' });
+}
+
+// URL 페이지 제목 추출 (서버 측 fetch, CORS 무관)
+function fetchPageTitle_(url) {
+  try {
+    if (!/^https?:\/\//i.test(url)) return '';
+    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (res.getResponseCode() >= 400) return '';
+    var html = res.getContentText();
+    var m = html.match(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["']/i)
+      || html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (!m) return '';
+    return m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim().slice(0, 120);
+  } catch (e) { return ''; }
 }
 
 // ---------- 액션: 그 주 제출현황 (운영 — 검수 대상) ----------

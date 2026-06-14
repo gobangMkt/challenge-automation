@@ -664,12 +664,9 @@ async function drawWeek(camp, round, weeks) {
       </div>
       <div class="field" style="margin-top:16px"><label class="field__label">미션 제목</label>
         <input class="input" id="m-title" value="${esc(wm['미션제목'] || '')}" placeholder="예: 1주차 키워드 글쓰기" /></div>
-      <div class="row2">
-        <div class="field"><label class="field__label">이번 주 아티클명</label>
-          <input class="input" id="m-aname" value="${esc(wm['articleName'] || '')}" placeholder="예: 고시원 준비물 이것만 챙기세요!" /></div>
-        <div class="field"><label class="field__label">아티클 URL</label>
-          <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://..." /></div>
-      </div>
+      <div class="field"><label class="field__label">참고 아티클 URL</label>
+        <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명은 URL에서 자동 추출)" />
+        ${wm['articleName'] ? `<div class="field__hint">현재 아티클: <b>${esc(wm['articleName'])}</b></div>` : '<div class="field__hint">저장 시 링크 제목을 자동으로 가져옵니다.</div>'}</div>
       <div class="field"><label class="field__label">주차 안내문 (전체)</label>
         <textarea class="textarea" id="m-body" style="min-height:340px" placeholder="교재·아티클·키워드·작성가이드·제출마감·리워드·우등생 선정기준·유의사항 등 안내문 전체를 붙여넣기.">${esc(wm['미션본문'] || '')}</textarea>
         <div class="field__hint">자동 서식: 빈 줄=문단, <b>★★ 소제목 ★★</b>=소제목, <b>-------</b>=구분선, <b>- / 1.</b>=리스트, <b>**굵게**</b>·느낌표 문장=강조.</div></div>
@@ -697,9 +694,9 @@ async function drawWeek(camp, round, weeks) {
     </tbody></table></div>`;
   el('m-save')?.addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleName: el('m-aname').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '미션 저장';
-    if (rr.ok) toast(`${round}주차 미션 저장됨`); else toast('저장 실패', true);
+    if (rr.ok) { toast(`${round}주차 미션 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
   el('open')?.addEventListener('click', () => setWeek(camp, round, '오픈', weeks));
