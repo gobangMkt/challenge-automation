@@ -161,18 +161,26 @@ async function renderCampaign() {
         <div class="field"><label class="field__label">총 회차</label>
           <input class="input tnum" id="f-rounds" type="number" value="10" min="1" /></div>
       </div>
-      <div class="row2">
-        <div class="field"><label class="field__label">리워드 방식</label>
-          <select class="select" id="f-rewardType">
-            <option value="per_submission">건당 리워드 (제출 1건마다 적립)</option>
-            <option value="per_milestone">달성당 리워드 (목표 달성 시 지급)</option>
-          </select></div>
-        <div class="field"><label class="field__label">리워드 금액(원)</label>
-          <input class="input tnum" id="f-reward" type="number" value="10000" min="0" /></div>
+      <div class="field"><label class="field__label">리워드 방식</label>
+        <select class="select" id="f-rewardType">
+          <option value="grade">그레이드 — 작성 개수 구간별 차등 (기본)</option>
+          <option value="per_submission">건당 — 제출 1건당 동일 포인트</option>
+          <option value="per_milestone">달성당 — 목표 달성 시 일괄 지급</option>
+        </select></div>
+      <div id="reward-grade">
+        <label class="field__label">작성 개수별 리워드 (네이버페이 포인트)</label>
+        <table class="table" id="tier-tbl" style="margin-bottom:8px"><thead><tr>
+          <th>최소 작성 개수</th><th>네이버페이 포인트</th><th></th></tr></thead><tbody></tbody></table>
+        <button class="btn btn--ghost btn--sm" id="tier-add" type="button">+ 구간 추가</button>
+        <div class="field__hint">작성 개수가 '최소 개수' 이상이면 그 포인트 지급. 예) 10개 작성 → 10,000P.</div>
       </div>
-      <div class="field" style="max-width:calc(50% - 6px)"><label class="field__label">우수활동자 배수 (그레이드)</label>
+      <div id="reward-single" style="display:none">
+        <div class="field"><label class="field__label">리워드 금액 (네이버페이 포인트)</label>
+          <input class="input tnum" id="f-reward" type="number" value="3000" min="0" /></div>
+      </div>
+      <div class="field" style="max-width:calc(50% - 6px);margin-top:8px"><label class="field__label">우수활동자 배수</label>
         <input class="input tnum" id="f-mult" type="number" value="2" min="1" step="0.5" />
-        <div class="field__hint">우수 등급은 리워드 ×배수. 세부 등급은 추후 조정.</div></div>
+        <div class="field__hint">우수 등급은 최종 리워드 ×배수.</div></div>
       <div class="row2">
         <div class="field"><label class="field__label">모집 시작</label><input class="input" id="f-rs" type="date" /></div>
         <div class="field"><label class="field__label">모집 마감</label><input class="input" id="f-re" type="date" /></div>
@@ -182,7 +190,8 @@ async function renderCampaign() {
         <div class="field"><label class="field__label">시작일</label><input class="input" id="f-start" type="date" /></div>
       </div>
       <div class="field"><label class="field__label">오픈카톡 문의 URL</label>
-        <input class="input" id="f-chat" placeholder="https://open.kakao.com/o/..." /></div>
+        <input class="input" id="f-chat" value="https://open.kakao.com/o/sqKOVsue" placeholder="https://open.kakao.com/o/..." />
+        <div class="field__hint">기본 오픈카톡 링크가 자동 입력됨 — 필요시 수정.</div></div>
     </div>
 
     <div class="card"><div class="card__title">② 신청 상세페이지 콘텐츠</div>
@@ -211,12 +220,41 @@ async function renderCampaign() {
     </div>
     <div id="result"></div>`;
 
+  // 리워드 그레이드 티어
+  const DEFAULT_TIERS = [{ min: 0, amount: 0 }, { min: 2, amount: 3000 }, { min: 6, amount: 5000 }, { min: 10, amount: 10000 }];
+  const tbody = el('tier-tbl').querySelector('tbody');
+  const tierRow = (t) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="input tnum t-min" type="number" min="0" value="${t.min}" style="max-width:130px" /></td>
+      <td><input class="input tnum t-amt" type="number" min="0" value="${t.amount}" style="max-width:170px" /></td>
+      <td><button class="btn btn--ghost btn--sm t-del" type="button">삭제</button></td>`;
+    tr.querySelector('.t-del').addEventListener('click', () => tr.remove());
+    tbody.appendChild(tr);
+  };
+  DEFAULT_TIERS.forEach(tierRow);
+  el('tier-add').addEventListener('click', () => tierRow({ min: 0, amount: 0 }));
+  el('f-rewardType').addEventListener('change', (ev) => {
+    const grade = ev.target.value === 'grade';
+    el('reward-grade').style.display = grade ? '' : 'none';
+    el('reward-single').style.display = grade ? 'none' : '';
+  });
+
   el('cancel').addEventListener('click', () => { location.hash = '#/home'; });
   el('save').addEventListener('click', async (e) => {
     const name = el('f-name').value.trim();
     if (!name) return toast('캠페인명을 입력하세요.', true);
     const rewardType = el('f-rewardType').value;
-    const rewardAmount = Number(el('f-reward').value) || 0;
+    let rewardTiers = [], rewardAmount = 0;
+    if (rewardType === 'grade') {
+      rewardTiers = [...tbody.querySelectorAll('tr')].map((tr) => ({
+        min: Number(tr.querySelector('.t-min').value) || 0,
+        amount: Number(tr.querySelector('.t-amt').value) || 0,
+      })).sort((a, b) => a.min - b.min);
+      rewardAmount = rewardTiers.reduce((m, t) => Math.max(m, t.amount), 0);
+    } else {
+      rewardAmount = Number(el('f-reward').value) || 0;
+    }
     const payload = op({
       action: 'saveCampaign', name,
       totalRounds: Number(el('f-rounds').value) || 10,
@@ -228,7 +266,7 @@ async function renderCampaign() {
         tagline: el('d-tag').value.trim(), concept: el('d-concept').value.trim(),
         benefits: el('d-benefits').value.split('\n').map((s) => s.trim()).filter(Boolean),
         eligibility: el('d-elig').value.trim(), scheduleText: el('d-sched').value.trim(),
-        rewardType, rewardAmount,
+        rewardType, rewardAmount, rewardTiers, rewardUnit: '네이버페이 포인트',
       },
     });
     e.target.disabled = true; e.target.textContent = '생성 중…';
