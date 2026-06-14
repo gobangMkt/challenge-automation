@@ -16,27 +16,28 @@ const normPhone = (raw) => {
   return /^010\d{8}$/.test(d) ? d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7) : null;
 };
 
-// 줄머리 불렛/번호 마커 제거
-const stripMarker = (s) => String(s || '').replace(/^\s*(?:[-•*·–▪◦‣]|\d+[.)])\s+/, '').trim();
+// 줄머리 불렛/번호 마커 제거 (★·☆·▶ 등 포함)
+const BULLET = '[-•*·–—▪◦‣★☆◆▶▷✓✔]';
+const stripMarker = (s) => String(s || '').replace(new RegExp(`^\\s*(?:${BULLET}|\\d+[.)])\\s+`), '').trim();
 
-// 평문 → 불렛(-,•,*,·,–)·번호(1. 1)) 자동 리스트 변환. 빈 줄로 블록 분리.
+// 평문을 붙여넣은 그대로 렌더: 빈 줄=문단 분리, 단일 줄바꿈=<br>,
+// 블록 전체가 ★/-/숫자로 시작하면 리스트로 변환.
 function richText(str) {
-  const lines = String(str == null ? '' : str).split('\n');
-  let html = '', type = null, buf = [];
-  const flush = () => {
-    if (type) html += `<${type} class="rich-list">${buf.map((li) => `<li>${esc(li)}</li>`).join('')}</${type}>`;
-    buf = []; type = null;
-  };
-  for (const raw of lines) {
-    const l = raw.trim();
-    if (!l) { flush(); continue; }
-    const ul = l.match(/^(?:[-•*·–▪◦‣])\s+(.*)$/);
-    const ol = l.match(/^\d+[.)]\s+(.*)$/);
-    if (ul) { if (type !== 'ul') flush(), (type = 'ul'); buf.push(ul[1]); }
-    else if (ol) { if (type !== 'ol') flush(), (type = 'ol'); buf.push(ol[1]); }
-    else { flush(); html += `<p class="rich-p">${esc(l)}</p>`; }
+  const blocks = String(str == null ? '' : str).replace(/\r/g, '').split(/\n[ \t]*\n+/);
+  const ulRe = new RegExp(`^${BULLET}\\s+`);
+  const olRe = /^\d+[.)]\s+/;
+  let html = '';
+  for (const block of blocks) {
+    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    if (lines.every((l) => ulRe.test(l))) {
+      html += `<ul class="rich-list">${lines.map((l) => `<li>${esc(l.replace(ulRe, ''))}</li>`).join('')}</ul>`;
+    } else if (lines.every((l) => olRe.test(l))) {
+      html += `<ol class="rich-list">${lines.map((l) => `<li>${esc(l.replace(olRe, ''))}</li>`).join('')}</ol>`;
+    } else {
+      html += `<p class="rich-p">${lines.map((l) => esc(l)).join('<br>')}</p>`;
+    }
   }
-  flush();
   return html;
 }
 
