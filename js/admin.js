@@ -640,7 +640,7 @@ async function drawOperate(camp) {
   const hasGlobal = !!(gd.eduUrl || gd.guide || gd.notice);
   el('opGlobal').innerHTML = `
     <details class="foldcard"${hasGlobal ? '' : ' open'}>
-      <summary class="foldcard__sum"><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span><span class="foldcard__chev" aria-hidden="true">▾</span></summary>
+      <summary class="foldcard__sum"><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span><span class="foldcard__toggle"><span class="foldcard__tlabel"></span><span class="foldcard__chev" aria-hidden="true">▾</span></span></summary>
       <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
