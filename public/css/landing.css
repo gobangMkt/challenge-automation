@@ -118,8 +118,10 @@ a { color: var(--lp-primary); }
 ul.rich-list li::before { content: ''; position: absolute; left: 7px; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-primary); }
 ol.rich-list { counter-reset: ri; } ol.rich-list li { counter-increment: ri; }
 ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 6px; background: var(--lp-surface2); color: var(--lp-primary); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-/* 붙여넣은 문건 소제목·구분선 */
-.rich-h { font-weight: 800; font-size: 16px; color: var(--lp-primary); margin: 20px 0 8px; letter-spacing: -0.01em; }
+/* 붙여넣은 문건 소제목(섹션 구분 강조)·구분선 */
+.rich-h { font-weight: 800; font-size: 17px; color: var(--lp-ink); margin: 26px 0 12px; padding-top: 20px; border-top: 1px solid var(--color-border); display: flex; align-items: center; gap: 9px; letter-spacing: -0.01em; }
+.rich-h:first-child { padding-top: 0; border-top: 0; margin-top: 2px; }
+.rich-h::before { content: ''; width: 6px; height: 18px; border-radius: 3px; background: var(--lp-primary); flex: none; }
 .rich-hr { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0; }
 
 /* 주차 미션 (제출 페이지) */
@@ -137,6 +139,23 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-kw__chip { background: var(--lp-surface2); color: var(--lp-primary); font-weight: 700; font-size: 14px; padding: 6px 13px; border-radius: var(--radius-pill); }
 .wk-body { color: #4A4F5C; }
 .wk-body .rich-h:first-child { margin-top: 0; }
+
+/* 교재 상시 배너 (상단) */
+.edu-banner { display: flex; align-items: center; gap: 12px; background: var(--lp-hero-bg); color: #fff; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; text-decoration: none; }
+.edu-banner__tag { flex: none; font-size: 11px; font-weight: 700; background: var(--lp-pop); color: var(--lp-pop-ink); padding: 4px 10px; border-radius: 6px; }
+.edu-banner__txt { flex: 1; font-weight: 700; }
+.edu-banner__go { flex: none; font-weight: 800; }
+
+/* 이번 주 미션 자료 세트 */
+.wk-set { background: var(--lp-surface2); border: 1px solid var(--color-border); border-radius: 14px; padding: 16px; margin: 4px 0 18px; }
+.wk-set__head { font-size: 12px; font-weight: 800; color: var(--lp-primary); letter-spacing: .03em; margin-bottom: 12px; }
+.wk-set .wk-ref { margin-bottom: 12px; }
+.wk-set .wk-kw { margin-bottom: 0; }
+
+/* 제출 섹션 강조 */
+.wk-submit { border: 2px solid var(--lp-primary); }
+.wk-submit__title { font-weight: 800; font-size: 17px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
+.wk-submit__title::before { content: ''; width: 6px; height: 20px; border-radius: 3px; background: var(--lp-primary); }
 
 /* 신청 */
 .apply-card { margin-top: 44px; scroll-margin-top: 16px; }

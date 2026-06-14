@@ -31,40 +31,34 @@ const kwChips = (s) => String(s || '').split(/[,\n]/).map((k) => k.trim()).filte
 const BULLET = '[-•*·–—▪◦‣★☆◆▶▷✓✔]';
 const stripMarker = (s) => String(s || '').replace(new RegExp(`^\\s*(?:${BULLET}|\\d+[.)])\\s+`), '').trim();
 
-// 평문을 붙여넣은 그대로 렌더: 빈 줄=문단 분리, 단일 줄바꿈=<br>,
-// 블록 전체가 ★/-/숫자로 시작하면 리스트로 변환.
+// 평문 렌더: 빈 줄=문단, 단일 줄바꿈=<br>, 줄단위로 -/•/1.=리스트(연속 묶음),
+// ★★…★★=소제목, ---=구분선, **굵게**·느낌표 문장=강조.
 function richText(str) {
-  const blocks = String(str == null ? '' : str).replace(/\r/g, '').split(/\n[ \t]*\n+/);
+  const lines = String(str == null ? '' : str).replace(/\r/g, '').split('\n');
   const ulRe = new RegExp(`^${BULLET}\\s+`);
   const olRe = /^\d+[.)]\s+/;
-  // 단어 강조(**굵게**) + 느낌표로 끝나는 문장 강조
+  const hrRe = /^[-–—_▬=]{3,}$/;
+  const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/;
   const line = (l) => {
     let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<span class="hl">$1</span>');
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
     return h;
   };
-  const hrRe = /^[-–—_▬=]{3,}$/;
-  const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/; // ★★ 소제목 ★★
-  let html = '';
-  for (const block of blocks) {
-    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
-    if (!lines.length) continue;
-    if (lines.length === 1 && hrRe.test(lines[0])) { html += '<hr class="rich-hr">'; continue; }
-    if (lines.every((l) => ulRe.test(l))) {
-      html += `<ul class="rich-list">${lines.map((l) => `<li>${line(l.replace(ulRe, ''))}</li>`).join('')}</ul>`;
-    } else if (lines.every((l) => olRe.test(l))) {
-      html += `<ol class="rich-list">${lines.map((l) => `<li>${line(l.replace(olRe, ''))}</li>`).join('')}</ol>`;
-    } else {
-      let buf = [];
-      const flushP = () => { if (buf.length) { html += `<p class="rich-p">${buf.join('<br>')}</p>`; buf = []; } };
-      for (const l of lines) {
-        const hd = l.match(hdRe);
-        if (hd) { flushP(); html += `<div class="rich-h">${line(hd[1])}</div>`; }
-        else buf.push(line(l));
-      }
-      flushP();
-    }
+  let html = '', pbuf = [], lbuf = [], lt = null;
+  const flushP = () => { if (pbuf.length) { html += `<p class="rich-p">${pbuf.join('<br>')}</p>`; pbuf = []; } };
+  const flushL = () => { if (lbuf.length) { html += `<${lt} class="rich-list">${lbuf.map((x) => `<li>${x}</li>`).join('')}</${lt}>`; lbuf = []; lt = null; } };
+  const flush = () => { flushP(); flushL(); };
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (!l) { flush(); continue; }
+    if (hrRe.test(l)) { flush(); html += '<hr class="rich-hr">'; continue; }
+    const hd = l.match(hdRe);
+    if (hd) { flush(); html += `<div class="rich-h">${line(hd[1])}</div>`; continue; }
+    if (ulRe.test(l)) { flushP(); if (lt !== 'ul') flushL(), (lt = 'ul'); lbuf.push(line(l.replace(ulRe, ''))); continue; }
+    if (olRe.test(l)) { flushP(); if (lt !== 'ol') flushL(), (lt = 'ol'); lbuf.push(line(l.replace(olRe, ''))); continue; }
+    flushL(); pbuf.push(line(l));
   }
+  flush();
   return html;
 }
 
@@ -258,17 +252,21 @@ function renderDone(title, sub) {
 }
 
 /* ---------- 주차 제출 ---------- */
+const PHONE_KEY = (id) => `challenge.phone.${id}`;
 function renderSubmit() {
-  const c = DATA.challenge;
+  const c = DATA.challenge, d = DATA.detail || {};
+  const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
       <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
+    ${d.eduUrl ? `<a class="edu-banner" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">
+      <span class="edu-banner__tag">상시 자료</span><span class="edu-banner__txt">교육자료(교재) 바로가기</span><span class="edu-banner__go">↗</span></a>` : ''}
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
-        <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" />
+        <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="${esc(savedPhone)}" />
         <button class="btn btn--primary" id="s-check">확인</button></div>
-        <div class="field__hint">신청 때 입력한 번호로 이번 주 미션과 제출 현황을 확인해요.</div></div>
+        <div class="field__hint">신청 때 입력한 번호로 이번 주 미션과 제출 현황을 확인해요. 이 기기에 번호가 저장됩니다.</div></div>
     </div>
     <div id="s-status"></div>
     <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#wrapup">마무리 제출</a></p>
@@ -276,10 +274,12 @@ function renderSubmit() {
   bindPhone($('#s-phone'));
   $('#s-check').addEventListener('click', loadStatus);
   $('#s-phone').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
+  if (normPhone(savedPhone)) loadStatus();
 }
 async function loadStatus() {
   const phone = $('#s-phone').value.trim();
   if (!normPhone(phone)) return toast('올바른 휴대폰 번호를 입력하세요.', true);
+  localStorage.setItem(PHONE_KEY(cid), normPhone(phone)); // 이 기기에 번호 기억
   const box = $('#s-status'); box.innerHTML = '<div class="loading"><span class="spinner"></span> 조회 중…</div>';
   const r = await apiGet({ action: 'myStatus', challengeId: cid, phone }).catch(() => ({ ok: false }));
   if (!r.ok) { box.innerHTML = `<div class="card center muted">${r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패'}</div>`; return; }
@@ -287,24 +287,26 @@ async function loadStatus() {
   const p = r.progress || { done: 0, total: 0 };
   const cur = r.current;
   const d = DATA.detail || {};
-  // 이번 주 아티클(주차별·강조 링크) / 교육자료(전역·상시 텍스트 링크) — 위계 분리
   const articleRef = (cur && (cur.articleName || cur.articleUrl))
-    ? `<div class="wk-ref"><span class="wk-ref__tag wk-ref__tag--hot">이번 주 아티클</span><a class="wk-ref__a" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener">${esc(cur.articleName || '아티클 보기')} ↗</a></div>` : '';
-  const eduRef = d.eduUrl
-    ? `<div class="wk-ref wk-ref--sub"><span class="wk-ref__tag">교육자료·교재 · 상시</span><a class="wk-ref__a" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">${esc(d.eduName || '교재 열기')} ↗</a></div>` : '';
+    ? `<a class="wk-ref__a" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener">${esc(cur.articleName || '아티클 보기')} ↗</a>` : '';
   box.innerHTML = `
     <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
       ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
       <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
       <h3 class="wk-title">${esc(DATA.challenge.name)}</h3>
-      ${(articleRef || eduRef) ? `<div class="wk-refs">${articleRef}${eduRef}</div>` : ''}
-      ${cur.body ? `<div class="wk-kw"><span class="wk-kw__label">이번 주 키워드</span><span class="wk-kw__chips">${kwChips(cur.body)}</span></div>` : ''}
-      ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}
-      <div class="field" style="margin-top:18px"><label class="field__label">이번 주 작성한 게시물 URL</label>
+      ${(articleRef || cur.body) ? `<div class="wk-set"><div class="wk-set__head">이번 주 미션 자료</div>
+        ${articleRef ? `<div class="wk-ref"><span class="wk-ref__tag wk-ref__tag--hot">아티클</span>${articleRef}</div>` : ''}
+        ${cur.body ? `<div class="wk-kw"><span class="wk-kw__label">키워드</span><span class="wk-kw__chips">${kwChips(cur.body)}</span></div>` : ''}
+      </div>` : ''}
+      ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}` }
+    </div>
+    ${cur ? `<div class="card wk-submit">
+      <div class="wk-submit__title">게시물 제출</div>
+      <div class="field"><label class="field__label">이번 주 작성한 게시물 URL</label>
         <input class="input" id="s-url" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(cur.submittedUrl || '')}" /></div>
       <button class="btn btn--primary btn--block" id="s-do">${cur.submitted ? '제출 수정' : '제출하기'}</button>
-      ${cur.submitted ? '<p class="center muted" style="margin-top:8px;font-size:13px">이미 제출됨 — 수정 가능</p>' : ''}`}
-    </div>`;
+      ${cur.submitted ? '<p class="center muted" style="margin-top:8px;font-size:13px">이미 제출됨 — 수정 가능</p>' : ''}
+    </div>` : ''}`;
   const btn = $('#s-do');
   if (btn) btn.addEventListener('click', async () => {
     const url = $('#s-url').value.trim();

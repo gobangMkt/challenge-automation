@@ -251,16 +251,11 @@ function saveCampaignMeta_(body) {
   if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
   if (!body.challengeId) return json_({ ok: false, error: 'challenge_required' });
   var d = campaignDetailObj_(body.challengeId) || {};
-  var eduName = null;
-  if (body.eduUrl != null) {
-    d.eduUrl = String(body.eduUrl).trim();
-    eduName = d.eduUrl ? fetchPageTitle_(d.eduUrl) : '';
-    d.eduName = eduName || d.eduName || '';
-  }
+  if (body.eduUrl != null) d.eduUrl = String(body.eduUrl).trim(); // 제목 미리보기 불필요 — URL만 저장
   if (body.guide != null) d.guide = String(body.guide);
   if (body.notice != null) d.notice = String(body.notice);
   saveCampaignDetail_(body.challengeId, d);
-  return json_({ ok: true, eduName: d.eduName || '' });
+  return json_({ ok: true });
 }
 
 // URL 페이지 제목 추출 (서버 측 fetch, CORS 무관)
