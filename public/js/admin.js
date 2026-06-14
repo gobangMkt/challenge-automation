@@ -631,8 +631,28 @@ async function decide(camp, phone, decision) {
 /* ---------- 탭: 운영 (주차) ---------- */
 async function drawOperate(camp) {
   const id = camp.challengeId;
-  el('content').innerHTML = `${sechead('operate')}<div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
-  const r = await apiGet({ action: 'missions', token: state.token, challengeId: id });
+  el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
+  const [r, det] = await Promise.all([
+    apiGet({ action: 'missions', token: state.token, challengeId: id }),
+    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+  ]);
+  const gd = det.detail || {};
+  el('opGlobal').innerHTML = `
+    <div class="card"><div class="card__title">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">모든 주차 공통</span></div>
+      <div class="field"><label class="field__label">교육자료(교재) 링크</label>
+        <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
+        ${gd.eduName ? `<div class="field__hint">현재: <b>${esc(gd.eduName)}</b></div>` : '<div class="field__hint">저장 시 링크 제목을 자동으로 가져옵니다.</div>'}</div>
+      <div class="field"><label class="field__label">참고하세요 (유의사항 · 제출 화면 하단 노출)</label>
+        <textarea class="textarea" id="g-notice" style="min-height:200px" placeholder="제출 마감 정책 · 리워드 안내 · 우등생 선정기준 · 제외 대상 등">${esc(gd.notice || '')}</textarea>
+        <div class="field__hint">자동 서식: ★★소제목★★ / ------- / 리스트 / **강조**.</div></div>
+      <button class="btn btn--secondary btn--sm" id="g-save">전역 설정 저장</button>
+    </div>`;
+  el('g-save').addEventListener('click', async (e) => {
+    e.target.disabled = true; e.target.textContent = '저장 중…';
+    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), notice: el('g-notice').value })).catch(() => ({ ok: false }));
+    e.target.disabled = false; e.target.textContent = '전역 설정 저장';
+    if (rr.ok) { toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
+  });
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }

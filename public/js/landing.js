@@ -283,20 +283,26 @@ async function loadStatus() {
   if (!r.selected) { box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return; }
   const p = r.progress || { done: 0, total: 0 };
   const cur = r.current;
+  const d = DATA.detail || {};
+  const linkIcon = '<svg class="wk-link__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+  const matLink = (label, name, url) => `<a class="wk-link" href="${esc(url || '#')}" target="_blank" rel="noopener">
+    ${linkIcon}<span class="wk-link__txt"><span class="wk-link__label">${esc(label)}</span><span class="wk-link__name">${esc(name)}</span></span><span class="wk-link__go">→</span></a>`;
+  const materials = [];
+  if (d.eduUrl) materials.push(matLink('교육자료 · 교재', d.eduName || '교재 보기', d.eduUrl));
+  if (cur && (cur.articleName || cur.articleUrl)) materials.push(matLink('이번 주 아티클', cur.articleName || '아티클 보기', cur.articleUrl));
   box.innerHTML = `
     <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
       ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
       <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
       <h3 class="wk-title">${esc(cur.title || '이번 주 미션')}</h3>
-      ${(cur.articleName || cur.articleUrl) ? `<a class="wk-article" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener">
-        <span class="wk-article__label">참고 아티클</span>
-        <span class="wk-article__name">${esc(cur.articleName || '아티클 보기')} →</span></a>` : ''}
+      ${materials.length ? `<div class="wk-links">${materials.join('')}</div>` : ''}
       ${cur.body ? `<div class="prose wk-body">${richText(cur.body)}</div>` : ''}
       <div class="field" style="margin-top:18px"><label class="field__label">이번 주 작성한 게시물 URL</label>
         <input class="input" id="s-url" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(cur.submittedUrl || '')}" /></div>
       <button class="btn btn--primary btn--block" id="s-do">${cur.submitted ? '제출 수정' : '제출하기'}</button>
       ${cur.submitted ? '<p class="center muted" style="margin-top:8px;font-size:13px">이미 제출됨 — 수정 가능</p>' : ''}`}
-    </div>`;
+    </div>
+    ${d.notice ? `<div class="card wk-notice"><div class="wk-notice__title">참고하세요</div><div class="prose">${richText(d.notice)}</div></div>` : ''}`;
   const btn = $('#s-do');
   if (btn) btn.addEventListener('click', async () => {
     const url = $('#s-url').value.trim();

@@ -93,6 +93,7 @@ function doPostInner_(e) {
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
     case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
     case 'saveMission': return saveMission_(body);      // Hub 단일 회차 미션 저장
+    case 'saveCampaignMeta': return saveCampaignMeta_(body); // Hub 전역 교육자료·유의사항
     case 'reviewSubmission': return reviewSubmission_(body); // Hub 제출 검수
     default: return json_({ ok: false, error: 'unknown_action' });
   }

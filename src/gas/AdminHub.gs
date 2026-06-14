@@ -246,6 +246,22 @@ function saveMission_(body) {
   return json_({ ok: false, error: 'not_found' });
 }
 
+// ---------- 액션: 캠페인 전역 보조필드 저장 (운영 — 교육자료·유의사항) ----------
+function saveCampaignMeta_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  if (!body.challengeId) return json_({ ok: false, error: 'challenge_required' });
+  var d = campaignDetailObj_(body.challengeId) || {};
+  var eduName = null;
+  if (body.eduUrl != null) {
+    d.eduUrl = String(body.eduUrl).trim();
+    eduName = d.eduUrl ? fetchPageTitle_(d.eduUrl) : '';
+    d.eduName = eduName || d.eduName || '';
+  }
+  if (body.notice != null) d.notice = String(body.notice);
+  saveCampaignDetail_(body.challengeId, d);
+  return json_({ ok: true, eduName: d.eduName || '' });
+}
+
 // URL 페이지 제목 추출 (서버 측 fetch, CORS 무관)
 function fetchPageTitle_(url) {
   try {
