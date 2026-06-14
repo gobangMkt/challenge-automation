@@ -32,22 +32,23 @@ a { color: var(--lp-primary); }
 .hero::after { width: 90px; height: 90px; background: var(--lp-pop); bottom: 40px; left: -24px; opacity: .25; }
 .star { display: none; }
 .hero__badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; position: relative; }
-.pbadge { font-weight: 700; font-size: 13px; padding: 7px 15px; border-radius: var(--radius-pill); background: rgba(255,255,255,.14); color: #fff; backdrop-filter: blur(4px); }
+.pbadge { font-weight: 700; font-size: 15px; padding: 10px 20px; border-radius: var(--radius-pill); background: rgba(255,255,255,.16); color: #fff; backdrop-filter: blur(4px); }
 .pbadge--pop { background: var(--lp-pop); color: var(--lp-pop-ink); }
 .hero__tag { display: none; }
 .hero__panel {
-  position: relative; background: #fff; border-radius: 28px; padding: 26px 22px; margin: 0 auto; max-width: 420px;
+  position: relative; background: #fff; border-radius: 28px; padding: 30px 26px; margin: 0 auto; max-width: 360px;
   box-shadow: 0 18px 44px rgba(0,0,0,.25);
 }
-.hero__eyebrow { font-weight: 700; color: var(--lp-primary); font-size: 14px; display: block; margin-bottom: 8px; }
+.hero__eyebrow { font-weight: 700; color: var(--lp-primary); font-size: 15px; display: block; margin-bottom: 10px; }
 .hero__title {
-  font-family: var(--lp-display); font-weight: 400; line-height: 1.1; letter-spacing: -0.01em;
-  font-size: clamp(30px, 8.5vw, 46px); color: var(--lp-hero-bg);
+  font-family: var(--lp-display); font-weight: 400; line-height: 1.16; letter-spacing: -0.01em;
+  font-size: clamp(38px, 11vw, 58px); color: var(--lp-hero-bg);
+  word-break: keep-all; text-wrap: balance;
 }
 .hero__sub { color: rgba(255,255,255,.88); margin: 20px auto 0; font-size: 16px; line-height: 1.65; max-width: 40ch; }
 .hero__sub .rich-p { margin-bottom: 6px; }
 .hero__meta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 22px; position: relative; }
-.hero__meta .badge { background: rgba(255,255,255,.16); color: #fff; border: 0; height: 30px; padding: 0 13px; font-size: 11px; }
+.hero__meta .badge { background: rgba(255,255,255,.16); color: #fff; border: 0; height: 34px; padding: 0 16px; font-size: 12px; }
 .hero__meta .badge--success { background: var(--lp-pop); color: var(--lp-pop-ink); }
 
 /* ── 섹션 공통 ── */
