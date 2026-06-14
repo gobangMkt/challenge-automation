@@ -84,6 +84,7 @@ function doPostInner_(e) {
     case 'saveSettings': return saveSettings_(body);    // S2
     case 'saveMissions': return saveMissions_(body);    // S2
     case 'select': return select_(body);                // S3 선발
+    case 'deleteParticipant': return deleteParticipant_(body); // 신청자 삭제
     case 'submit': return submit_(body);                // S4 주차제출
     case 'wrapup': return wrapup_(body);                // S7 마무리
     case 'resend': return resend_(body);                // S6 수동 재발송
@@ -125,18 +126,41 @@ function apply_(body) {
   var existing = findRowIndexByPhone_(sh, challengeId, phone);
   var record = [
     challengeId, phone, String(body.name).trim(), String(body.blogUrl).trim(),
-    'Y', 'applied', new Date(), '',
-  ];
+    'Y', 'selected', new Date(), '',
+  ]; // 기본 전체 선발(알림톡 미발송), 특이 경우만 운영자가 탈락 처리
   if (existing > 0) {
     // 기존 신청일/상태 보존하며 갱신
     var prev = sh.getRange(existing, 1, 1, PARTICIPANT_HEADERS.length).getValues()[0];
-    record[5] = prev[5] || 'applied';
+    record[5] = prev[5] || 'selected';
     record[6] = prev[6] || new Date();
     sh.getRange(existing, 1, 1, PARTICIPANT_HEADERS.length).setValues([record]);
   } else {
     sh.appendRow(record);
   }
   return json_({ ok: true, phone: phone });
+}
+
+function deleteParticipant_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var challengeId = String(body.challengeId || '');
+  var phone = normalizePhone(body.phone);
+  if (!challengeId || !phone) return json_({ ok: false, error: 'bad_request' });
+  var sh = getSheet_(SHEETS.participants, PARTICIPANT_HEADERS);
+  var idx = findRowIndexByPhone_(sh, challengeId, phone);
+  if (idx < 1) return json_({ ok: false, error: 'not_found' });
+  sh.deleteRow(idx);
+  // 관련 제출 행도 정리
+  var subSh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Submissions');
+  if (subSh && subSh.getLastRow() > 1) {
+    var vals = subSh.getDataRange().getValues();
+    var ci = vals[0].indexOf('challengeId'), pi = vals[0].indexOf('phone');
+    if (ci >= 0 && pi >= 0) {
+      for (var i = vals.length - 1; i >= 1; i--) {
+        if (String(vals[i][ci]) === challengeId && String(vals[i][pi]) === String(phone)) subSh.deleteRow(i + 1);
+      }
+    }
+  }
+  return json_({ ok: true });
 }
 
 function participants_(p) {

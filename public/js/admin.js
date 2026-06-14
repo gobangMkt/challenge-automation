@@ -597,7 +597,8 @@ async function drawManage(camp) {
           <td><span class="badge ${sel ? 'badge--success' : p.status === 'rejected' ? 'badge--danger' : 'badge--primary'}">${esc(p.status)}</span></td>
           <td><button class="btn btn--ghost btn--sm js-ex">${isEx ? '★ 우수' : '☆'}</button></td>
           <td><button class="btn btn--secondary btn--sm js-sel">선발</button>
-            <button class="btn btn--ghost btn--sm js-rej">탈락</button></td>
+            <button class="btn btn--ghost btn--sm js-rej">탈락</button>
+            <button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
       }).join('') : '<tr><td colspan="6" class="empty">신청자가 없습니다.</td></tr>'}
       </tbody></table>
@@ -606,6 +607,13 @@ async function drawManage(camp) {
     const phone = tr.dataset.phone;
     tr.querySelector('.js-sel')?.addEventListener('click', () => decide(camp, phone, 'selected'));
     tr.querySelector('.js-rej')?.addEventListener('click', () => decide(camp, phone, 'rejected'));
+    tr.querySelector('.js-pdel')?.addEventListener('click', async () => {
+      const name = tr.querySelector('td')?.textContent || '';
+      const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
+      if (!ok) return;
+      const r2 = await apiPost(op({ action: 'deleteParticipant', challengeId: id, phone })).catch(() => ({ ok: false }));
+      if (r2.ok) { state.loaded = false; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
+    });
     tr.querySelector('.js-ex')?.addEventListener('click', async (e) => {
       const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone }));
       if (r2.ok) { e.target.textContent = r2.excellent ? '★ 우수' : '☆'; toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); }
