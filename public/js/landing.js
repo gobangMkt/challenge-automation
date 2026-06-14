@@ -129,7 +129,7 @@ function renderSubmit() {
 async function loadStatus() {
   const phone = $('#s-phone').value.trim();
   if (!normPhone(phone)) return toast('올바른 휴대폰 번호를 입력하세요.', true);
-  const box = $('#s-status'); box.innerHTML = '<p class="center muted" style="padding:20px">조회 중…</p>';
+  const box = $('#s-status'); box.innerHTML = '<div class="loading"><span class="spinner"></span> 조회 중…</div>';
   const r = await apiGet({ action: 'myStatus', challengeId: cid, phone }).catch(() => ({ ok: false }));
   if (!r.ok) { box.innerHTML = `<div class="card center muted">${r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패'}</div>`; return; }
   if (!r.selected) { box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return; }

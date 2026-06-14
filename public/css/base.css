@@ -126,4 +126,14 @@ a { color: var(--color-primary); }
 .toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast--err { background: var(--color-danger); }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ---------- 로딩 ---------- */
+.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 20px; color: var(--color-ink-faint); font-size: 14px; }
+.spinner {
+  display: inline-block; width: 20px; height: 20px; flex: none;
+  border: 2.5px solid var(--color-border); border-top-color: var(--color-primary);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+.btn .spinner { width: 16px; height: 16px; border-width: 2px; border-top-color: #fff; border-color: rgba(255,255,255,.4); border-top-color: #fff; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .spinner { animation-duration: 1.4s; } }

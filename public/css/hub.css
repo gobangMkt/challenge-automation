@@ -26,7 +26,7 @@
 .sidebar__foot . tok { font-weight: 600; }
 
 /* 콘텐츠 */
-.content { padding: 28px 32px 60px; max-width: 1180px; }
+.content { padding: 28px 32px 60px; width: 100%; }
 .page-head { margin-bottom: var(--space-5); }
 .page-head__title { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
 .page-head__desc { color: var(--color-ink-muted); margin-top: 4px; }
