@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './api.js';
+import { pickTheme, DISPLAY_FONTS } from './themes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const app = document.getElementById('app');
@@ -55,8 +56,61 @@ async function boot() {
   const r = await apiGet({ action: 'campaignDetail', challengeId: cid }).catch(() => ({ ok: false }));
   if (!r.ok) { app.innerHTML = `<div class="wrap"><p class="center muted" style="padding:80px 0">캠페인을 찾을 수 없습니다.</p></div>`; return; }
   DATA = r;
+  applyTheme();
   route();
   window.addEventListener('hashchange', route);
+}
+
+function applyTheme() {
+  const d = DATA.detail || {};
+  const t = pickTheme(DATA.challenge.name, d.theme);
+  const s = document.documentElement.style;
+  s.setProperty('--lp-hero-bg', t.heroBg); s.setProperty('--lp-hero-bg2', t.heroBg2);
+  s.setProperty('--lp-primary', t.primary); s.setProperty('--lp-pop', t.pop); s.setProperty('--lp-pop-ink', t.popInk);
+  s.setProperty('--lp-ink', t.ink); s.setProperty('--lp-surface2', t.surface2);
+  s.setProperty('--lp-display', DISPLAY_FONTS[t.display] || DISPLAY_FONTS.jalnan);
+}
+
+/* 날짜 유틸 */
+const fmtMD = (s) => { const m = String(s || '').match(/(\d{4})-(\d{2})-(\d{2})/); return m ? `${+m[2]}.${+m[3]}` : ''; };
+const addDays = (iso, n) => { const m = String(iso || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (!m) return ''; const dt = new Date(+m[1], +m[2] - 1, +m[3] + n); return `${dt.getMonth() + 1}.${dt.getDate()}`; };
+
+/* 참여 방법 Step (공통 동선) */
+function stepsSection(c) {
+  const steps = [
+    { t: '참가 신청', d: `모집 기간에 신청서를 작성하세요.${c['모집마감'] ? ` (~${fmtMD(c['모집마감'])} 마감)` : ''}` },
+    { t: '참가자 선발', d: `발표일에 선발 결과를 개별 안내드려요.${c['발표일'] ? ` (${fmtMD(c['발표일'])} 발표)` : ''}` },
+    { t: '주차별 실습', d: `시작일부터 ${c.totalRounds || 10}주간 미션을 수행합니다.${c['시작일'] ? ` (${fmtMD(c['시작일'])} 시작)` : ''}` },
+  ];
+  return `<section class="sec"><h2 class="sec__title">참여 방법</h2><div class="steps">
+    ${steps.map((s, i) => `<div class="step"><div class="step__n">${i + 1}</div>
+      <div><div class="step__t">${esc(s.t)}</div><div class="step__d">${esc(s.d)}</div></div></div>`).join('')}
+  </div></section>`;
+}
+
+/* 일정 — 시작일 있으면 주차별 표, 없으면 scheduleText 프로즈 */
+function scheduleSection(c, d) {
+  const rounds = Number(c.totalRounds) || 0;
+  if (c['시작일'] && rounds) {
+    const rows = Array.from({ length: rounds }, (_, i) =>
+      `<tr><td>${i + 1}주차</td><td>${addDays(c['시작일'], i * 7)} 시작</td></tr>`).join('');
+    return `<section class="sec"><h2 class="sec__title">챌린지 일정 <span class="badge" style="background:var(--lp-surface2);color:var(--lp-primary);border:0">총 ${rounds}주</span></h2>
+      <table class="sched"><thead><tr><th>회차</th><th>시작일</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+  }
+  if (d.scheduleText) return `<section class="sec"><h2 class="sec__title">일정</h2><div class="prose">${richText(d.scheduleText)}</div></section>`;
+  return '';
+}
+
+/* 주의사항 (기본값, detail.cautions 배열로 덮어쓰기) */
+function cautionsSection(d) {
+  const items = (Array.isArray(d.cautions) && d.cautions.length) ? d.cautions : [
+    '본인 명의 블로그 1개로만 참여할 수 있으며, 도배·어뷰징 시 선발에서 제외됩니다.',
+    '신청 시 입력한 휴대폰 번호로 선발·리워드 안내가 발송됩니다.',
+    '주차별 미션은 정해진 기간 안에 제출해야 활동으로 인정됩니다.',
+    '일정·리워드는 운영 사정에 따라 변동될 수 있습니다.',
+  ];
+  return `<section class="sec"><h2 class="sec__title">꼭 확인하세요</h2>
+    <ul class="cautions">${items.map((x) => `<li>${esc(stripMarker(x))}</li>`).join('')}</ul></section>`;
 }
 
 function route() {
@@ -75,16 +129,16 @@ function rewardSection(d, c) {
       const range = next ? (next.min - 1 > t.min ? `${t.min}~${next.min - 1}개` : `${t.min}개`) : `${t.min}개 이상`;
       return `<tr><td>${esc(range)} 작성</td><td class="num"><b>${Number(t.amount).toLocaleString()}P</b></td></tr>`;
     }).join('');
-    return `<section class="sec"><h2 class="sec__title">리워드</h2>
-      <div class="card" style="padding:6px;overflow:hidden"><table class="reward-table"><thead><tr>
-        <th>작성 개수</th><th class="num">네이버페이 포인트</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted center" style="margin-top:10px">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 ×2</p></section>`;
+    return `<section class="sec"><div class="infocard"><h2 class="sec__title">리워드</h2>
+      <table class="reward-table"><thead><tr>
+        <th>작성 개수</th><th class="num">네이버페이 포인트</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="reward-note">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 <b style="color:var(--lp-pop)">×2</b></p></div></section>`;
   }
   const amt = Number(d.rewardAmount || c.rewardPerPost || 0);
   if (!amt) return '';
-  return `<section class="sec"><div class="reward-card">
+  return `<section class="sec"><div class="infocard reward-card" style="text-align:center">
     ${d.rewardType === 'per_milestone' ? '목표 달성 시 리워드 지급' : '제출 1건당 리워드 적립'}<br>
-    <b>${amt.toLocaleString()}P</b><br><span class="muted">네이버페이 · 우수활동자 ×2</span></div></section>`;
+    <b>${amt.toLocaleString()}P</b><br><span style="color:rgba(255,255,255,.7)">네이버페이 · 우수활동자 ×2</span></div></section>`;
 }
 
 /* ---------- 랜딩 + 신청 ---------- */
@@ -92,23 +146,32 @@ function renderLanding() {
   const c = DATA.challenge, d = DATA.detail || {};
   const closed = c.status && c.status !== '모집중';
   const benefits = Array.isArray(d.benefits) ? d.benefits : [];
+  const reward = d.rewardAmount || c.rewardPerPost;
+  const rounds = c.totalRounds || 10;
   app.innerHTML = `
     <header class="hero">
-      <span class="hero__tag reveal reveal-1">${esc(autoTagline(c, d))}</span>
-      <h1 class="hero__title reveal reveal-2">${esc(c.name)}</h1>
+      <div class="hero__badges reveal reveal-1">
+        ${reward ? `<span class="pbadge pbadge--pop disp">활동비 지급</span>` : ''}
+        <span class="pbadge disp">${esc(rounds)}주 과정</span>
+      </div>
+      <div class="hero__panel reveal reveal-2">
+        <span class="hero__eyebrow">${esc(autoTagline(c, d))}</span>
+        <h1 class="hero__title">${esc(c.name)}</h1>
+      </div>
       ${d.concept ? `<div class="hero__sub reveal reveal-3">${richText(d.concept)}</div>` : ''}
       <div class="hero__meta reveal reveal-4">
-        <span class="badge badge--accent">${esc(c.totalRounds || 10)}주 과정</span>
-        ${(d.rewardAmount || c.rewardPerPost) ? `<span class="badge badge--primary">네이버페이 리워드</span>` : ''}
         <span class="badge ${closed ? 'badge--danger' : 'badge--success'}">${closed ? '모집 마감' : '모집 중'}</span>
+        ${reward ? `<span class="badge">네이버페이 리워드</span>` : ''}
       </div>
     </header>
     <div class="wrap">
-      ${benefits.length ? `<section class="sec"><h2 class="sec__title">참가 혜택</h2>
-        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></section>` : ''}
-      ${d.scheduleText ? `<section class="sec"><h2 class="sec__title">일정</h2><div class="prose">${richText(d.scheduleText)}</div></section>` : ''}
+      ${benefits.length ? `<section class="sec"><div class="infocard"><h2 class="sec__title">참가 혜택</h2>
+        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></div></section>` : ''}
       ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><div class="prose">${richText(d.eligibility)}</div></section>` : ''}
       ${rewardSection(d, c)}
+      ${stepsSection(c)}
+      ${scheduleSection(c, d)}
+      ${cautionsSection(d)}
 
       <section class="sec apply-card" id="apply">
         <h2 class="sec__title">참가 신청</h2>
@@ -165,9 +228,10 @@ function renderDone(title, sub) {
 /* ---------- 주차 제출 ---------- */
 function renderSubmit() {
   const c = DATA.challenge;
-  app.innerHTML = `<div class="wrap">
-    <header class="hero" style="padding:40px 4px 28px"><span class="hero__tag">Weekly Mission</span><h1 class="hero__title" style="font-size:clamp(28px,7vw,38px)">주차 미션 제출</h1>
-      <p class="hero__sub">${esc(c.name)}</p></header>
+  app.innerHTML = `
+    <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
+    <div class="wrap" style="padding-top:28px">
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
         <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" />
@@ -214,9 +278,11 @@ async function loadStatus() {
 /* ---------- 마무리 ---------- */
 function renderWrapup() {
   const c = DATA.challenge;
-  app.innerHTML = `<div class="wrap">
-    <header class="hero" style="padding:40px 4px 28px"><span class="hero__tag">Wrap-up</span><h1 class="hero__title" style="font-size:clamp(28px,7vw,38px)">챌린지 마무리</h1>
-      <p class="hero__sub">${esc(c.name)} 완주를 축하합니다</p></header>
+  app.innerHTML = `
+    <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">챌린지 마무리</h1></div>
+      <p class="hero__sub">완주를 축하합니다</p></header>
+    <div class="wrap" style="padding-top:28px">
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
         <input class="input tnum" id="w-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /></div>

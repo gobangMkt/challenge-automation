@@ -497,9 +497,6 @@ async function drawMarketing(camp) {
     <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
       <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
       <ul class="usites">${sitesHtml}</ul>
-    </div>
-    <div class="card"><div class="card__title">상세페이지 미리보기</div>
-      <iframe src="${esc(link)}" style="width:100%;height:560px;border:1px solid var(--color-border);border-radius:12px"></iframe>
     </div>`;
   el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
