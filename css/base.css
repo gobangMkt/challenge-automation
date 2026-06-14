@@ -151,6 +151,36 @@ a { color: var(--color-primary); text-underline-offset: 3px; }
 .toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast--err { background: var(--color-danger); }
 
+/* ---------- 모달 (confirm) ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(10, 10, 11, .48); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity .18s var(--ease-out);
+}
+.modal-backdrop.is-show { opacity: 1; }
+.modal {
+  width: 100%; max-width: 380px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-pop);
+  transform: translateY(8px) scale(.98); transition: transform .22s var(--ease-out);
+}
+.modal-backdrop.is-show .modal { transform: none; }
+.modal__icon {
+  width: 44px; height: 44px; border-radius: var(--radius); margin-bottom: var(--space-4);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-danger-soft); color: var(--color-danger);
+}
+.modal__icon--primary { background: var(--color-primary-soft); color: var(--color-primary); }
+.modal__icon svg { width: 22px; height: 22px; }
+.modal__title { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+.modal__msg { font-size: 14px; color: var(--color-ink-muted); margin-top: 6px; line-height: 1.55; white-space: pre-line; }
+.modal__actions { display: flex; gap: 8px; margin-top: var(--space-5); }
+.modal__actions .btn { flex: 1; }
+.btn--danger { background: var(--color-danger); color: #fff; border-color: var(--color-danger); }
+.btn--danger:hover { background: #D3261D; border-color: #D3261D; box-shadow: 0 6px 18px rgba(240, 68, 56, .28); }
+.btn--danger:active { transform: scale(.985); box-shadow: none; }
+
 /* ---------- 로딩 ---------- */
 .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 20px; color: var(--color-ink-faint); font-size: 14px; }
 .spinner {

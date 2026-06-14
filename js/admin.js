@@ -16,6 +16,42 @@ function toast(msg, err) {
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+/* 확인 모달 — window.confirm 대체 (BI 모달, Promise<boolean>) */
+const _MICON = {
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>',
+};
+function confirmModal({ title, message = '', confirmLabel = '확인', cancelLabel = '취소', danger = false }) {
+  return new Promise((resolve) => {
+    const back = document.createElement('div');
+    back.className = 'modal-backdrop';
+    back.innerHTML = `
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+        <div class="modal__icon ${danger ? '' : 'modal__icon--primary'}">${danger ? _MICON.trash : _MICON.alert}</div>
+        <h3 class="modal__title" id="cf-title">${esc(title)}</h3>
+        ${message ? `<p class="modal__msg">${esc(message)}</p>` : ''}
+        <div class="modal__actions">
+          <button class="btn btn--secondary" data-act="cancel">${esc(cancelLabel)}</button>
+          <button class="btn ${danger ? 'btn--danger' : 'btn--primary'}" data-act="ok">${esc(confirmLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(back);
+    requestAnimationFrame(() => back.classList.add('is-show'));
+    const finish = (val) => {
+      back.classList.remove('is-show');
+      document.removeEventListener('keydown', onKey);
+      setTimeout(() => back.remove(), 200);
+      resolve(val);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') finish(false); else if (e.key === 'Enter') finish(true); };
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', (e) => { if (e.target === back) finish(false); });
+    back.querySelector('[data-act=cancel]').addEventListener('click', () => finish(false));
+    back.querySelector('[data-act=ok]').addEventListener('click', () => finish(true));
+    back.querySelector('[data-act=ok]').focus();
+  });
+}
+
 /* 진행률 표시 — 버튼을 진행바로 교체. 응답 동안 ~92%까지 점근, done(ok)에서 100% 또는 복원 */
 function genProgress(btn, label) {
   btn.disabled = true;
@@ -233,7 +269,13 @@ async function renderHome() {
     card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
     card.querySelector('.js-del')?.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm(`'${e.target.dataset.name}' 캠페인을 삭제할까요?\n신청·제출 등 관련 데이터가 모두 삭제됩니다.`)) return;
+      const ok = await confirmModal({
+        title: `'${e.target.dataset.name}' 캠페인을 삭제할까요?`,
+        message: '신청·제출 등 관련 데이터가 모두 삭제됩니다.\n이 작업은 되돌릴 수 없어요.',
+        confirmLabel: '삭제',
+        danger: true,
+      });
+      if (!ok) return;
       const r = await apiPost(op({ action: 'deleteCampaign', challengeId: id })).catch(() => ({ ok: false }));
       if (r.ok) { state.loaded = false; toast('삭제됨'); renderHome(); } else toast('삭제 실패', true);
     });
