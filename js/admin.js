@@ -229,7 +229,7 @@ async function renderCreate() {
     </div></div>
 
     <div class="card" style="border-color:var(--color-primary)">
-      <div class="card__title">⚡ 빠른 채우기 — 모집 공고 붙여넣기</div>
+      <div class="card__title">빠른 채우기 — 모집 공고 붙여넣기</div>
       <p class="muted" style="margin-bottom:8px">공고 전문을 붙여넣고 버튼을 누르면 캠페인명·일정·혜택·참가자격·리워드 구간·회차를 자동 추출합니다. 못 찾은 빈 곳만 직접 채우세요.</p>
       <textarea class="textarea" id="paste" style="min-height:120px" placeholder="모집 공고 텍스트를 여기에 붙여넣기"></textarea>
       <button class="btn btn--primary btn--sm" id="autofill" type="button" style="margin-top:8px">자동 채우기</button>
