@@ -637,32 +637,33 @@ async function drawOperate(camp) {
     apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
   ]);
   const gd = det.detail || {};
+  const hasGlobal = !!(gd.eduUrl || gd.guide || gd.notice);
   el('opGlobal').innerHTML = `
-    <div class="card"><div class="card__title">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">모든 주차 공통</span></div>
+    <details class="foldcard"${hasGlobal ? '' : ' open'}>
+      <summary class="foldcard__sum"><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span><span class="foldcard__chev" aria-hidden="true">▾</span></summary>
+      <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
         ${gd.eduName ? `<div class="field__hint">현재: <b>${esc(gd.eduName)}</b></div>` : '<div class="field__hint">저장 시 링크 제목을 자동으로 가져옵니다.</div>'}</div>
-      <div class="field"><label class="field__label">작성 가이드 (매주 공통 · 미션 안내 본문)</label>
-        <textarea class="textarea" id="g-guide" style="min-height:240px" placeholder="콘텐츠 작성 방식 · 제목 작성 규칙 · 이미지 사용 · 게시물 하단 문구 등 (매주 동일)">${esc(gd.guide || '')}</textarea>
-        <div class="field__hint">자동 서식: ★★소제목★★ / ------- / 리스트 / **강조**.</div></div>
-      <div class="field"><label class="field__label">참고하세요 (유의사항 · 제출 화면 하단 노출)</label>
-        <textarea class="textarea" id="g-notice" style="min-height:200px" placeholder="제출 마감 정책 · 리워드 안내 · 우등생 선정기준 · 제외 대상 등">${esc(gd.notice || '')}</textarea>
-        <div class="field__hint">자동 서식: ★★소제목★★ / ------- / 리스트 / **강조**.</div></div>
+      <div class="field"><label class="field__label">안내문 (작성가이드 + 유의사항 · 매주 공통)</label>
+        <textarea class="textarea" id="g-guide" style="min-height:340px" placeholder="작성가이드 · 제출 마감 · 리워드 · 우등생 선정기준 · 제외 대상 등 매주 동일하게 노출될 내용 전체를 한 번에 붙여넣기">${esc(gd.guide || gd.notice || '')}</textarea>
+        <div class="field__hint">자동 서식: ★★소제목★★ / ------- 구분선 / - · 1. 리스트 / **강조** / 느낌표 문장.</div></div>
       <button class="btn btn--secondary btn--sm" id="g-save">전역 설정 저장</button>
-    </div>`;
+      </div>
+    </details>`;
   el('g-save').addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), guide: el('g-guide').value, notice: el('g-notice').value })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), guide: el('g-guide').value })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
     if (rr.ok) { toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }
-  wrap.innerHTML = `<div class="weekchips">${weeks.map((w) => {
+  wrap.innerHTML = `<div class="op-sectit">회차 선택</div><div class="weekchips">${weeks.map((w) => {
     const st = w['상태'] || '대기';
-    const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : '';
-    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span>${esc(w['회차'])}주</span><small>${esc(st)}</small></button>`;
+    const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
+    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st)}</span></button>`;
   }).join('')}</div>`;
   wrap.querySelectorAll('.weekchip').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
@@ -678,11 +679,14 @@ async function drawWeek(camp, round, weeks) {
   pane.innerHTML = `
     <div class="card">
       <div class="page-head__row">
-        <div class="card__title" style="margin:0">${round}주차 <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--accent'}">${esc(status)}</span></div>
-        <div style="display:flex;gap:8px">
+        <div class="card__title" style="margin:0">${round}주차</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="seg seg--status">
+            <button class="seg__btn js-st ${status === '대기' ? 'is-on' : ''}" data-st="대기">대기</button>
+            <button class="seg__btn js-st ${status === '오픈' ? 'is-on' : ''}" data-st="오픈">오픈 발송</button>
+            <button class="seg__btn js-st ${status === '마감' ? 'is-on' : ''}" data-st="마감">마감</button>
+          </span>
           <button class="btn btn--ghost btn--sm" id="wk-refresh">↻ 새로고침</button>
-          ${status !== '오픈' ? `<button class="btn btn--primary btn--sm" id="open">이 주차 열기 (발송)</button>` : ''}
-          ${status === '오픈' ? `<button class="btn btn--secondary btn--sm" id="close">마감</button>` : ''}
         </div>
       </div>
       <p class="muted" style="margin-top:14px;font-size:13px">이번 주는 <b>아티클 URL · 키워드</b>만 입력하면 됩니다. 작성가이드·교육자료·유의사항은 <b>전역 설정</b>에서 관리됩니다.</p>
@@ -695,26 +699,28 @@ async function drawWeek(camp, round, weeks) {
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn--secondary btn--sm" id="m-save">이번 주 저장</button>
-        <span class="muted" style="font-size:13px">발송(열기) 전에 저장하세요.</span>
+        <span class="muted" style="font-size:13px">발송(오픈) 전에 저장하세요.</span>
       </div>
     </div>
-    <div class="statbar">
-      <div class="pill"><b class="tnum">${submitted.length}</b><span>제출</span></div>
-      <div class="pill"><b class="tnum">${missing.length}</b><span>미제출(선발자)</span></div>
+    <div class="card">
+      <div class="card__title">제출 <span class="muted" style="font-size:13px;font-weight:500">${submitted.length}명</span></div>
+      ${submitted.length ? `<div style="overflow:auto;margin:0 -4px"><table class="table"><thead><tr>
+        <th>성함</th><th>게시물</th><th>제출일</th><th>검수</th><th>처리</th></tr></thead><tbody>
+        ${submitted.map((s) => `<tr data-phone="${esc(s.phone)}">
+          <td>${esc(s.name)} ${s.excellent ? '<span class="badge badge--accent badge--star"></span>' : ''}</td>
+          <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
+          <td class="tnum">${esc(s.제출일시)}</td>
+          <td><span class="badge ${s.검수상태 === '승인' ? 'badge--success' : s.검수상태 === '반려' ? 'badge--danger' : ''}">${esc(s.검수상태 || '대기')}</span></td>
+          <td><button class="btn btn--secondary btn--sm js-ok">승인</button>
+            <button class="btn btn--ghost btn--sm js-no">반려</button>
+            <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button></td>
+        </tr>`).join('')}
+      </tbody></table></div>` : '<p class="empty">아직 제출이 없습니다.</p>'}
     </div>
-    <div class="card" style="padding:0;overflow:auto"><table class="table"><thead><tr>
-      <th>성함</th><th>게시물</th><th>제출일</th><th>검수</th><th>처리</th></tr></thead><tbody>
-      ${submitted.length ? submitted.map((s) => `<tr data-phone="${esc(s.phone)}">
-        <td>${esc(s.name)} ${s.excellent ? '<span class="badge badge--accent badge--star"></span>' : ''}</td>
-        <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
-        <td class="tnum">${esc(s.제출일시)}</td>
-        <td><span class="badge ${s.검수상태 === '승인' ? 'badge--success' : s.검수상태 === '반려' ? 'badge--danger' : ''}">${esc(s.검수상태 || '대기')}</span></td>
-        <td><button class="btn btn--secondary btn--sm js-ok">승인</button>
-          <button class="btn btn--ghost btn--sm js-no">반려</button>
-          <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button></td>
-      </tr>`).join('') : '<tr><td colspan="5" class="empty">제출 없음</td></tr>'}
-      ${missing.map((m) => `<tr><td class="muted">${esc(m.name)}</td><td colspan="3" class="muted">미제출</td><td><span class="badge badge--danger">미제출</span></td></tr>`).join('')}
-    </tbody></table></div>`;
+    <div class="card">
+      <div class="card__title">미제출 <span class="muted" style="font-size:13px;font-weight:500">${missing.length}명</span></div>
+      ${missing.length ? `<div class="namechips">${missing.map((m) => `<span class="namechip">${esc(m.name)}</span>`).join('')}</div>` : '<p class="empty">선발자 전원 제출 완료!</p>'}
+    </div>`;
   el('m-save')?.addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
     const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: el('m-keyword').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
@@ -722,8 +728,9 @@ async function drawWeek(camp, round, weeks) {
     if (rr.ok) { toast(`${round}주차 미션 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
-  el('open')?.addEventListener('click', () => setWeek(camp, round, '오픈', weeks));
-  el('close')?.addEventListener('click', () => setWeek(camp, round, '마감', weeks));
+  pane.querySelectorAll('.js-st').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.st !== status) setWeek(camp, round, b.dataset.st, weeks);
+  }));
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
     tr.querySelector('.js-ok')?.addEventListener('click', () => review(camp, phone, round, '승인', weeks));
