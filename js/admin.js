@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './api.js';
+import { thumbNode, posterNode, downloadNode } from './assets.js';
 
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
@@ -510,12 +511,45 @@ async function drawMarketing(camp) {
         <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
       </div>
     </div>
+    <div class="card"><div class="card__title">썸네일 · 포스터 <span class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500">자동 생성</span></div>
+      <p class="muted" style="margin-bottom:16px">캠페인 BI로 자동 합성됩니다. 다운로드해 업로드 사이트에 첨부하세요.</p>
+      <div class="assets">
+        <div class="asset"><div class="asset__prev" id="prevThumb"><span class="muted" style="font-size:13px">생성 중…</span></div>
+          <button class="btn btn--secondary btn--sm" id="dlThumb">썸네일 다운로드 (1:1)</button></div>
+        <div class="asset"><div class="asset__prev asset__prev--poster" id="prevPoster"><span class="muted" style="font-size:13px">생성 중…</span></div>
+          <button class="btn btn--secondary btn--sm" id="dlPoster">포스터 다운로드</button></div>
+      </div>
+    </div>
     <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
       <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
       <ul class="usites">${sitesHtml}</ul>
     </div>`;
   el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
+
+  // 썸네일·포스터 (상세 데이터 fetch 후 미리보기 + 다운로드)
+  (async () => {
+    const det = await apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({}));
+    const cc = det.challenge || camp; const dd = det.detail || {};
+    const preview = (boxId, node, boxW) => {
+      const box = el(boxId); if (!box) return; box.innerHTML = '';
+      box.style.width = boxW + 'px'; box.style.overflow = 'hidden'; box.style.position = 'relative';
+      node.style.transformOrigin = 'top left'; box.appendChild(node);
+      const w = node.offsetWidth || 1080; const s = boxW / w;
+      node.style.transform = `scale(${s})`; box.style.height = (node.offsetHeight * s) + 'px';
+    };
+    preview('prevThumb', thumbNode(cc, dd), 240);
+    preview('prevPoster', posterNode(cc, dd), 240);
+    const dl = (btnId, makeNode, suffix) => el(btnId)?.addEventListener('click', async (e) => {
+      const b = e.currentTarget, old = b.textContent; b.disabled = true; b.textContent = '생성 중…';
+      try { await downloadNode(makeNode(), `${cc.name}_${suffix}.png`, 1); }
+      catch (err) { toast('이미지 생성 실패: ' + err.message, true); }
+      b.disabled = false; b.textContent = old;
+    });
+    dl('dlThumb', () => thumbNode(cc, dd), '썸네일');
+    dl('dlPoster', () => posterNode(cc, dd), '포스터');
+  })();
+
   const refreshCount = () => { el('uploadCount').textContent = `${getUploaded(id).size}/${UPLOAD_SITES.length}`; };
   refreshCount();
   el('content').querySelectorAll('.usite input[type=checkbox]').forEach((cb) => {

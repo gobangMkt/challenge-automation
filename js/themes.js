@@ -2,11 +2,12 @@
    detail.theme(있으면) > 캠페인명 해시(자동) 순으로 1종 선택. 모든 프리셋은 '포스터급' 톤. */
 
 /* 둥근 청키 한글 디스플레이 폰트 (noonnu CDN @font-face는 base.css에서 로드) */
+/* 히어로 타이틀 전용 디스플레이(대형에서만 사용 → 가독성 위해 작은 텍스트엔 미적용) */
 export const DISPLAY_FONTS = {
   jalnan: `'Black Han Sans', 'Pretendard Variable', sans-serif`,
   jua: `'Jua', 'Pretendard Variable', sans-serif`,
   ssurround: `'Do Hyeon', 'Pretendard Variable', sans-serif`,
-  tmoney: `'Gasoek One', 'Pretendard Variable', sans-serif`,
+  tmoney: `'Black Han Sans', 'Pretendard Variable', sans-serif`,
 };
 
 export const THEMES = [
