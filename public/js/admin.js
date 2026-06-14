@@ -527,19 +527,27 @@ async function drawMarketing(camp) {
   el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 
-  // 썸네일·포스터 (상세 데이터 fetch 후 미리보기 + 다운로드)
+  // 썸네일·포스터 (상세 fetch 후 html2canvas로 미리보기 이미지 + 다운로드)
   (async () => {
     const det = await apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({}));
     const cc = det.challenge || camp; const dd = det.detail || {};
-    const preview = (boxId, node, boxW) => {
-      const box = el(boxId); if (!box) return; box.innerHTML = '';
-      box.style.width = boxW + 'px'; box.style.overflow = 'hidden'; box.style.position = 'relative';
-      node.style.transformOrigin = 'top left'; box.appendChild(node);
-      const w = node.offsetWidth || 1080; const s = boxW / w;
-      node.style.transform = `scale(${s})`; box.style.height = (node.offsetHeight * s) + 'px';
-    };
-    preview('prevThumb', thumbNode(cc, dd), 240);
-    preview('prevPoster', posterNode(cc, dd), 240);
+    async function renderInto(boxId, node, dispW) {
+      const box = el(boxId); if (!box) return;
+      try {
+        if (typeof window.html2canvas !== 'function') throw new Error('lib');
+        if (document.fonts) await document.fonts.ready;
+        const stage = document.createElement('div'); stage.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1';
+        stage.appendChild(node); document.body.appendChild(stage);
+        const canvas = await window.html2canvas(node, { scale: 0.5, backgroundColor: null, useCORS: true, logging: false });
+        stage.remove();
+        box.innerHTML = ''; box.style.height = 'auto';
+        const img = new Image(); img.src = canvas.toDataURL('image/png');
+        img.style.cssText = `width:${dispW}px;height:auto;display:block;border-radius:8px`;
+        box.appendChild(img);
+      } catch (e) { box.innerHTML = '<span class="muted" style="font-size:12px">미리보기 생성 실패 (다운로드는 가능)</span>'; }
+    }
+    await renderInto('prevThumb', thumbNode(cc, dd), 240);
+    await renderInto('prevPoster', posterNode(cc, dd), 240);
     const dl = (btnId, makeNode, suffix) => el(btnId)?.addEventListener('click', async (e) => {
       const b = e.currentTarget, old = b.textContent; b.disabled = true; b.textContent = '생성 중…';
       try { await downloadNode(makeNode(), `${cc.name}_${suffix}.png`, 1); }
