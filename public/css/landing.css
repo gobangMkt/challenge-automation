@@ -132,6 +132,10 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-link__label { font-size: 11px; font-weight: 700; color: var(--lp-primary); letter-spacing: .04em; text-transform: uppercase; }
 .wk-link__name { font-weight: 700; color: var(--lp-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wk-link__go { color: var(--lp-primary); font-weight: 800; flex: none; }
+.wk-kw { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.wk-kw__label { font-size: 11px; font-weight: 700; color: var(--lp-primary); letter-spacing: .04em; text-transform: uppercase; }
+.wk-kw__chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.wk-kw__chip { background: var(--lp-surface2); color: var(--lp-primary); font-weight: 700; font-size: 14px; padding: 6px 13px; border-radius: var(--radius-pill); }
 .wk-body { color: #4A4F5C; }
 .wk-body .rich-h:first-child { margin-top: 0; }
 .wk-notice { margin-top: 16px; }

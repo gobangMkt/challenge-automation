@@ -257,6 +257,7 @@ function saveCampaignMeta_(body) {
     eduName = d.eduUrl ? fetchPageTitle_(d.eduUrl) : '';
     d.eduName = eduName || d.eduName || '';
   }
+  if (body.guide != null) d.guide = String(body.guide);
   if (body.notice != null) d.notice = String(body.notice);
   saveCampaignDetail_(body.challengeId, d);
   return json_({ ok: true, eduName: d.eduName || '' });
