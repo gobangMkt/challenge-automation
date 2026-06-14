@@ -45,8 +45,10 @@ a { color: var(--lp-primary); }
   font-size: clamp(38px, 11vw, 58px); color: var(--lp-hero-bg);
   word-break: keep-all; text-wrap: balance;
 }
-.hero__sub { color: rgba(255,255,255,.88); margin: 20px auto 0; font-size: 16px; line-height: 1.65; max-width: 40ch; }
-.hero__sub .rich-p { margin-bottom: 6px; }
+.hero__sub { color: rgba(255,255,255,.88); margin: 24px auto 0; font-size: 16px; line-height: 1.55; max-width: 40ch; }
+.hero__sub .rich-p { margin: 0 0 20px; }
+.hero__sub .rich-list { margin: 0 auto 20px; width: fit-content; text-align: left; }
+.hero__sub .rich-p:last-child, .hero__sub .rich-list:last-child { margin-bottom: 0; }
 .hero__meta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 22px; position: relative; }
 .hero__meta .badge { background: rgba(255,255,255,.16); color: #fff; border: 0; height: 34px; padding: 0 16px; font-size: 12px; }
 .hero__meta .badge--success { background: var(--lp-pop); color: var(--lp-pop-ink); }
