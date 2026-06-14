@@ -81,13 +81,35 @@
 .statbar .pill b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .statbar .pill span { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); display: block; }
 
-/* 주차 칩 */
-.weekchips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.weekchip { border: 1.5px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius); padding: 8px 14px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; min-width: 64px; }
-.weekchip.is-active { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-soft); }
-.weekchip small { font-size: 11px; font-weight: 500; }
-.weekchip.s-open small { color: var(--color-success); }
-.weekchip.s-done small { color: var(--color-ink-faint); }
+/* 접이식 전역 설정 카드 */
+.foldcard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-bottom: 24px; overflow: hidden; }
+.foldcard__sum { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; }
+.foldcard__sum::-webkit-details-marker { display: none; }
+.foldcard__chev { color: var(--color-ink-faint); transition: transform .2s; font-size: 14px; }
+.foldcard[open] .foldcard__chev { transform: rotate(180deg); }
+.foldcard__body { padding: 0 24px 22px; }
+
+/* 회차 선택 */
+.op-sectit { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--color-ink-muted); margin: 8px 0 12px; }
+.weekchips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.weekchip { border: 1.5px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius); padding: 12px 18px; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 78px; transition: border-color .12s, background .12s, transform .12s; }
+.weekchip:hover { transform: translateY(-1px); }
+.weekchip__n { font-size: 17px; font-weight: 800; color: var(--color-ink); }
+.weekchip__st { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--color-surface-2); color: var(--color-ink-faint); }
+.weekchip.s-open .weekchip__st { background: var(--color-success-soft); color: #0E8F53; }
+.weekchip.s-done .weekchip__st { background: var(--color-surface-2); color: var(--color-ink-faint); }
+.weekchip.s-wait .weekchip__st { background: #FEF0DC; color: #B54708; }
+.weekchip.is-active { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.weekchip.is-active .weekchip__n { color: var(--color-primary-hover); }
+
+/* 상태 토글(대기/오픈/마감) */
+.seg--status .seg__btn.is-on { background: var(--color-success); }
+.seg--status .seg__btn[data-st="마감"].is-on { background: var(--color-ink-faint); }
+.seg--status .seg__btn[data-st="대기"].is-on { background: var(--color-warning); }
+
+/* 이름 칩 (미제출) */
+.namechips { display: flex; flex-wrap: wrap; gap: 8px; }
+.namechip { background: var(--color-danger-soft); color: #D3261D; font-weight: 600; font-size: 14px; padding: 6px 13px; border-radius: var(--radius-pill); }
 
 /* 선발/탈락 세그먼트 토글 */
 .seg { display: inline-flex; border: 1px solid var(--color-border-strong); border-radius: 8px; overflow: hidden; }
