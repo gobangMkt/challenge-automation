@@ -36,6 +36,54 @@ const sechead = (tab) => {
     <div><div class="sechead__title">${s.label}</div><div class="sechead__desc">${s.desc}</div></div></div>`;
 };
 
+/* ---------- 공고 텍스트 파서 (빠른 채우기) ---------- */
+function parseRecruit(text) {
+  const out = { benefits: [], tiers: [] };
+  const norm = String(text).replace(/\r/g, '');
+  const yr = new Date().getFullYear();
+  const md = (s) => { const m = String(s).match(/(\d{1,2})\.(\d{1,2})/); return m ? `${yr}-${('0' + m[1]).slice(-2)}-${('0' + m[2]).slice(-2)}` : ''; };
+
+  // 캠페인명: "OOO에서 시작" 패턴
+  let m = norm.match(/(?:^|\n)\s*([가-힣A-Za-z0-9·\- ]{2,40}?)에서\s*시작/);
+  if (m) out.name = m[1].trim();
+
+  // 일정
+  let rec = norm.match(/신청\s*접수[^\n]*?[:：]\s*([^\n]+)/);
+  if (rec) { const p = rec[1].split('~'); out.rs = md(p[0]); if (p[1]) out.re = md(p[1]); }
+  let ann = norm.match(/(?:참가자\s*)?발표[^\n]*?[:：]\s*([^\n]+)/);
+  if (ann) out.ann = md(ann[1]);
+  let run = norm.match(/실습\s*진행[^\n]*?[:：]\s*([^\n]+)/);
+  if (run) out.start = md(run[1].split('~')[0]);
+
+  // 총 회차 (N주)
+  let wk = norm.match(/(\d{1,2})\s*주\s*간?/);
+  if (wk) out.totalRounds = Number(wk[1]);
+
+  // 리워드 티어: "N개 ... 숫자 포인트"
+  const re = /(\d{1,2})\s*(?:[~\-]\s*\d*)?\s*개[^\n]*?([\d,]+)\s*포인트/g;
+  let t; while ((t = re.exec(norm))) out.tiers.push({ min: Number(t[1]), amount: Number(t[2].replace(/,/g, '')) });
+
+  // 섹션 분할 (■ 헤더)
+  const blocks = { intro: [] };
+  let cur = 'intro';
+  norm.split('\n').forEach((line) => {
+    const h = line.match(/^\s*■\s*(.+)/);
+    if (h) { cur = h[1].trim(); blocks[cur] = []; }
+    else if (line.trim()) blocks[cur].push(line.trim());
+  });
+  if (blocks.intro.length) out.concept = blocks.intro.join('\n');
+  Object.keys(blocks).forEach((k) => {
+    if (/참가\s*자격/.test(k)) out.eligibility = blocks[k].join(' ');
+    if (/활동\s*내용|참여\s*혜택/.test(k)) {
+      blocks[k].forEach((l) => {
+        if (!/포인트/.test(l) && !/문의/.test(l)) out.benefits.push(l.replace(/^[★※•\-]\s*/, '').trim());
+      });
+    }
+    if (/진행\s*절차/.test(k)) out.scheduleText = blocks[k].join(' · ');
+  });
+  return out;
+}
+
 /* ---------- 데이터 (캐시) ---------- */
 async function loadCampaigns(force) {
   if (state.loaded && !force) return state.campaigns;
@@ -180,6 +228,13 @@ async function renderCreate() {
       <button class="btn btn--ghost btn--sm" id="cancel">← 허브</button>
     </div></div>
 
+    <div class="card" style="border-color:var(--color-primary)">
+      <div class="card__title">⚡ 빠른 채우기 — 모집 공고 붙여넣기</div>
+      <p class="muted" style="margin-bottom:8px">공고 전문을 붙여넣고 버튼을 누르면 캠페인명·일정·혜택·참가자격·리워드 구간·회차를 자동 추출합니다. 못 찾은 빈 곳만 직접 채우세요.</p>
+      <textarea class="textarea" id="paste" style="min-height:120px" placeholder="모집 공고 텍스트를 여기에 붙여넣기"></textarea>
+      <button class="btn btn--primary btn--sm" id="autofill" type="button" style="margin-top:8px">자동 채우기</button>
+    </div>
+
     <div class="card"><div class="card__title">① 기본 정보</div>
       <div class="row2">
         <div class="field"><label class="field__label">캠페인명 <span style="color:var(--color-primary)">*</span></label>
@@ -244,6 +299,22 @@ async function renderCreate() {
   };
   DEFAULT_TIERS.forEach(tierRow);
   el('tier-add').addEventListener('click', () => tierRow({ min: 0, amount: 0 }));
+
+  // 빠른 채우기
+  el('autofill').addEventListener('click', () => {
+    const text = el('paste').value;
+    if (!text.trim()) return toast('공고 텍스트를 붙여넣으세요.', true);
+    const d = parseRecruit(text);
+    let n = 0;
+    const set = (id, v) => { if (v) { el(id).value = v; n += 1; } };
+    set('f-name', d.name); set('d-concept', d.concept); set('d-elig', d.eligibility);
+    set('d-sched', d.scheduleText);
+    set('f-rs', d.rs); set('f-re', d.re); set('f-ann', d.ann); set('f-start', d.start);
+    if (d.benefits.length) { el('d-benefits').value = d.benefits.join('\n'); n += 1; }
+    if (d.totalRounds) { el('f-rounds').value = d.totalRounds; n += 1; }
+    if (d.tiers.length) { tbody.innerHTML = ''; d.tiers.sort((a, b) => a.min - b.min).forEach(tierRow); n += 1; }
+    toast(n ? `${n}개 항목 자동 채움 — 빈 곳을 확인하세요` : '추출된 항목이 없습니다', !n);
+  });
 
   el('cancel').addEventListener('click', () => { location.hash = '#/'; });
   el('cancel2').addEventListener('click', () => { location.hash = '#/'; });
