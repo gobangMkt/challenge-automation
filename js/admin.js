@@ -587,18 +587,19 @@ async function drawManage(camp) {
       <div class="pill"><b class="tnum">${selN}</b><span>선발</span></div>
     </div>
     <div class="card" style="padding:0;overflow:auto">
-      <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>상태</th><th>우수</th><th>처리</th></tr></thead><tbody>
+      <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>선발/탈락</th><th>우수활동자</th><th>삭제</th></tr></thead><tbody>
       ${rows.length ? rows.map((p) => {
         const sel = p.status === 'selected' || p.status === '선발';
+        const rej = p.status === 'rejected' || p.status === '탈락';
         const isEx = String(p.note || '').indexOf('excellent') >= 0;
         return `<tr data-phone="${esc(p.phone)}">
           <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}</td>
           <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a></td>
-          <td><span class="badge ${sel ? 'badge--success' : p.status === 'rejected' ? 'badge--danger' : 'badge--primary'}">${esc(p.status)}</span></td>
-          <td><button class="btn btn--ghost btn--sm js-ex">${isEx ? '★ 우수' : '☆'}</button></td>
-          <td><button class="btn btn--secondary btn--sm js-sel">선발</button>
-            <button class="btn btn--ghost btn--sm js-rej">탈락</button>
-            <button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
+          <td><span class="seg">
+            <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>
+            <button class="seg__btn seg__btn--rej js-rej ${rej ? 'is-on' : ''}">탈락</button></span></td>
+          <td><button class="btn btn--ghost btn--sm js-ex ${isEx ? 'is-ex' : ''}">${isEx ? '★ 우수' : '☆ 지정'}</button></td>
+          <td><button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
       }).join('') : '<tr><td colspan="6" class="empty">신청자가 없습니다.</td></tr>'}
       </tbody></table>
@@ -656,16 +657,22 @@ async function drawWeek(camp, round, weeks) {
       <div class="page-head__row">
         <div class="card__title" style="margin:0">${round}주차 <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--accent'}">${esc(status)}</span></div>
         <div style="display:flex;gap:8px">
+          <button class="btn btn--ghost btn--sm" id="wk-refresh">↻ 새로고침</button>
           ${status !== '오픈' ? `<button class="btn btn--primary btn--sm" id="open">이 주차 열기 (발송)</button>` : ''}
           ${status === '오픈' ? `<button class="btn btn--secondary btn--sm" id="close">마감</button>` : ''}
         </div>
       </div>
       <div class="field" style="margin-top:16px"><label class="field__label">미션 제목</label>
         <input class="input" id="m-title" value="${esc(wm['미션제목'] || '')}" placeholder="예: 1주차 키워드 글쓰기" /></div>
-      <div class="field"><label class="field__label">미션 안내문</label>
-        <textarea class="textarea" id="m-body" placeholder="이번 주 미션 안내 (제출화면·알림톡에 노출)">${esc(wm['미션본문'] || '')}</textarea></div>
-      <div class="field"><label class="field__label">참고 아티클 URL</label>
-        <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (이 자료 기반으로 미션 안내)" /></div>
+      <div class="row2">
+        <div class="field"><label class="field__label">이번 주 아티클명</label>
+          <input class="input" id="m-aname" value="${esc(wm['articleName'] || '')}" placeholder="예: 고시원 준비물 이것만 챙기세요!" /></div>
+        <div class="field"><label class="field__label">아티클 URL</label>
+          <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://..." /></div>
+      </div>
+      <div class="field"><label class="field__label">주차 안내문 (전체)</label>
+        <textarea class="textarea" id="m-body" style="min-height:340px" placeholder="교재·아티클·키워드·작성가이드·제출마감·리워드·우등생 선정기준·유의사항 등 안내문 전체를 붙여넣기.">${esc(wm['미션본문'] || '')}</textarea>
+        <div class="field__hint">자동 서식: 빈 줄=문단, <b>★★ 소제목 ★★</b>=소제목, <b>-------</b>=구분선, <b>- / 1.</b>=리스트, <b>**굵게**</b>·느낌표 문장=강조.</div></div>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn--secondary btn--sm" id="m-save">미션 저장</button>
         <span class="muted" style="font-size:13px">발송(열기) 전에 미션을 저장하세요.</span>
@@ -683,22 +690,28 @@ async function drawWeek(camp, round, weeks) {
         <td class="tnum">${esc(s.제출일시)}</td>
         <td><span class="badge ${s.검수상태 === '승인' ? 'badge--success' : s.검수상태 === '반려' ? 'badge--danger' : ''}">${esc(s.검수상태 || '대기')}</span></td>
         <td><button class="btn btn--secondary btn--sm js-ok">승인</button>
-          <button class="btn btn--ghost btn--sm js-no">반려</button></td>
+          <button class="btn btn--ghost btn--sm js-no">반려</button>
+          <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button></td>
       </tr>`).join('') : '<tr><td colspan="5" class="empty">제출 없음</td></tr>'}
       ${missing.map((m) => `<tr><td class="muted">${esc(m.name)}</td><td colspan="3" class="muted">미제출</td><td><span class="badge badge--danger">미제출</span></td></tr>`).join('')}
     </tbody></table></div>`;
   el('m-save')?.addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, title: el('m-title').value.trim(), body: el('m-body').value.trim(), articleName: el('m-aname').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '미션 저장';
     if (rr.ok) toast(`${round}주차 미션 저장됨`); else toast('저장 실패', true);
   });
+  el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
   el('open')?.addEventListener('click', () => setWeek(camp, round, '오픈', weeks));
   el('close')?.addEventListener('click', () => setWeek(camp, round, '마감', weeks));
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
     tr.querySelector('.js-ok')?.addEventListener('click', () => review(camp, phone, round, '승인', weeks));
     tr.querySelector('.js-no')?.addEventListener('click', () => review(camp, phone, round, '반려', weeks));
+    tr.querySelector('.js-wex')?.addEventListener('click', async () => {
+      const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone })).catch(() => ({ ok: false }));
+      if (r2.ok) { toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
+    });
   });
 }
 async function setWeek(camp, round, status, weeks) {

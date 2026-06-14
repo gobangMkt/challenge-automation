@@ -118,6 +118,17 @@ a { color: var(--lp-primary); }
 ul.rich-list li::before { content: ''; position: absolute; left: 7px; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-primary); }
 ol.rich-list { counter-reset: ri; } ol.rich-list li { counter-increment: ri; }
 ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top: 1px; width: 19px; height: 19px; border-radius: 6px; background: var(--lp-surface2); color: var(--lp-primary); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+/* 붙여넣은 문건 소제목·구분선 */
+.rich-h { font-weight: 800; font-size: 16px; color: var(--lp-primary); margin: 20px 0 8px; letter-spacing: -0.01em; }
+.rich-hr { border: 0; border-top: 1px solid var(--color-border); margin: 20px 0; }
+
+/* 주차 미션 (제출 페이지) */
+.wk-title { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; color: var(--lp-ink); margin: 4px 0 14px; }
+.wk-article { display: flex; flex-direction: column; gap: 3px; background: var(--lp-surface2); border: 1px solid var(--color-border); border-left: 4px solid var(--lp-primary); border-radius: 12px; padding: 13px 16px; margin-bottom: 16px; text-decoration: none; }
+.wk-article__label { font-size: 11px; font-weight: 700; color: var(--lp-primary); letter-spacing: .04em; text-transform: uppercase; }
+.wk-article__name { font-weight: 700; color: var(--lp-ink); }
+.wk-body { color: #4A4F5C; }
+.wk-body .rich-h:first-child { margin-top: 0; }
 
 /* 신청 */
 .apply-card { margin-top: 44px; scroll-margin-top: 16px; }
@@ -129,7 +140,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .done { text-align: center; padding: 64px 20px; }
 .done__icon { width: 76px; height: 76px; border-radius: 50%; background: var(--lp-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 22px; animation: pop .4s var(--ease-out) both; }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.done h1, .done__title { font-family: var(--lp-display); font-size: clamp(28px, 8vw, 38px); color: var(--lp-ink); line-height: 1.2; }
+.done h1, .done__title { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(26px, 7vw, 34px); color: var(--lp-ink); line-height: 1.25; }
 .done__icon { background: var(--lp-primary); }
 
 .center { text-align: center; } .muted { color: #6B7280; }

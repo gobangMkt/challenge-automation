@@ -40,16 +40,26 @@ function richText(str) {
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
     return h;
   };
+  const hrRe = /^[-–—_▬=]{3,}$/;
+  const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/; // ★★ 소제목 ★★
   let html = '';
   for (const block of blocks) {
     const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
     if (!lines.length) continue;
+    if (lines.length === 1 && hrRe.test(lines[0])) { html += '<hr class="rich-hr">'; continue; }
     if (lines.every((l) => ulRe.test(l))) {
       html += `<ul class="rich-list">${lines.map((l) => `<li>${line(l.replace(ulRe, ''))}</li>`).join('')}</ul>`;
     } else if (lines.every((l) => olRe.test(l))) {
       html += `<ol class="rich-list">${lines.map((l) => `<li>${line(l.replace(olRe, ''))}</li>`).join('')}</ol>`;
     } else {
-      html += `<p class="rich-p">${lines.map(line).join('<br>')}</p>`;
+      let buf = [];
+      const flushP = () => { if (buf.length) { html += `<p class="rich-p">${buf.join('<br>')}</p>`; buf = []; } };
+      for (const l of lines) {
+        const hd = l.match(hdRe);
+        if (hd) { flushP(); html += `<div class="rich-h">${line(hd[1])}</div>`; }
+        else buf.push(line(l));
+      }
+      flushP();
     }
   }
   return html;
@@ -227,7 +237,7 @@ function renderLanding() {
     errEl.style.display = 'none';
     e.target.disabled = true; e.target.textContent = '신청 중…';
     const r = await apiPost({ action: 'apply', challengeId: cid, name, phone, blogUrl, agree: true }).catch(() => ({ ok: false }));
-    if (r.ok) renderDone('신청 완료!', '선발 결과는 발표일에 안내드려요. 오픈카톡에서 소식을 받아보세요.');
+    if (r.ok) renderDone('신청 완료!', '참여가 확정되었어요. 바로 주차 미션을 시작할 수 있어요. 오픈카톡에서 소식을 받아보세요.');
     else { e.target.disabled = false; e.target.textContent = '신청하기'; errEl.style.display = 'block'; errEl.textContent = '신청 실패: ' + (r.error || Object.values(r.errors || {}).join(', ')); }
   });
 }
@@ -276,11 +286,13 @@ async function loadStatus() {
   box.innerHTML = `
     <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
       ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
-      <p class="badge badge--primary" style="margin-bottom:10px">${cur.week}주차 미션</p>
-      <p class="prose" style="margin-bottom:6px"><b>${esc(cur.title || '미션')}</b></p>
-      <p class="prose muted" style="margin-bottom:12px">${esc(cur.body || '')}</p>
-      ${cur.articleUrl ? `<p style="margin-bottom:12px"><a href="${esc(cur.articleUrl)}" target="_blank">참고 아티클 보기 →</a></p>` : ''}
-      <div class="field"><label class="field__label">이번 주 작성한 게시물 URL</label>
+      <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
+      <h3 class="wk-title">${esc(cur.title || '이번 주 미션')}</h3>
+      ${(cur.articleName || cur.articleUrl) ? `<a class="wk-article" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener">
+        <span class="wk-article__label">참고 아티클</span>
+        <span class="wk-article__name">${esc(cur.articleName || '아티클 보기')} →</span></a>` : ''}
+      ${cur.body ? `<div class="prose wk-body">${richText(cur.body)}</div>` : ''}
+      <div class="field" style="margin-top:18px"><label class="field__label">이번 주 작성한 게시물 URL</label>
         <input class="input" id="s-url" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(cur.submittedUrl || '')}" /></div>
       <button class="btn btn--primary btn--block" id="s-do">${cur.submitted ? '제출 수정' : '제출하기'}</button>
       ${cur.submitted ? '<p class="center muted" style="margin-top:8px;font-size:13px">이미 제출됨 — 수정 가능</p>' : ''}`}
