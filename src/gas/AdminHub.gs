@@ -91,6 +91,25 @@ function saveCampaign_(body) {
   return json_({ ok: true, challengeId: challengeId, totalRounds: totalRounds });
 }
 
+// ---------- 액션: 캠페인 삭제 (관련 전 시트 행 제거) ----------
+function deleteCampaign_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var cid = body.challengeId;
+  if (!cid) return json_({ ok: false, error: 'challenge_required' });
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var names = ['Challenges', 'Participants', 'Submissions', 'WeekMissions', 'Wrapup', 'NotifyLog', 'Campaigns'];
+  var removed = 0;
+  names.forEach(function (nm) {
+    var sh = ss.getSheetByName(nm);
+    if (!sh) return;
+    var values = sh.getDataRange().getValues();
+    for (var i = values.length - 1; i >= 1; i--) {
+      if (String(values[i][0]) === String(cid)) { sh.deleteRow(i + 1); removed += 1; }
+    }
+  });
+  return json_({ ok: true, removed: removed });
+}
+
 // ---------- 액션: 캠페인 목록 (허브) ----------
 function campaigns_(p) {
   if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });

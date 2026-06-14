@@ -88,6 +88,7 @@ function doPostInner_(e) {
     case 'wrapup': return wrapup_(body);                // S7 마무리
     case 'resend': return resend_(body);                // S6 수동 재발송
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
+    case 'deleteCampaign': return deleteCampaign_(body); // Hub 캠페인 삭제
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
     case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
     case 'saveMission': return saveMission_(body);      // Hub 단일 회차 미션 저장

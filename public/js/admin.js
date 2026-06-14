@@ -16,6 +16,26 @@ function toast(msg, err) {
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
+/* ---------- 아이콘 (SVG, stroke 2) ---------- */
+const SVG = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICON = {
+  star: '<span class="brandstar">★</span>',
+  mkt: SVG('<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'),
+  manage: SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+};
+/* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
+const SECTIONS = {
+  mkt: { label: '마케팅', icon: ICON.mkt, desc: '신청 상세페이지를 배포합니다', cls: 'sec-mkt' },
+  manage: { label: '관리', icon: ICON.manage, desc: '신청자 명단·선발·우수활동자를 관리합니다', cls: 'sec-manage' },
+  operate: { label: '운영', icon: ICON.operate, desc: '주차별 미션 발송과 제출 검수를 진행합니다', cls: 'sec-operate' },
+};
+const sechead = (tab) => {
+  const s = SECTIONS[tab];
+  return `<div class="sechead ${s.cls}"><span class="sechead__icon">${s.icon}</span>
+    <div><div class="sechead__title">${s.label}</div><div class="sechead__desc">${s.desc}</div></div></div>`;
+};
+
 /* ---------- 데이터 (캐시) ---------- */
 async function loadCampaigns(force) {
   if (state.loaded && !force) return state.campaigns;
@@ -27,38 +47,45 @@ async function loadCampaigns(force) {
 const findCamp = (id) => state.campaigns.find((c) => String(c.challengeId) === String(id));
 
 /* ---------- 앱바 ---------- */
+function brandHtml() { return `<button class="brand" id="home">${ICON.star} 챌린지 허브</button>`; }
 function appbarHome() {
   el('appbar').innerHTML = `
     <div class="appbar__in">
-      <div class="appbar__brand"><span class="star">★</span> 챌린지 허브</div>
+      ${brandHtml()}
       <div class="appbar__spacer"></div>
       <button class="btn btn--primary btn--sm" id="newBtn">+ 새 캠페인</button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>`;
+  el('home').addEventListener('click', goHome);
   el('newBtn').addEventListener('click', () => { location.hash = '#/new'; });
   bindLogout();
 }
 function appbarWorkspace(camp, tab) {
-  const tabs = [['mkt', '마케팅'], ['manage', '관리'], ['operate', '운영']];
   el('appbar').innerHTML = `
     <div class="appbar__in">
-      <button class="btn btn--ghost btn--sm" id="back">← 허브</button>
-      <div class="appbar__title"><span class="name">${esc(camp.name)}</span>
-        <span class="badge ${camp.status === '모집중' ? 'badge--primary' : ''}">${esc(camp.status)}</span></div>
+      <nav class="crumbs">
+        ${brandHtml()}
+        <span class="crumbs__sep">›</span>
+        <span class="crumbs__cur">${esc(camp.name)}</span>
+        <span class="badge ${camp.status === '모집중' ? 'badge--primary' : ''}">${esc(camp.status)}</span>
+      </nav>
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>
     <div class="appbar__tabs">
-      ${tabs.map(([k, l]) => `<button class="appbar__tab ${k === tab ? 'is-active' : ''}" data-tab="${k}">${l}</button>`).join('')}
+      ${Object.entries(SECTIONS).map(([k, s]) =>
+        `<button class="appbar__tab ${s.cls} ${k === tab ? 'is-active' : ''}" data-tab="${k}">${s.icon}<span>${s.label}</span></button>`).join('')}
     </div>`;
-  el('back').addEventListener('click', () => { location.hash = '#/'; });
+  el('home').addEventListener('click', goHome);
   el('appbar').querySelectorAll('.appbar__tab').forEach((b) =>
     b.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(camp.challengeId)}/${b.dataset.tab}`; }));
   bindLogout();
 }
 function appbarBare() {
-  el('appbar').innerHTML = `<div class="appbar__in"><div class="appbar__brand"><span class="star">★</span> 챌린지 허브</div></div>`;
+  el('appbar').innerHTML = `<div class="appbar__in">${brandHtml()}</div>`;
+  el('home').addEventListener('click', goHome);
 }
+function goHome() { location.hash = '#/'; }
 function bindLogout() {
   const lo = el('logout');
   if (lo) lo.addEventListener('click', () => { state.token = ''; state.loaded = false; localStorage.removeItem(TOKEN_KEY); route(); });
@@ -115,21 +142,32 @@ async function renderHome() {
     </div>
     <div class="grid" id="grid">
       ${c.map((x) => `
-        <button class="camp-card" data-id="${esc(x.challengeId)}">
+        <div class="camp-card" data-id="${esc(x.challengeId)}" role="button" tabindex="0">
           <div class="camp-card__top"><span class="camp-card__name">${esc(x.name)}</span>
-            <span class="badge ${x.status === '모집중' ? 'badge--primary' : ''}">${esc(x.status)}</span></div>
+            <span style="display:flex;gap:6px;align-items:center">
+              <span class="badge ${x.status === '모집중' ? 'badge--primary' : ''}">${esc(x.status)}</span>
+              <button class="btn btn--ghost btn--sm js-del" data-name="${esc(x.name)}" style="padding:2px 8px;color:var(--color-danger)">삭제</button>
+            </span></div>
           <div class="camp-card__stats">
             <div><span class="stat__n tnum">${x.applied || 0}</span><span class="stat__l">신청</span></div>
             <div><span class="stat__n tnum">${x.selected || 0}</span><span class="stat__l">선발</span></div>
             <div><span class="stat__n tnum">${x.submissions || 0}</span><span class="stat__l">제출</span></div>
             <div><span class="stat__n tnum">${x.totalRounds || '-'}</span><span class="stat__l">회차</span></div>
           </div>
-        </button>`).join('')}
+        </div>`).join('')}
       <button class="camp-card camp-card--new" id="newCard">+ 새 캠페인 만들기</button>
     </div>`;
   el('newCard').addEventListener('click', () => { location.hash = '#/new'; });
-  el('grid').querySelectorAll('.camp-card[data-id]').forEach((b) =>
-    b.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(b.dataset.id)}/mkt`; }));
+  el('grid').querySelectorAll('.camp-card[data-id]').forEach((card) => {
+    const id = card.dataset.id;
+    card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
+    card.querySelector('.js-del')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`'${e.target.dataset.name}' 캠페인을 삭제할까요?\n신청·제출 등 관련 데이터가 모두 삭제됩니다.`)) return;
+      const r = await apiPost(op({ action: 'deleteCampaign', challengeId: id })).catch(() => ({ ok: false }));
+      if (r.ok) { state.loaded = false; toast('삭제됨'); renderHome(); } else toast('삭제 실패', true);
+    });
+  });
 }
 
 /* ---------- 캠페인 생성 ---------- */
@@ -258,15 +296,15 @@ async function drawMarketing(camp) {
   const id = camp.challengeId;
   const link = landingUrl(id);
   el('content').innerHTML = `
+    ${sechead('mkt')}
     <div class="card"><div class="card__title">신청 상세페이지 배포</div>
       <p class="muted" style="margin-bottom:10px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
       <div class="copybox"><input class="input" id="lnk" readonly value="${esc(link)}" />
         <button class="btn btn--secondary btn--sm" id="copy">복사</button>
         <a class="btn btn--primary btn--sm" href="${esc(link)}" target="_blank">미리보기</a></div>
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn btn--secondary btn--sm" target="_blank" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(camp.name + ' 참가 신청')}&url=${encodeURIComponent(link)}">X 공유</a>
         <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
-        ${camp.openchatUrl ? `<a class="btn btn--secondary btn--sm" target="_blank" href="${esc(camp.openchatUrl)}">오픈카톡</a>` : ''}
+        ${camp.openchatUrl ? `<a class="btn btn--secondary btn--sm" target="_blank" href="${esc(camp.openchatUrl)}">오픈카톡으로 공유</a>` : ''}
       </div>
     </div>
     <div class="card"><div class="card__title">상세페이지 미리보기</div>
@@ -283,6 +321,7 @@ async function drawManage(camp) {
   const rows = r.ok ? r.rows : [];
   const selN = rows.filter((x) => x.status === 'selected' || x.status === '선발').length;
   el('content').innerHTML = `
+    ${sechead('manage')}
     <div class="statbar">
       <div class="pill"><b class="tnum">${rows.length}</b><span>신청</span></div>
       <div class="pill"><b class="tnum">${selN}</b><span>선발</span></div>
@@ -323,7 +362,7 @@ async function decide(camp, phone, decision) {
 /* ---------- 탭: 운영 (주차) ---------- */
 async function drawOperate(camp) {
   const id = camp.challengeId;
-  el('content').innerHTML = `<div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
+  el('content').innerHTML = `${sechead('operate')}<div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
   const r = await apiGet({ action: 'missions', token: state.token, challengeId: id });
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
