@@ -93,21 +93,22 @@ a { color: var(--color-primary); text-underline-offset: 3px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ---------- 폼 ---------- */
-.field { margin-bottom: var(--space-4); }
-.field__label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+.field { margin-bottom: var(--space-5); }
+.field__label { display: block; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
 .field__label .req { color: var(--color-primary); }
-.field__hint { font-size: 13px; color: var(--color-ink-faint); margin-top: 5px; }
-.field__err { font-size: 13px; color: var(--color-danger); margin-top: 5px; font-weight: 600; }
+.field__hint { font-size: 13.5px; color: var(--color-ink-muted); margin-top: 6px; }
+.field__err { font-size: 13.5px; color: var(--color-danger); margin-top: 6px; font-weight: 600; }
+/* 입력창은 옅은 배경+또렷한 보더로 흰 콘텐츠와 구분 */
 .input, .select, .textarea {
-  width: 100%; min-height: 48px; padding: 12px 14px;
-  border: 1px solid var(--color-border-strong); border-radius: var(--radius);
-  font-family: var(--font-ui); font-size: 16px; color: var(--color-ink); background: var(--color-surface);
-  transition: border-color .15s, box-shadow .15s;
+  width: 100%; min-height: 50px; padding: 13px 15px;
+  border: 1.5px solid var(--color-border-strong); border-radius: var(--radius);
+  font-family: var(--font-ui); font-size: 16px; color: var(--color-ink); background: var(--color-surface-2);
+  transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+.textarea { min-height: 96px; resize: vertical; line-height: 1.6; }
 .input::placeholder, .textarea::placeholder { color: var(--color-ink-faint); }
 .input:focus, .select:focus, .textarea:focus {
-  outline: none; border-color: var(--color-primary);
+  outline: none; border-color: var(--color-primary); background: var(--color-surface);
   box-shadow: 0 0 0 4px var(--color-primary-soft);
 }
 .input.is-error, .textarea.is-error { border-color: var(--color-danger); }
@@ -135,7 +136,7 @@ a { color: var(--color-primary); text-underline-offset: 3px; }
 .badge--star::before { content: '★'; }
 
 /* ---------- 테이블 ---------- */
-.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .table th, .table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--color-border); }
 .table th { font-size: 11px; font-weight: 500; color: var(--color-ink-faint); background: var(--color-surface-2); position: sticky; top: 0; }
 .table tbody tr:hover { background: var(--color-surface-2); }
