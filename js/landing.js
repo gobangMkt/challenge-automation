@@ -288,7 +288,7 @@ async function loadStatus() {
   const cur = r.current;
   const d = DATA.detail || {};
   const articleRef = (cur && (cur.articleName || cur.articleUrl))
-    ? `<a class="wk-ref__a" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener">${esc(cur.articleName || '아티클 보기')} ↗</a>` : '';
+    ? `<a class="wk-ref__a" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(cur.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a>` : '';
   box.innerHTML = `
     <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
       ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
@@ -296,7 +296,7 @@ async function loadStatus() {
       <h3 class="wk-title">${esc(DATA.challenge.name)}</h3>
       ${(articleRef || cur.body) ? `<div class="wk-set"><div class="wk-set__head">이번 주 미션 자료</div>
         ${articleRef ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val">${articleRef}</div></div>` : ''}
-        ${cur.body ? `<div class="wk-row"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(cur.body)}</div></div>` : ''}
+        ${cur.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(cur.body)}</div></div>` : ''}
       </div>` : ''}
       ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}` }
     </div>
