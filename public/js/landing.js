@@ -33,6 +33,27 @@ function route() {
   return renderLanding();
 }
 
+function rewardSection(d, c) {
+  d = d || {};
+  if (d.rewardType === 'grade' && Array.isArray(d.rewardTiers) && d.rewardTiers.length) {
+    const tiers = d.rewardTiers.slice().sort((a, b) => a.min - b.min);
+    const rows = tiers.map((t, i) => {
+      const next = tiers[i + 1];
+      const range = next ? (next.min - 1 > t.min ? `${t.min}~${next.min - 1}개` : `${t.min}개`) : `${t.min}개 이상`;
+      return `<tr><td>${esc(range)} 작성</td><td class="num"><b>${Number(t.amount).toLocaleString()}P</b></td></tr>`;
+    }).join('');
+    return `<section class="sec"><h2 class="sec__title">리워드 (네이버페이 포인트)</h2>
+      <div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr>
+        <th>작성 개수</th><th class="num">네이버페이</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted center" style="margin-top:8px">작성 개수가 많을수록 ↑ · 우수활동자는 ×2</p></section>`;
+  }
+  const amt = Number(d.rewardAmount || c.rewardPerPost || 0);
+  if (!amt) return '';
+  return `<section class="sec"><div class="reward-card">
+    ${d.rewardType === 'per_milestone' ? '목표 달성 시 리워드 지급' : '제출 1건당 리워드 적립'}<br>
+    <b>${amt.toLocaleString()}P</b><br><span class="muted">네이버페이 · 우수활동자 ×2</span></div></section>`;
+}
+
 /* ---------- 랜딩 + 신청 ---------- */
 function renderLanding() {
   const c = DATA.challenge, d = DATA.detail || {};
@@ -54,10 +75,7 @@ function renderLanding() {
         <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(b)}</span></li>`).join('')}</ul></section>` : ''}
       ${d.scheduleText ? `<section class="sec"><h2 class="sec__title">일정</h2><p class="prose">${esc(d.scheduleText)}</p></section>` : ''}
       ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><p class="prose">${esc(d.eligibility)}</p></section>` : ''}
-      ${(d.rewardAmount || c.rewardPerPost) ? `<section class="sec"><div class="reward-card">
-        ${d.rewardType === 'per_milestone' ? '목표 달성 시 리워드 지급' : '매주 실습 제출마다 리워드 적립'}<br>
-        <b>${d.rewardType === 'per_milestone' ? '달성당' : '건당'} ${Number(d.rewardAmount || c.rewardPerPost).toLocaleString()}원</b><br>
-        <span class="muted">우수활동자는 리워드 ×2 (그레이드)</span></div></section>` : ''}
+      ${rewardSection(d, c)}
 
       <section class="sec apply-card" id="apply">
         <h2 class="sec__title">참가 신청</h2>
