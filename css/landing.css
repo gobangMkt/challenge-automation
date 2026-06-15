@@ -138,11 +138,11 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-body { color: #4A4F5C; }
 .wk-body .rich-h:first-child { margin-top: 0; }
 /* 작성가이드: 문단 사이는 확실히(block 간격), 줄 행간은 컴팩트 */
-.wk-body .rich-p { margin: 0 0 14px; line-height: 1.5; }
-.wk-body .rich-list { gap: 3px; margin: 0 0 14px; }
-.wk-body .rich-list li { line-height: 1.45; }
-.wk-body .rich-h { margin: 18px 0 10px; }
-.wk-body .rich-hr { margin: 14px 0; }
+.wk-body .rich-p { margin: 0 0 18px; line-height: 1.6; }
+.wk-body .rich-list { gap: 6px; margin: 0 0 20px; }
+.wk-body .rich-list li { line-height: 1.55; }
+.wk-body .rich-h { margin: 24px 0 12px; }
+.wk-body .rich-hr { margin: 18px 0; }
 
 /* 교재 상시 배너 = 버튼형 (상단) */
 .edu-banner { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--lp-primary); color: #fff; border-radius: 12px; padding: 15px 18px; margin-bottom: 18px; text-decoration: none; font-weight: 800; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); transition: filter .15s, transform .12s; }
@@ -166,6 +166,30 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 /* 키워드 칩: 넘치면 가로 스크롤(줄바꿈 X) */
 /* 키워드 칩의 좌측 패딩(13px) 보정 → 아티클 값 텍스트와 시작점 정렬 */
 .wk-row--kw .wk-row__val { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-left: -13px; }
+
+/* 주차 제출 대시보드 — 회차 리스트형 */
+.sb { background: var(--lp-surface2); border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; }
+.sb__top { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.sb__top button { margin-left: auto; }
+.sb__bar { height: 8px; border-radius: 99px; background: rgba(0,0,0,.08); margin-top: 12px; overflow: hidden; }
+.sb__bar span { display: block; height: 100%; background: var(--lp-primary); border-radius: 99px; transition: width .4s ease; }
+.wklist { display: flex; flex-direction: column; gap: 14px; }
+.wk-card { border: 1px solid var(--color-border); border-radius: 16px; padding: 18px; }
+.wk-card.is-open { border-color: var(--lp-primary); box-shadow: 0 0 0 1px var(--lp-primary); }
+.wk-card.is-soon { opacity: .55; }
+.wk-card__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wk-card__n { font-weight: 800; font-size: 17px; }
+.wk-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 7px; }
+.wk-badge--open { background: var(--lp-primary); color: #fff; }
+.wk-badge--closed { background: var(--lp-surface2); color: var(--color-ink-muted); }
+.wk-badge--soon { background: var(--lp-surface2); color: var(--color-ink-faint); }
+.wk-badge--done { background: #E7F7EE; color: #1A9D54; }
+.wk-badge--todo { background: #FFF3E0; color: #C77700; }
+.wk-due { margin-left: auto; font-size: 13px; color: var(--color-ink-muted); }
+.wk-submit { display: flex; gap: 8px; margin-top: 14px; }
+.wk-submit .input { flex: 1; min-width: 0; }
+.wk-done-url { margin-top: 12px; font-size: 14px; }
+.wk-done-url a { color: var(--lp-primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .wk-row__val .wk-kw__chip { font-size: 14px; flex: none; }
 
 /* 제출 섹션 강조 */
