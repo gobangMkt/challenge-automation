@@ -77,7 +77,7 @@ export function thumbNode(c, d) {
     </div>
     <div style="background:#fff;border-radius:44px;padding:64px 60px;max-width:920px;position:relative">
       <div style="color:${t.primary};font-weight:800;font-size:42px;margin-bottom:22px">${esc(tagOf(c, d))}</div>
-      <div style="font-family:${disp};color:${t.heroBg};font-size:118px;line-height:1.12;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
+      <div style="font-family:${disp};color:${t.heroBg};font-size:118px;line-height:1.1;letter-spacing:-0.04em">${twoLineHtml(c.name)}</div>
     </div>
     <div style="margin-top:38px;background:rgba(255,255,255,.14);border-radius:24px;padding:30px 40px;font-size:40px;font-weight:700;line-height:1.4;max-width:880px;position:relative">${esc(hookOf(d))}</div>`;
   return el;
@@ -121,14 +121,14 @@ export function posterNode(c, d) {
         ${reward ? `<span style="font-weight:800;font-size:28px;padding:13px 28px;border-radius:999px;background:${t.pop};color:${t.popInk}">활동비 지급</span>` : ''}
         <span style="font-weight:700;font-size:28px;padding:13px 28px;border-radius:999px;background:rgba(255,255,255,.16)">${esc(c.totalRounds || 10)}주 과정</span>
       </div>
-      <div style="background:#fff;border-radius:36px;padding:44px 48px;max-width:840px;margin:0 auto;position:relative">
+      <div style="background:#fff;border-radius:36px;padding:44px 56px;max-width:940px;margin:0 auto;position:relative">
         <div style="color:${t.primary};font-weight:800;font-size:31px;margin-bottom:14px">${esc(tagOf(c, d))}</div>
-        <div style="font-family:${disp};color:${t.heroBg};font-size:84px;line-height:1.16;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
+        <div style="font-family:${disp};color:${t.heroBg};font-size:88px;line-height:1.1;letter-spacing:-0.04em">${twoLineHtml(c.name)}</div>
       </div>
-      <div style="margin-top:32px;font-size:30px;font-weight:700;line-height:1.5;color:rgba(255,255,255,.92);position:relative">${esc(hookOf(d))}</div>
+      <div style="margin:30px auto 0;max-width:940px;background:rgba(255,255,255,.12);border-radius:22px;padding:24px 34px;font-size:30px;font-weight:700;line-height:1.4;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:relative">${esc(hookOf(d))}</div>
     </div>
-    <div style="padding:54px 56px 70px">
-      <div style="display:flex;gap:32px;align-items:flex-start">
+    <div style="padding:54px 44px 70px">
+      <div style="display:flex;gap:28px;align-items:flex-start">
         <div style="flex:1;min-width:0">
           ${card(secTitle('참가자격') + elig.map(bullet).join(''))}
           ${card(secTitle('리워드') + rewardBlock)}
