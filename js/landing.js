@@ -132,15 +132,17 @@ function scheduleSection(c, d) {
 }
 
 /* 주의사항 (기본값, detail.cautions 배열로 덮어쓰기) */
-function cautionsSection(d) {
+function cautionsList(d) {
   const items = (Array.isArray(d.cautions) && d.cautions.length) ? d.cautions : [
     '본인 명의 블로그 1개로만 참여할 수 있으며, 도배·어뷰징 시 선발에서 제외됩니다.',
     '신청 시 입력한 휴대폰 번호로 선발·리워드 안내가 발송됩니다.',
     '주차별 미션은 정해진 기간 안에 제출해야 활동으로 인정됩니다.',
     '일정·리워드는 운영 사정에 따라 변동될 수 있습니다.',
   ];
-  return `<section class="sec"><h2 class="sec__title">꼭 확인하세요</h2>
-    <ul class="cautions">${items.map((x) => `<li>${esc(stripMarker(x))}</li>`).join('')}</ul></section>`;
+  return `<ul class="cautions">${items.map((x) => `<li>${esc(stripMarker(x))}</li>`).join('')}</ul>`;
+}
+function cautionsSection(d) {
+  return `<section class="sec"><h2 class="sec__title">꼭 확인하세요</h2>${cautionsList(d)}</section>`;
 }
 
 function route() {
@@ -266,8 +268,7 @@ function renderSubmit() {
   const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
-      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1>
-      ${d.eduUrl ? `<a class="hero__edu" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">📘 교육자료(교재) 바로가기 ↗</a>` : ''}</div></header>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
     <div class="card" id="s-loginCard">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
@@ -343,8 +344,12 @@ function renderDashboard(r, phone) {
     return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${esc(w.week)}주차${w.submitted ? ' ✓' : ''}${isNew ? '<span class="wkchip__new">NEW</span>' : ''}</button>`;
   }).join('');
   const sb = `<div class="sb">${head}<div class="wkchips">${chips}</div></div>`;
-  const guide = d.guide ? `<details class="wkguide"><summary>작성가이드 보기</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : '';
-  box.innerHTML = sb + '<div id="wkdetail"></div>' + guide;
+  const resbox = `<div class="resbox"><div class="resbox__title">학습 자료 · 안내</div>
+    ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
+    ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
+  </div>`;
+  box.innerHTML = sb + '<div id="wkdetail"></div>' + resbox;
   setupCommon();
 
   const select = (wk) => {

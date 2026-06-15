@@ -196,11 +196,11 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .sb__who { min-width: 0; }
 .wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin-top: 12px; padding: 4px 2px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 .wkchip { flex: none; position: relative; border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); white-space: nowrap; }
-.wkchip.is-done { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
+.wkchip.is-done { background: var(--lp-surface2); color: var(--lp-primary); border-color: var(--lp-surface2); }
 .wkchip.is-open { border-color: var(--lp-primary); color: var(--lp-primary); }
 .wkchip.is-closed { color: var(--color-ink-muted); }
 .wkchip.is-soon { opacity: .5; }
-.wkchip.is-active { outline: 2px solid var(--lp-primary); outline-offset: 1px; }
+.wkchip.is-active { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
 .wkchip__new { position: absolute; top: -7px; right: -4px; background: #FF3B30; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 7px; }
 .wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */
@@ -211,6 +211,16 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wkguide[open] summary::before { content: '▾ '; }
 .wkguide[open] summary { border-bottom: 1px solid var(--color-border); }
 .wkguide .wk-body { padding: 14px 0 16px; }
+/* 학습 자료·안내 묶음 (교재 + 작성가이드 + 유의사항) */
+.resbox { margin-top: 16px; border: 1px solid var(--color-border); border-radius: 16px; padding: 14px 16px; background: #fff; }
+.resbox__title { font-size: 12px; font-weight: 800; color: var(--color-ink-faint); letter-spacing: .03em; margin-bottom: 12px; }
+.resbtn { display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 16px; font-weight: 800; color: #fff; background: var(--lp-primary); padding: 15px 20px; border-radius: 12px; text-decoration: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); }
+.resbtn__ic { flex: none; }
+.resbtn__go { opacity: .9; }
+.resbox .wkguide { margin-top: 10px; border: 0; border-top: 1px solid var(--color-border); border-radius: 0; padding: 0; }
+.resbox .wkguide summary { padding: 12px 2px; }
+.resbox .wkguide[open] summary { border-bottom: 0; }
+.resbox .wkguide .wk-body, .resbox .wkguide .wk-cautions { padding: 4px 0 12px; }
 .wk-row__val .wk-kw__chip { font-size: 14px; flex: none; }
 
 /* 제출 섹션 강조 */
