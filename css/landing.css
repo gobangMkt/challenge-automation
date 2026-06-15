@@ -175,8 +175,8 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .sb__bar { height: 8px; border-radius: 99px; background: rgba(0,0,0,.08); margin-top: 12px; overflow: hidden; }
 .sb__bar span { display: block; height: 100%; background: var(--lp-primary); border-radius: 99px; transition: width .4s ease; }
 .wklist { display: flex; flex-direction: column; gap: 14px; }
-.wk-card { border: 1px solid var(--color-border); border-radius: 16px; padding: 18px; }
-.wk-card.is-open { border-color: var(--lp-primary); }
+.wk-card { border: 0; border-radius: 16px; padding: 18px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.wk-card.is-open { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
 .wk-card.is-soon { opacity: .55; }
 .wk-card__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .wk-card__n { font-weight: 800; font-size: 17px; }
