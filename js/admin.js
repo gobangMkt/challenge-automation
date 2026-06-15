@@ -88,11 +88,7 @@ const SECTIONS = {
   manage: { label: '관리', icon: ICON.manage, desc: '신청자 명단·선발·우수활동자를 관리합니다', cls: 'sec-manage' },
   operate: { label: '운영', icon: ICON.operate, desc: '주차별 미션 발송과 제출 검수를 진행합니다', cls: 'sec-operate' },
 };
-const sechead = (tab) => {
-  const s = SECTIONS[tab];
-  return `<div class="sechead ${s.cls}"><span class="sechead__icon">${s.icon}</span>
-    <div><div class="sechead__title">${s.label}</div><div class="sechead__desc">${s.desc}</div></div></div>`;
-};
+const sechead = () => ''; // 섹션 배너 제거 — 설명은 상단 탭 툴팁(title)으로 노출
 
 /* ---------- 공고 텍스트 파서 (빠른 채우기) ---------- */
 function parseRecruit(text) {
@@ -180,7 +176,7 @@ function appbarWorkspace(camp, tab) {
     </div>
     <div class="appbar__tabs">
       ${Object.entries(SECTIONS).map(([k, s]) =>
-        `<button class="appbar__tab ${s.cls} ${k === tab ? 'is-active' : ''}" data-tab="${k}">${s.icon}<span>${s.label}</span></button>`).join('')}
+        `<button class="appbar__tab ${s.cls} ${k === tab ? 'is-active' : ''}" data-tab="${k}" title="${s.desc}">${s.icon}<span>${s.label}</span></button>`).join('')}
     </div>`;
   el('home').addEventListener('click', goHome);
   el('appbar').querySelectorAll('.appbar__tab').forEach((b) =>
