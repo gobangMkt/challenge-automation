@@ -103,6 +103,7 @@ function applyTheme() {
 /* 날짜 유틸 */
 const fmtMD = (s) => { const m = String(s || '').match(/(\d{4})-(\d{2})-(\d{2})/); return m ? `${+m[2]}.${+m[3]}` : ''; };
 const addDays = (iso, n) => { const m = String(iso || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (!m) return ''; const dt = new Date(+m[1], +m[2] - 1, +m[3] + n); return `${dt.getMonth() + 1}.${dt.getDate()}`; };
+const dday = (due) => { const m = String(due || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (!m) return ''; const t = new Date(); t.setHours(0, 0, 0, 0); const dd = new Date(+m[1], +m[2] - 1, +m[3]); const diff = Math.round((dd - t) / 86400000); return diff > 0 ? `D-${diff}` : diff === 0 ? 'D-DAY' : '마감'; };
 
 /* 참여 방법 Step (공통 동선) */
 function stepsSection(c) {
@@ -265,7 +266,8 @@ function renderSubmit() {
   const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
-      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1>
+      ${d.eduUrl ? `<a class="hero__edu" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">📘 교육자료(교재) 바로가기 ↗</a>` : ''}</div></header>
     <div class="wrap" style="padding-top:28px">
     <div class="card" id="s-loginCard">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
@@ -302,7 +304,8 @@ function weekCard(w, d) {
       : '<span class="wk-badge wk-badge--soon">예정</span>';
   const subBadge = w.submitted ? '<span class="wk-badge wk-badge--done">✓ 제출완료</span>'
     : (isOpen ? '<span class="wk-badge wk-badge--todo">미제출</span>' : '');
-  const due = w['마감일'] ? `<span class="wk-due">${fmtMD(w['마감일'])} 마감</span>` : '';
+  const dd = w['마감일'] ? dday(w['마감일']) : '';
+  const due = w['마감일'] ? `<span class="wk-due">${fmtMD(w['마감일'])} 마감${dd ? ` · <b class="wk-dday">${dd}</b>` : ''}</span>` : '';
   const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${due}</div>`;
   if (!isOpen && !isClosed && !w.submitted) {
     return `<div class="wk-card is-soon">${head}<p class="muted" style="font-size:13px;margin-top:8px">아직 열리지 않았어요.</p></div>`;
@@ -322,31 +325,33 @@ function weekCard(w, d) {
 function renderDashboard(r, phone) {
   const d = DATA.detail || {};
   const p = r.progress || { done: 0, total: 0 };
-  const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
   const box = $('#s-status');
   const weeks = (Array.isArray(r.weeks) && r.weeks.length) ? r.weeks
     : (r.current ? [{ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }] : []);
-  const bar = `<div class="sb">
-    <div class="sb__top"><span><b>${esc(r.name)}</b>님 · 진행 <b>${p.done}/${p.total}</b></span>
-      <button class="btn btn--ghost btn--sm" id="s-logout">번호 변경</button></div>
-    <div class="sb__bar"><span style="width:${pct}%"></span></div></div>`;
-  const edu = d.eduUrl ? `<a class="edu-banner" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">
-    <span class="edu-banner__tag">상시 자료</span><span class="edu-banner__txt">교육자료(교재) 바로가기</span><span class="edu-banner__go">↗</span></a>` : '';
   const setupCommon = () => {
     const lc = $('#s-loginCard'); if (lc) lc.style.display = 'none'; // 본인확인 후 입력칸 숨김
     $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
   };
-  if (!weeks.length) { box.innerHTML = bar + edu + '<div class="card center muted">현재 열린 회차가 없습니다.</div>'; setupCommon(); return; }
+  const head = `<div class="sb__top"><span class="sb__who"><b>${esc(r.name)}</b>님 · <b>${p.done}/${p.total}</b> 제출</span>
+      <button class="btn btn--ghost btn--sm" id="s-logout">번호 변경</button></div>`;
+  if (!weeks.length) { box.innerHTML = `<div class="sb">${head}</div><div class="card center muted">현재 열린 회차가 없습니다.</div>`; setupCommon(); return; }
 
-  const chipIcon = (w) => w.submitted ? ' ✓' : (String(w.status) === '오픈' ? ' ●' : '');
-  const chips = `<div class="wkchips">${weeks.map((w) => `<button class="wkchip" data-chip="${esc(w.week)}">${esc(w.week)}주차<span class="wkchip__st">${chipIcon(w)}</span></button>`).join('')}</div>`;
+  const chips = weeks.map((w) => {
+    const st = String(w.status || '');
+    const cls = w.submitted ? 'is-done' : (st === '오픈' ? 'is-open' : (st === '마감' ? 'is-closed' : 'is-soon'));
+    const isNew = st === '오픈' && !w.submitted;
+    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${esc(w.week)}주차${w.submitted ? ' ✓' : ''}${isNew ? '<span class="wkchip__new">NEW</span>' : ''}</button>`;
+  }).join('');
+  const sb = `<div class="sb">${head}<div class="wkchips">${chips}</div></div>`;
   const guide = d.guide ? `<details class="wkguide"><summary>작성가이드 보기</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : '';
-  box.innerHTML = bar + edu + chips + '<div id="wkdetail"></div>' + guide;
+  box.innerHTML = sb + '<div id="wkdetail"></div>' + guide;
   setupCommon();
 
   const select = (wk) => {
     const w = weeks.find((x) => String(x.week) === String(wk)) || weeks[0];
     box.querySelectorAll('.wkchip').forEach((c) => c.classList.toggle('is-active', c.dataset.chip === String(w.week)));
+    const active = box.querySelector('.wkchip.is-active'), cont = box.querySelector('.wkchips');
+    if (active && cont) cont.scrollLeft += active.getBoundingClientRect().left + active.offsetWidth / 2 - (cont.getBoundingClientRect().left + cont.offsetWidth / 2);
     $('#wkdetail').innerHTML = weekCard(w, d);
     const b = $('#wkdetail').querySelector('[data-week]');
     if (b) b.addEventListener('click', () => submitWeek(phone, b));
