@@ -187,11 +187,12 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-badge--done { background: #E7F7EE; color: #1A9D54; }
 .wk-badge--todo { background: #FFF3E0; color: #C77700; }
 .wk-due { margin-left: auto; font-size: 13px; color: var(--color-ink-muted); }
-.wk-submit__label { font-size: 13px; font-weight: 700; color: var(--lp-ink); margin: 16px 0 8px; }
-.wk-submit__done { color: #1A9D54; font-weight: 600; }
+.wk-submitbox { background: color-mix(in srgb, var(--lp-primary) 9%, #fff); border-radius: 14px; padding: 16px; margin-top: 18px; }
+.wk-submit__label { font-size: 14px; font-weight: 800; color: var(--lp-ink); margin: 0 0 10px; }
+.wk-submit__done { color: #1A9D54; font-weight: 700; }
 .wk-submit { display: flex; gap: 8px; margin-top: 0; }
-.wk-submit .input { flex: 1; min-width: 0; border: 0; background: var(--lp-surface2); }
-.wk-submit .input:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--lp-primary); }
+.wk-submit .input { flex: 1; min-width: 0; border: 0; background: #fff; }
+.wk-submit .input:focus { box-shadow: inset 0 0 0 2px var(--lp-primary); }
 .wk-done-url { margin-top: 12px; font-size: 14px; }
 .wk-done-url a { color: var(--lp-primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 /* 회차 칩 탭 — 한 번에 한 회차만 */
@@ -216,6 +217,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wkguide[open] summary::before { content: '▾ '; }
 .wkguide[open] summary { border-bottom: 1px solid var(--color-border); }
 .wkguide .wk-body { padding: 14px 0 16px; }
+.wkguide__badge { display: inline-block; margin-left: 6px; background: var(--lp-primary); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; vertical-align: 1px; }
 /* 학습 자료·안내 묶음 (교재 + 작성가이드 + 유의사항) */
 .resbox { margin-top: 16px; border: 1px solid var(--color-border); border-radius: 16px; padding: 14px 16px; background: #fff; }
 .resbox__title { font-size: 12px; font-weight: 800; color: var(--color-ink-faint); letter-spacing: .03em; margin-bottom: 12px; }
