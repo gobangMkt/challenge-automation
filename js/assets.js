@@ -3,6 +3,15 @@
 import { pickTheme, DISPLAY_FONTS } from './themes.js';
 
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* 제목을 2줄로 분할 (공백 우선, 없으면 글자 절반) — 썸네일 강제 2줄용 */
+const twoLine = (name) => {
+  const s = String(name || '').trim();
+  const w = s.split(/\s+/).filter(Boolean);
+  if (w.length >= 2) { const m = Math.ceil(w.length / 2); return [w.slice(0, m).join(' '), w.slice(m).join(' ')]; }
+  const a = [...s]; const m = Math.ceil(a.length / 2); return [a.slice(0, m).join(''), a.slice(m).join('')];
+};
+const twoLineHtml = (name) => twoLine(name).map(esc).join('<br>');
 const tagOf = (c, d) => d.tagline || `${c.totalRounds || 10}주 블로그 챌린지`;
 const hookOf = (d) => String(d.concept || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || '지금 바로 신청하세요';
 const benefitsOf = (d) => (Array.isArray(d.benefits) ? d.benefits : []).map((b) => String(b).replace(/^\s*(?:[-•*·]|\d+[.)])\s+/, '').trim()).filter(Boolean);
@@ -66,7 +75,7 @@ export function thumbNode(c, d) {
     </div>
     <div style="background:#fff;border-radius:48px;padding:56px 56px;max-width:880px;box-shadow:0 30px 70px rgba(0,0,0,.3);position:relative">
       <div style="color:${t.primary};font-weight:800;font-size:34px;margin-bottom:18px">${esc(tagOf(c, d))}</div>
-      <div style="font-family:${disp};color:${t.heroBg};font-size:104px;line-height:1.08">${esc(c.name)}</div>
+      <div style="font-family:${disp};color:${t.heroBg};font-size:96px;line-height:1.16;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
     </div>
     <div style="margin-top:44px;background:rgba(255,255,255,.14);border-radius:24px;padding:26px 36px;font-size:34px;font-weight:700;line-height:1.4;position:relative">${esc(hookOf(d))}</div>`;
   return el;
@@ -96,7 +105,7 @@ export function posterNode(c, d) {
       : bullet('참가자 전원 활동비 지급');
 
   const schedBlock = secTitle('상세안내')
-    + sched.map(([k, v]) => `<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">${dot}<span style="font-size:29px;line-height:1.42;color:${t.ink}"><b style="font-weight:700">${esc(k)}</b> · ${esc(v)}</span></div>`).join('')
+    + sched.map(([k, v]) => `<div style="display:flex;gap:16px;align-items:baseline;margin-bottom:14px"><span style="flex:none;width:168px;font-size:28px;font-weight:700;color:${t.ink}">${esc(k)}</span><span style="flex:1;min-width:0;font-size:28px;line-height:1.4;color:${t.ink}">${esc(v)}</span></div>`).join('')
     + (c.openchatUrl ? `<div style="margin-top:18px;padding-top:18px;border-top:2px solid ${line};font-size:25px;color:#8A8F98;line-height:1.4">문의는 오픈카톡으로<br><span style="color:${t.primary};font-weight:700;word-break:break-all">${esc(c.openchatUrl)}</span></div>` : '');
 
   const el = document.createElement('div');
@@ -111,7 +120,7 @@ export function posterNode(c, d) {
       </div>
       <div style="background:#fff;border-radius:36px;padding:44px 48px;max-width:840px;margin:0 auto;box-shadow:0 24px 60px rgba(0,0,0,.28);position:relative">
         <div style="color:${t.primary};font-weight:800;font-size:31px;margin-bottom:14px">${esc(tagOf(c, d))}</div>
-        <div style="font-family:${disp};color:${t.heroBg};font-size:84px;line-height:1.08">${esc(c.name)}</div>
+        <div style="font-family:${disp};color:${t.heroBg};font-size:84px;line-height:1.16;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
       </div>
       <div style="margin-top:32px;font-size:30px;font-weight:700;line-height:1.5;color:rgba(255,255,255,.92);position:relative">${esc(hookOf(d))}</div>
     </div>

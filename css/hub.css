@@ -130,6 +130,11 @@
 .empty { text-align: center; color: var(--color-ink-faint); padding: 40px; }
 .copybox { display: flex; gap: 8px; align-items: center; }
 .copybox input { font-size: 14px; }
+.linkrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.linkrow__cell { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 16px; background: var(--color-surface-2); }
+.linkrow__label { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--color-ink); }
+.linkrow__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 600px) { .linkrow { grid-template-columns: 1fr; } }
 
 /* 썸네일·포스터 자산 */
 .assets { display: flex; gap: 18px; flex-wrap: wrap; }
