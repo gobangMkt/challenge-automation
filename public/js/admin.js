@@ -501,7 +501,9 @@ async function drawMarketing(camp) {
     </li>`).join('');
   el('content').innerHTML = `
     ${sechead('mkt')}
-    <div class="card"><div class="card__title">신청 상세페이지 배포</div>
+    <div class="card"><div class="card__title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span>신청 상세페이지 배포</span>
+      <button class="btn btn--ghost btn--sm" id="editCamp" title="상세 내용 수정" aria-label="상세 내용 수정"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>
       <p class="muted" style="margin-bottom:10px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
       <div class="linkrow">
         <div class="linkrow__cell">
@@ -516,10 +518,6 @@ async function drawMarketing(camp) {
             <button class="btn btn--secondary btn--sm" id="copySubmit">링크 복사</button>
             <a class="btn btn--primary btn--sm" href="${esc(link)}#submit" target="_blank">열기</a></div>
         </div>
-      </div>
-      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn--primary btn--sm" id="editCamp">상세 내용 수정</button>
-        <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
       </div>
     </div>
     <div class="card"><div class="card__title">썸네일 · 포스터 <span class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500">자동 생성</span></div>

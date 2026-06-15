@@ -30,8 +30,10 @@ const DEFAULT_ACT = [
   '자료 참고하여 블로그 실습 진행',
   '실습 갯수에 따라 리워드 적립',
 ];
+const DEFAULT_CAUTION = ['본인 명의 블로그 1개로만 참여 가능', '미션은 정해진 기간 내 제출 시 인정'];
 const eligOf = (d) => { const v = linesOf(d.eligibility); return v.length ? v : DEFAULT_ELIG; };
 const actOf = (d) => { const v = benefitsOf(d); return v.length ? v : DEFAULT_ACT; };
+const cautionsOf = (d) => { const v = (Array.isArray(d.cautions) ? d.cautions : linesOf(d.cautions)).map((x) => String(x).replace(/^\s*(?:[-•*·–—▪◦‣★☆◆▶▷✓✔]|\d+[.)])\s+/, '').trim()).filter(Boolean); return v.length ? v : DEFAULT_CAUTION; };
 function scheduleRows(c) {
   const rows = [];
   const rec = (c['모집시작'] && c['모집마감']) ? `${fmtMD(c['모집시작'])} - ${fmtMD(c['모집마감'])}`
@@ -65,19 +67,19 @@ export function thumbNode(c, d) {
   const disp = DISPLAY_FONTS[t.display];
   const reward = d.rewardAmount || c.rewardPerPost;
   const el = document.createElement('div');
-  el.style.cssText = `width:1080px;height:1080px;position:relative;overflow:hidden;font-family:'Pretendard Variable',sans-serif;color:#fff;background:radial-gradient(120% 80% at 50% -10%, ${t.heroBg2}, ${t.heroBg});display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;box-sizing:border-box;text-align:center`;
+  el.style.cssText = `width:1080px;height:1080px;position:relative;overflow:hidden;font-family:'Pretendard Variable',sans-serif;color:#fff;background:radial-gradient(120% 80% at 50% -10%, ${t.heroBg2}, ${t.heroBg});display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;box-sizing:border-box;text-align:center`;
   el.innerHTML = `
     <div style="position:absolute;top:-60px;right:-40px;width:300px;height:300px;border-radius:50%;background:${t.primary};opacity:.35"></div>
     <div style="position:absolute;bottom:60px;left:-50px;width:200px;height:200px;border-radius:50%;background:${t.pop};opacity:.22"></div>
-    <div style="display:flex;gap:16px;margin-bottom:40px;position:relative">
-      ${reward ? `<span style="font-weight:800;font-size:30px;padding:14px 30px;border-radius:999px;background:${t.pop};color:${t.popInk}">활동비 지급</span>` : ''}
-      <span style="font-weight:700;font-size:30px;padding:14px 30px;border-radius:999px;background:rgba(255,255,255,.16)">${esc(c.totalRounds || 10)}주 과정</span>
+    <div style="display:flex;gap:16px;margin-bottom:34px;position:relative">
+      ${reward ? `<span style="font-weight:800;font-size:34px;padding:15px 32px;border-radius:999px;background:${t.pop};color:${t.popInk}">활동비 지급</span>` : ''}
+      <span style="font-weight:700;font-size:34px;padding:15px 32px;border-radius:999px;background:rgba(255,255,255,.16)">${esc(c.totalRounds || 10)}주 과정</span>
     </div>
-    <div style="background:#fff;border-radius:48px;padding:56px 56px;max-width:880px;box-shadow:0 30px 70px rgba(0,0,0,.3);position:relative">
-      <div style="color:${t.primary};font-weight:800;font-size:34px;margin-bottom:18px">${esc(tagOf(c, d))}</div>
-      <div style="font-family:${disp};color:${t.heroBg};font-size:96px;line-height:1.16;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
+    <div style="background:#fff;border-radius:44px;padding:64px 60px;max-width:920px;position:relative">
+      <div style="color:${t.primary};font-weight:800;font-size:42px;margin-bottom:22px">${esc(tagOf(c, d))}</div>
+      <div style="font-family:${disp};color:${t.heroBg};font-size:118px;line-height:1.12;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
     </div>
-    <div style="margin-top:44px;background:rgba(255,255,255,.14);border-radius:24px;padding:26px 36px;font-size:34px;font-weight:700;line-height:1.4;position:relative">${esc(hookOf(d))}</div>`;
+    <div style="margin-top:38px;background:rgba(255,255,255,.14);border-radius:24px;padding:30px 40px;font-size:40px;font-weight:700;line-height:1.4;max-width:880px;position:relative">${esc(hookOf(d))}</div>`;
   return el;
 }
 
@@ -90,6 +92,7 @@ export function posterNode(c, d) {
   const elig = eligOf(d);
   const acts = actOf(d);
   const sched = scheduleRows(c);
+  const cautions = cautionsOf(d);
   const line = 'rgba(0,0,0,.08)';
 
   const secTitle = (s) => `<div style="display:flex;align-items:center;gap:14px;font-weight:800;font-size:40px;color:${t.ink};margin:0 0 24px;letter-spacing:-.02em"><span style="color:${t.primary};font-size:34px;line-height:1">✻</span>${esc(s)}</div>`;
@@ -118,7 +121,7 @@ export function posterNode(c, d) {
         ${reward ? `<span style="font-weight:800;font-size:28px;padding:13px 28px;border-radius:999px;background:${t.pop};color:${t.popInk}">활동비 지급</span>` : ''}
         <span style="font-weight:700;font-size:28px;padding:13px 28px;border-radius:999px;background:rgba(255,255,255,.16)">${esc(c.totalRounds || 10)}주 과정</span>
       </div>
-      <div style="background:#fff;border-radius:36px;padding:44px 48px;max-width:840px;margin:0 auto;box-shadow:0 24px 60px rgba(0,0,0,.28);position:relative">
+      <div style="background:#fff;border-radius:36px;padding:44px 48px;max-width:840px;margin:0 auto;position:relative">
         <div style="color:${t.primary};font-weight:800;font-size:31px;margin-bottom:14px">${esc(tagOf(c, d))}</div>
         <div style="font-family:${disp};color:${t.heroBg};font-size:84px;line-height:1.16;letter-spacing:-0.01em">${twoLineHtml(c.name)}</div>
       </div>
@@ -129,6 +132,7 @@ export function posterNode(c, d) {
         <div style="flex:1;min-width:0">
           ${card(secTitle('참가자격') + elig.map(bullet).join(''))}
           ${card(secTitle('리워드') + rewardBlock)}
+          ${card(secTitle('유의사항') + cautions.slice(0, 3).map(bullet).join(''))}
         </div>
         <div style="flex:1;min-width:0">
           ${card(secTitle('활동내용') + acts.slice(0, 6).map(bullet).join(''))}
