@@ -138,11 +138,12 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-body { color: #4A4F5C; }
 .wk-body .rich-h:first-child { margin-top: 0; }
 /* 작성가이드: 문단 사이는 확실히(block 간격), 줄 행간은 컴팩트 */
-.wk-body .rich-p { margin: 0 0 18px; line-height: 1.6; }
-.wk-body .rich-list { gap: 6px; margin: 0 0 20px; }
+.wk-body .rich-p { margin: 0 0 6px; line-height: 1.6; }
+.wk-body .rich-list { gap: 6px; margin: 0 0 6px; }
 .wk-body .rich-list li { line-height: 1.55; }
-.wk-body .rich-h { margin: 24px 0 12px; }
-.wk-body .rich-hr { margin: 18px 0; }
+.wk-body .rich-h { margin: 6px 0 10px; }
+.wk-body .rich-hr { margin: 12px 0; }
+.wk-body .rich-blank { height: 16px; }
 
 /* 교재 상시 배너 = 버튼형 (상단) */
 .edu-banner { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--lp-primary); color: #fff; border-radius: 12px; padding: 15px 18px; margin-bottom: 18px; text-decoration: none; font-weight: 800; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); transition: filter .15s, transform .12s; }

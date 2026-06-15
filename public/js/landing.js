@@ -44,7 +44,7 @@ function richText(str) {
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
     return h;
   };
-  let html = '', pbuf = [], lbuf = [], lt = null, olCount = 0;
+  let html = '', pbuf = [], lbuf = [], lt = null, olCount = 0, blanked = false;
   const flushP = () => { if (pbuf.length) { html += `<p class="rich-p">${pbuf.join('<br>')}</p>`; pbuf = []; } };
   const flushL = () => {
     if (!lbuf.length) return;
@@ -56,7 +56,8 @@ function richText(str) {
   const flush = () => { flushP(); flushL(); };
   for (const raw of lines) {
     const l = raw.trim();
-    if (!l) { flush(); continue; }
+    if (!l) { flush(); blanked = true; continue; }
+    if (blanked) { if (html) html += '<div class="rich-blank"></div>'; blanked = false; }
     if (hrRe.test(l)) { flush(); html += '<hr class="rich-hr">'; continue; }
     const hd = l.match(hdRe);
     if (hd) { flush(); html += `<div class="rich-h">${line(hd[1])}</div>`; continue; }
@@ -266,7 +267,7 @@ function renderSubmit() {
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
       <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
-    <div class="card">
+    <div class="card" id="s-loginCard">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
         <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="${esc(savedPhone)}" />
         <button class="btn btn--primary" id="s-check">확인</button></div>
@@ -336,6 +337,7 @@ function renderDashboard(r, phone) {
   else if (r.current) list = weekCard({ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }, d);
   else list = '<div class="card center muted">현재 열린 회차가 없습니다.</div>';
   box.innerHTML = bar + edu + `<div class="wklist">${list}</div>`;
+  const lc = $('#s-loginCard'); if (lc) lc.style.display = 'none'; // 본인확인 후 입력칸 숨김
   $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
   box.querySelectorAll('[data-week]').forEach((btn) => btn.addEventListener('click', () => submitWeek(phone, btn)));
 }
