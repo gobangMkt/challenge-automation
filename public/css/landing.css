@@ -192,10 +192,17 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-done-url { margin-top: 12px; font-size: 14px; }
 .wk-done-url a { color: var(--lp-primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 /* 회차 칩 탭 — 한 번에 한 회차만 */
-.wkchips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.wkchip { border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); display: inline-flex; align-items: center; }
-.wkchip.is-active { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
-.wkchip__st { font-size: 12px; }
+.hero__edu { display: inline-block; margin-top: 16px; font-size: 14px; font-weight: 700; color: var(--lp-primary); background: var(--lp-surface2); padding: 10px 16px; border-radius: 10px; text-decoration: none; }
+.sb__who { min-width: 0; }
+.wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin-top: 12px; padding: 4px 2px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.wkchip { flex: none; position: relative; border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); white-space: nowrap; }
+.wkchip.is-done { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
+.wkchip.is-open { border-color: var(--lp-primary); color: var(--lp-primary); }
+.wkchip.is-closed { color: var(--color-ink-muted); }
+.wkchip.is-soon { opacity: .5; }
+.wkchip.is-active { outline: 2px solid var(--lp-primary); outline-offset: 1px; }
+.wkchip__new { position: absolute; top: -7px; right: -4px; background: #FF3B30; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 7px; }
+.wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */
 .wkguide { margin-top: 14px; border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; }
 .wkguide summary { padding: 14px 2px; font-weight: 700; cursor: pointer; color: var(--lp-primary); list-style: none; }
