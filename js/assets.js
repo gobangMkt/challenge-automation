@@ -79,7 +79,7 @@ export function thumbNode(c, d) {
       <div style="color:${t.primary};font-weight:800;font-size:42px;margin-bottom:22px">${esc(tagOf(c, d))}</div>
       <div style="font-family:${disp};color:${t.heroBg};font-size:118px;line-height:1.1;letter-spacing:-0.04em">${twoLineHtml(c.name)}</div>
     </div>
-    <div style="margin-top:38px;background:rgba(255,255,255,.14);border-radius:24px;padding:30px 40px;font-size:40px;font-weight:700;line-height:1.4;max-width:880px;position:relative">${esc(hookOf(d))}</div>`;
+    <div style="margin-top:38px;background:rgba(255,255,255,.14);border-radius:24px;padding:30px 40px;font-size:40px;font-weight:700;line-height:1.4;max-width:880px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:relative">${esc(hookOf(d))}</div>`;
   return el;
 }
 
@@ -98,7 +98,7 @@ export function posterNode(c, d) {
   const secTitle = (s) => `<div style="display:flex;align-items:center;gap:14px;font-weight:800;font-size:40px;color:${t.ink};margin:0 0 24px;letter-spacing:-.02em"><span style="color:${t.primary};font-size:34px;line-height:1">✻</span>${esc(s)}</div>`;
   const dot = `<span style="flex:none;width:14px;height:14px;margin-top:11px;border-radius:5px;background:${t.primary};transform:rotate(45deg)"></span>`;
   const bullet = (txt) => `<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">${dot}<span style="font-size:29px;line-height:1.42;color:${t.ink}">${esc(txt)}</span></div>`;
-  const card = (inner) => `<div style="background:${t.surface2};border-radius:28px;padding:36px;margin-bottom:26px">${inner}</div>`;
+  const card = (inner, grow) => `<div style="background:${t.surface2};border-radius:28px;padding:36px;margin-bottom:26px;${grow ? 'flex:1;margin-bottom:0;' : ''}">${inner}</div>`;
 
   const rewardBlock = tiers.length
     ? tiers.map((r) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:2px solid ${line}"><span style="font-size:29px;color:${t.ink}">${esc(r.range)} 작성</span><b style="font-size:34px;color:${t.primary};font-variant-numeric:tabular-nums">${Number(r.amount).toLocaleString()}P</b></div>`).join('')
@@ -128,15 +128,15 @@ export function posterNode(c, d) {
       <div style="margin:30px auto 0;max-width:940px;background:rgba(255,255,255,.12);border-radius:22px;padding:24px 34px;font-size:30px;font-weight:700;line-height:1.4;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:relative">${esc(hookOf(d))}</div>
     </div>
     <div style="padding:54px 44px 70px">
-      <div style="display:flex;gap:28px;align-items:flex-start">
-        <div style="flex:1;min-width:0">
+      <div style="display:flex;gap:28px;align-items:stretch">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
           ${card(secTitle('참가자격') + elig.map(bullet).join(''))}
           ${card(secTitle('리워드') + rewardBlock)}
-          ${card(secTitle('유의사항') + cautions.slice(0, 3).map(bullet).join(''))}
+          ${card(secTitle('유의사항') + cautions.slice(0, 3).map(bullet).join(''), true)}
         </div>
-        <div style="flex:1;min-width:0">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
           ${card(secTitle('활동내용') + acts.slice(0, 6).map(bullet).join(''))}
-          ${sched.length || c.openchatUrl ? card(schedBlock) : ''}
+          ${card(schedBlock, true)}
         </div>
       </div>
     </div>`;
