@@ -311,35 +311,49 @@ function weekCard(w, d) {
     ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val"><a class="wk-ref__a" href="${esc(w.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(w.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a></div></div>` : '';
   const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
   const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
-  const guide = isOpen && d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : '';
   const form = isOpen ? `<div class="wk-submit">
       <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
       <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
     </div>`
     : (w.submittedUrl ? `<div class="wk-done-url"><a href="${esc(w.submittedUrl)}" target="_blank" rel="noopener">제출한 게시물 ↗</a></div>` : '');
-  return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${guide}${form}</div>`;
+  return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${form}</div>`;
 }
 
 function renderDashboard(r, phone) {
   const d = DATA.detail || {};
   const p = r.progress || { done: 0, total: 0 };
   const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
-  const weeks = (Array.isArray(r.weeks) && r.weeks.length) ? r.weeks : null;
   const box = $('#s-status');
+  const weeks = (Array.isArray(r.weeks) && r.weeks.length) ? r.weeks
+    : (r.current ? [{ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }] : []);
   const bar = `<div class="sb">
     <div class="sb__top"><span><b>${esc(r.name)}</b>님 · 진행 <b>${p.done}/${p.total}</b></span>
       <button class="btn btn--ghost btn--sm" id="s-logout">번호 변경</button></div>
     <div class="sb__bar"><span style="width:${pct}%"></span></div></div>`;
   const edu = d.eduUrl ? `<a class="edu-banner" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">
     <span class="edu-banner__tag">상시 자료</span><span class="edu-banner__txt">교육자료(교재) 바로가기</span><span class="edu-banner__go">↗</span></a>` : '';
-  let list;
-  if (weeks) list = weeks.map((w) => weekCard(w, d)).join('');
-  else if (r.current) list = weekCard({ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }, d);
-  else list = '<div class="card center muted">현재 열린 회차가 없습니다.</div>';
-  box.innerHTML = bar + edu + `<div class="wklist">${list}</div>`;
-  const lc = $('#s-loginCard'); if (lc) lc.style.display = 'none'; // 본인확인 후 입력칸 숨김
-  $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
-  box.querySelectorAll('[data-week]').forEach((btn) => btn.addEventListener('click', () => submitWeek(phone, btn)));
+  const setupCommon = () => {
+    const lc = $('#s-loginCard'); if (lc) lc.style.display = 'none'; // 본인확인 후 입력칸 숨김
+    $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
+  };
+  if (!weeks.length) { box.innerHTML = bar + edu + '<div class="card center muted">현재 열린 회차가 없습니다.</div>'; setupCommon(); return; }
+
+  const chipIcon = (w) => w.submitted ? ' ✓' : (String(w.status) === '오픈' ? ' ●' : '');
+  const chips = `<div class="wkchips">${weeks.map((w) => `<button class="wkchip" data-chip="${esc(w.week)}">${esc(w.week)}주차<span class="wkchip__st">${chipIcon(w)}</span></button>`).join('')}</div>`;
+  const guide = d.guide ? `<details class="wkguide"><summary>작성가이드 보기</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : '';
+  box.innerHTML = bar + edu + chips + '<div id="wkdetail"></div>' + guide;
+  setupCommon();
+
+  const select = (wk) => {
+    const w = weeks.find((x) => String(x.week) === String(wk)) || weeks[0];
+    box.querySelectorAll('.wkchip').forEach((c) => c.classList.toggle('is-active', c.dataset.chip === String(w.week)));
+    $('#wkdetail').innerHTML = weekCard(w, d);
+    const b = $('#wkdetail').querySelector('[data-week]');
+    if (b) b.addEventListener('click', () => submitWeek(phone, b));
+  };
+  box.querySelectorAll('.wkchip').forEach((c) => c.addEventListener('click', () => select(c.dataset.chip)));
+  const def = weeks.find((w) => String(w.status) === '오픈') || weeks.find((w) => !w.submitted) || weeks[0];
+  select(def.week);
 }
 
 async function submitWeek(phone, btn) {
