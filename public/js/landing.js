@@ -266,8 +266,6 @@ function renderSubmit() {
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
       <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
-    ${d.eduUrl ? `<a class="edu-banner" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">
-      <span class="edu-banner__tag">상시 자료</span><span class="edu-banner__txt">교육자료(교재) 바로가기</span><span class="edu-banner__go">↗</span></a>` : ''}
     <div class="card">
       <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
         <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="${esc(savedPhone)}" />
@@ -290,37 +288,66 @@ async function loadStatus() {
   const r = await apiGet({ action: 'myStatus', challengeId: cid, phone }).catch(() => ({ ok: false }));
   if (!r.ok) { box.innerHTML = `<div class="card center muted">${r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패'}</div>`; return; }
   if (!r.selected) { box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return; }
-  const p = r.progress || { done: 0, total: 0 };
-  const cur = r.current;
+  renderDashboard(r, normPhone(phone));
+}
+
+// 회차 1건 카드 — 오픈=제출폼, 마감=읽기전용, 예정=잠김
+function weekCard(w, d) {
+  const st = String(w.status || '');
+  const isOpen = st === '오픈';
+  const isClosed = st === '마감';
+  const stBadge = isOpen ? '<span class="wk-badge wk-badge--open">오픈</span>'
+    : isClosed ? '<span class="wk-badge wk-badge--closed">마감</span>'
+      : '<span class="wk-badge wk-badge--soon">예정</span>';
+  const subBadge = w.submitted ? '<span class="wk-badge wk-badge--done">✓ 제출완료</span>'
+    : (isOpen ? '<span class="wk-badge wk-badge--todo">미제출</span>' : '');
+  const due = w['마감일'] ? `<span class="wk-due">${fmtMD(w['마감일'])} 마감</span>` : '';
+  const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${due}</div>`;
+  if (!isOpen && !isClosed && !w.submitted) {
+    return `<div class="wk-card is-soon">${head}<p class="muted" style="font-size:13px;margin-top:8px">아직 열리지 않았어요.</p></div>`;
+  }
+  const articleRef = (w.articleName || w.articleUrl)
+    ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val"><a class="wk-ref__a" href="${esc(w.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(w.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a></div></div>` : '';
+  const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
+  const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
+  const guide = isOpen && d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : '';
+  const form = isOpen ? `<div class="wk-submit">
+      <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
+      <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
+    </div>`
+    : (w.submittedUrl ? `<div class="wk-done-url"><a href="${esc(w.submittedUrl)}" target="_blank" rel="noopener">제출한 게시물 ↗</a></div>` : '');
+  return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${guide}${form}</div>`;
+}
+
+function renderDashboard(r, phone) {
   const d = DATA.detail || {};
-  const articleRef = (cur && (cur.articleName || cur.articleUrl))
-    ? `<a class="wk-ref__a" href="${esc(cur.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(cur.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a>` : '';
-  box.innerHTML = `
-    <div class="card"><div class="card__title">${esc(r.name)}님 · 진행 ${p.done}/${p.total}</div>
-      ${!cur ? `<p class="muted">현재 열린 주차가 없습니다. 회차 오픈을 기다려 주세요.</p>` : `
-      <span class="badge badge--primary" style="margin-bottom:12px">${cur.week}주차 미션</span>
-      <h3 class="wk-title">${esc(DATA.challenge.name)}</h3>
-      ${(articleRef || cur.body) ? `<div class="wk-set"><div class="wk-set__head">이번 주 미션 자료</div>
-        ${articleRef ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val">${articleRef}</div></div>` : ''}
-        ${cur.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(cur.body)}</div></div>` : ''}
-      </div>` : ''}
-      ${d.guide ? `<div class="prose wk-body">${richText(d.guide)}</div>` : ''}` }
-    </div>
-    ${cur ? `<div class="card wk-submit">
-      <div class="wk-submit__title">게시물 제출</div>
-      <div class="field"><label class="field__label">이번 주 작성한 게시물 URL</label>
-        <input class="input" id="s-url" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(cur.submittedUrl || '')}" /></div>
-      <button class="btn btn--primary btn--block" id="s-do">${cur.submitted ? '제출 수정' : '제출하기'}</button>
-      ${cur.submitted ? '<p class="center muted" style="margin-top:8px;font-size:13px">이미 제출됨 — 수정 가능</p>' : ''}
-    </div>` : ''}`;
-  const btn = $('#s-do');
-  if (btn) btn.addEventListener('click', async () => {
-    const url = $('#s-url').value.trim();
-    if (!/^https?:\/\/.+/.test(url)) return toast('게시물 URL을 입력하세요.', true);
-    btn.disabled = true; btn.textContent = '제출 중…';
-    const rr = await apiPost({ action: 'submit', challengeId: cid, phone, postUrl: url }).catch(() => ({ ok: false }));
-    if (rr.ok) { toast('제출 완료!'); loadStatus(); } else { btn.disabled = false; btn.textContent = '제출하기'; toast('제출 실패: ' + (rr.error || ''), true); }
-  });
+  const p = r.progress || { done: 0, total: 0 };
+  const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+  const weeks = (Array.isArray(r.weeks) && r.weeks.length) ? r.weeks : null;
+  const box = $('#s-status');
+  const bar = `<div class="sb">
+    <div class="sb__top"><span><b>${esc(r.name)}</b>님 · 진행 <b>${p.done}/${p.total}</b></span>
+      <button class="btn btn--ghost btn--sm" id="s-logout">번호 변경</button></div>
+    <div class="sb__bar"><span style="width:${pct}%"></span></div></div>`;
+  const edu = d.eduUrl ? `<a class="edu-banner" href="${esc(d.eduUrl)}" target="_blank" rel="noopener">
+    <span class="edu-banner__tag">상시 자료</span><span class="edu-banner__txt">교육자료(교재) 바로가기</span><span class="edu-banner__go">↗</span></a>` : '';
+  let list;
+  if (weeks) list = weeks.map((w) => weekCard(w, d)).join('');
+  else if (r.current) list = weekCard({ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }, d);
+  else list = '<div class="card center muted">현재 열린 회차가 없습니다.</div>';
+  box.innerHTML = bar + edu + `<div class="wklist">${list}</div>`;
+  $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
+  box.querySelectorAll('[data-week]').forEach((btn) => btn.addEventListener('click', () => submitWeek(phone, btn)));
+}
+
+async function submitWeek(phone, btn) {
+  const wk = btn.dataset.week;
+  const url = $(`#s-url-${wk}`).value.trim();
+  if (!/^https?:\/\/.+/.test(url)) return toast('게시물 URL을 입력하세요.', true);
+  btn.disabled = true; const old = btn.textContent; btn.textContent = '제출 중…';
+  const r = await apiPost({ action: 'submit', challengeId: cid, phone, postUrl: url }).catch(() => ({ ok: false }));
+  if (r.ok) { toast('제출 완료!'); loadStatus(); }
+  else { btn.disabled = false; btn.textContent = old; toast('제출 실패: ' + (r.error || ''), true); }
 }
 
 /* ---------- 마무리 ---------- */

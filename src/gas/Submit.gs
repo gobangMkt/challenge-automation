@@ -162,11 +162,28 @@ function myStatus_(challengeId, phone) {
     };
   }
 
+  var weekList = weeks.map(function (wm) {
+    var wk = wm['회차'];
+    var sub = mySubs.filter(function (s) { return String(s['회차']) === String(wk); })[0];
+    return {
+      week: parseInt(wk, 10) || wk,
+      status: wm['상태'] || '',
+      마감일: wm['마감일'] || '',
+      오픈일: wm['오픈일'] || '',
+      articleName: wm['articleName'] || '',
+      articleUrl: wm['articleUrl'] || '',
+      body: wm['미션본문'] || '',
+      submitted: !!sub,
+      submittedUrl: sub ? (sub['postUrl'] || '') : '',
+    };
+  }).sort(function (a, b) { return (parseInt(a.week, 10) || 0) - (parseInt(b.week, 10) || 0); });
+
   return json_({
     ok: true,
     name: p.name || '',
     selected: selected,
     progress: progress,
     current: current,
+    weeks: weekList,
   });
 }
