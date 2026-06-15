@@ -669,7 +669,7 @@ async function drawOperate(camp) {
         ${gd.eduUrl ? '<div class="field__hint">✓ 설정됨 — 제출 화면 상단에 상시 노출</div>' : '<div class="field__hint">참가자 제출 화면 상단에 상시 노출됩니다.</div>'}</div>
       <div class="field"><label class="field__label">안내문 (작성가이드 + 유의사항 · 매주 공통)</label>
         <textarea class="textarea" id="g-guide" style="min-height:340px" placeholder="작성가이드 · 제출 마감 · 리워드 · 우등생 선정기준 · 제외 대상 등 매주 동일하게 노출될 내용 전체를 한 번에 붙여넣기">${esc(gd.guide || gd.notice || '')}</textarea>
-        <div class="field__hint">자동 서식: ★★소제목★★ / ------- 구분선 / - · 1. 리스트 / **강조** / 느낌표 문장.</div></div>
+        <div class="field__hint">자동 서식: ★★소제목★★ / ------- 구분선 / - · 1. 리스트 / **굵게**(bold) / 느낌표 문장(강조색).</div></div>
       <button class="btn btn--secondary btn--sm" id="g-save">전역 설정 저장</button>
       </div>
     </details>`;
