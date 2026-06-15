@@ -44,9 +44,15 @@ function richText(str) {
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
     return h;
   };
-  let html = '', pbuf = [], lbuf = [], lt = null;
+  let html = '', pbuf = [], lbuf = [], lt = null, olCount = 0;
   const flushP = () => { if (pbuf.length) { html += `<p class="rich-p">${pbuf.join('<br>')}</p>`; pbuf = []; } };
-  const flushL = () => { if (lbuf.length) { html += `<${lt} class="rich-list">${lbuf.map((x) => `<li>${x}</li>`).join('')}</${lt}>`; lbuf = []; lt = null; } };
+  const flushL = () => {
+    if (!lbuf.length) return;
+    const attr = lt === 'ol' ? ` style="counter-reset:ri ${olCount}"` : '';
+    html += `<${lt} class="rich-list"${attr}>${lbuf.map((x) => `<li>${x}</li>`).join('')}</${lt}>`;
+    if (lt === 'ol') olCount += lbuf.length;
+    lbuf = []; lt = null;
+  };
   const flush = () => { flushP(); flushL(); };
   for (const raw of lines) {
     const l = raw.trim();

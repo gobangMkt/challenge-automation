@@ -503,14 +503,20 @@ async function drawMarketing(camp) {
     ${sechead('mkt')}
     <div class="card"><div class="card__title">신청 상세페이지 배포</div>
       <p class="muted" style="margin-bottom:10px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
-      <div class="muted" style="font-size:13px;font-weight:600;margin:0 0 6px">상세페이지 (소개 + 신청)</div>
-      <div class="copybox"><input class="input" id="lnk" readonly value="${esc(link)}" />
-        <button class="btn btn--secondary btn--sm" id="copy">복사</button>
-        <a class="btn btn--primary btn--sm" href="${esc(link)}" target="_blank">미리보기</a></div>
-      <div class="muted" style="font-size:13px;font-weight:600;margin:14px 0 6px">참가 신청 바로가기 (신청폼으로 이동)</div>
-      <div class="copybox"><input class="input" id="lnkApply" readonly value="${esc(link)}#apply" />
-        <button class="btn btn--secondary btn--sm" id="copyApply">복사</button>
-        <a class="btn btn--primary btn--sm" href="${esc(link)}#apply" target="_blank">미리보기</a></div>
+      <div class="linkrow">
+        <div class="linkrow__cell">
+          <div class="linkrow__label">참가 신청 페이지</div>
+          <div class="linkrow__btns">
+            <button class="btn btn--secondary btn--sm" id="copy">링크 복사</button>
+            <a class="btn btn--primary btn--sm" href="${esc(link)}" target="_blank">열기</a></div>
+        </div>
+        <div class="linkrow__cell">
+          <div class="linkrow__label">주차 제출 페이지</div>
+          <div class="linkrow__btns">
+            <button class="btn btn--secondary btn--sm" id="copySubmit">링크 복사</button>
+            <a class="btn btn--primary btn--sm" href="${esc(link)}#submit" target="_blank">열기</a></div>
+        </div>
+      </div>
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn--primary btn--sm" id="editCamp">상세 내용 수정</button>
         <a class="btn btn--secondary btn--sm" target="_blank" href="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}">QR 코드</a>
@@ -529,8 +535,8 @@ async function drawMarketing(camp) {
       <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
       <ul class="usites">${sitesHtml}</ul>
     </div>`;
-  el('copy').addEventListener('click', () => { el('lnk').select(); navigator.clipboard.writeText(link); toast('링크 복사됨'); });
-  el('copyApply').addEventListener('click', () => { el('lnkApply').select(); navigator.clipboard.writeText(`${link}#apply`); toast('신청 링크 복사됨'); });
+  el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
+  el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 
   // 썸네일·포스터 (상세 fetch 후 html2canvas로 미리보기 이미지 + 다운로드)
