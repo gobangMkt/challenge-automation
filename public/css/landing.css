@@ -154,7 +154,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .edu-banner__go { flex: none; font-weight: 800; }
 
 /* 이번 주 미션 자료 세트 */
-.wk-set { background: var(--lp-surface2); border: 1px solid var(--color-border); border-radius: 14px; padding: 16px; margin: 4px 0 18px; }
+.wk-set { background: var(--lp-surface2); border: 0; border-radius: 12px; padding: 14px 16px; margin: 14px 0; }
 .wk-set__head { font-size: 12px; font-weight: 800; color: var(--lp-primary); letter-spacing: .03em; margin-bottom: 12px; }
 .wk-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
 .wk-row + .wk-row { border-top: 1px solid var(--color-border); }
@@ -176,7 +176,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .sb__bar span { display: block; height: 100%; background: var(--lp-primary); border-radius: 99px; transition: width .4s ease; }
 .wklist { display: flex; flex-direction: column; gap: 14px; }
 .wk-card { border: 1px solid var(--color-border); border-radius: 16px; padding: 18px; }
-.wk-card.is-open { border-color: var(--lp-primary); box-shadow: 0 0 0 1px var(--lp-primary); }
+.wk-card.is-open { border-color: var(--lp-primary); }
 .wk-card.is-soon { opacity: .55; }
 .wk-card__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .wk-card__n { font-weight: 800; font-size: 17px; }
@@ -194,14 +194,15 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 /* 회차 칩 탭 — 한 번에 한 회차만 */
 .hero__edu { display: inline-block; margin-top: 16px; font-size: 14px; font-weight: 700; color: var(--lp-primary); background: var(--lp-surface2); padding: 10px 16px; border-radius: 10px; text-decoration: none; }
 .sb__who { min-width: 0; }
-.wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin-top: 12px; padding: 4px 2px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
-.wkchip { flex: none; position: relative; border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); white-space: nowrap; }
+.wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin: 16px 0; padding: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.wkchips::-webkit-scrollbar { display: none; }
+.wkchip { flex: none; border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); white-space: nowrap; }
 .wkchip.is-done { background: var(--lp-surface2); color: var(--lp-primary); border-color: var(--lp-surface2); }
 .wkchip.is-open { background: var(--lp-surface2); border-color: var(--lp-surface2); color: var(--lp-primary); }
 .wkchip.is-closed { color: var(--color-ink-muted); }
 .wkchip.is-soon { opacity: .5; }
 .wkchip.is-active { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
-.wkchip__new { position: absolute; top: -7px; right: -4px; background: #FF3B30; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 7px; }
+.wkchip__new { display: inline-block; margin-left: 5px; background: #FF3B30; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 6px; vertical-align: 1px; }
 .wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */
 .wkguide { margin-top: 14px; border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; }
