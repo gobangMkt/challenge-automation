@@ -263,18 +263,22 @@ function renderDone(title, sub) {
 
 /* ---------- 주차 제출 ---------- */
 const PHONE_KEY = (id) => `challenge.phone.${id}`;
+const BLOG_KEY = (id) => `challenge.blog.${id}`;
 function renderSubmit() {
   const c = DATA.challenge, d = DATA.detail || {};
   const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
+  const savedBlog = localStorage.getItem(BLOG_KEY(cid)) || '';
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
       <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
     <div class="card" id="s-loginCard">
-      <div class="field"><label class="field__label">휴대폰 번호로 본인 확인 <span class="req">*</span></label>
-        <div style="display:flex;gap:8px"><input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="${esc(savedPhone)}" />
-        <button class="btn btn--primary" id="s-check">확인</button></div>
-        <div class="field__hint">신청 때 입력한 번호로 이번 주 미션과 제출 현황을 확인해요. 이 기기에 번호가 저장됩니다.</div></div>
+      <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
+        <input class="input tnum" id="s-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="${esc(savedPhone)}" /></div>
+      <div class="field"><label class="field__label">참가한 블로그 URL <span class="req">*</span></label>
+        <input class="input" id="s-blog" type="url" placeholder="https://blog.naver.com/..." value="${esc(savedBlog)}" /></div>
+      <button class="btn btn--primary btn--block" id="s-check">확인</button>
+      <div class="field__hint" style="margin-top:8px">신청 때 등록한 휴대폰·블로그로 본인 확인해요. 이 기기에 저장됩니다.</div>
     </div>
     <div id="s-status"></div>
     <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#wrapup">마무리 제출</a></p>
@@ -282,15 +286,23 @@ function renderSubmit() {
   bindPhone($('#s-phone'));
   $('#s-check').addEventListener('click', loadStatus);
   $('#s-phone').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
-  if (normPhone(savedPhone)) loadStatus();
+  $('#s-blog').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
+  if (normPhone(savedPhone) && savedBlog) loadStatus();
 }
 async function loadStatus() {
   const phone = $('#s-phone').value.trim();
+  const blogUrl = $('#s-blog') ? $('#s-blog').value.trim() : '';
   if (!normPhone(phone)) return toast('올바른 휴대폰 번호를 입력하세요.', true);
-  localStorage.setItem(PHONE_KEY(cid), normPhone(phone)); // 이 기기에 번호 기억
+  if (!/^https?:\/\/.+/.test(blogUrl)) return toast('참가한 블로그 URL을 입력하세요.', true);
+  localStorage.setItem(PHONE_KEY(cid), normPhone(phone)); // 이 기기에 기억
+  localStorage.setItem(BLOG_KEY(cid), blogUrl);
   const box = $('#s-status'); box.innerHTML = '<div class="loading"><span class="spinner"></span> 조회 중…</div>';
-  const r = await apiGet({ action: 'myStatus', challengeId: cid, phone }).catch(() => ({ ok: false }));
-  if (!r.ok) { box.innerHTML = `<div class="card center muted">${r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패'}</div>`; return; }
+  const r = await apiGet({ action: 'myStatus', challengeId: cid, phone, blogUrl }).catch(() => ({ ok: false }));
+  if (!r.ok) {
+    const msg = r.error === 'blog_mismatch' ? '블로그 URL이 신청 정보와 일치하지 않습니다.'
+      : r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패';
+    box.innerHTML = `<div class="card center muted">${msg}</div>`; return;
+  }
   if (!r.selected) { box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return; }
   renderDashboard(r, normPhone(phone));
 }
@@ -334,7 +346,7 @@ function renderDashboard(r, phone) {
     $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
   };
   const head = `<div class="sb__top"><span class="sb__who"><b>${esc(r.name)}</b>님 · <b>${p.done}/${p.total}</b> 제출</span>
-      <button class="btn btn--ghost btn--sm" id="s-logout">번호 변경</button></div>`;
+      <button class="btn btn--ghost btn--sm" id="s-logout">로그아웃</button></div>`;
   if (!weeks.length) { box.innerHTML = `<div class="sb">${head}</div><div class="card center muted">현재 열린 회차가 없습니다.</div>`; setupCommon(); return; }
 
   const chips = weeks.map((w) => {
@@ -343,13 +355,14 @@ function renderDashboard(r, phone) {
     const isNew = st === '오픈' && !w.submitted;
     return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${esc(w.week)}주차${w.submitted ? ' ✓' : ''}${isNew ? '<span class="wkchip__new">NEW</span>' : ''}</button>`;
   }).join('');
-  const sb = `<div class="sb">${head}<div class="wkchips">${chips}</div></div>`;
+  const userbar = `<div class="sb">${head}</div>`;
+  const chipbar = `<div class="wkchips">${chips}</div>`;
   const resbox = `<div class="resbox"><div class="resbox__title">학습 자료 · 안내</div>
     ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
     ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
     <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
   </div>`;
-  box.innerHTML = sb + '<div id="wkdetail"></div>' + resbox;
+  box.innerHTML = userbar + resbox + chipbar + '<div id="wkdetail"></div>';
   setupCommon();
 
   const select = (wk) => {

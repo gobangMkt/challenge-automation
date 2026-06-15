@@ -103,7 +103,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   switch (p.action) {
     case 'participants': return participants_(p);       // S1 명단
-    case 'myStatus': return myStatus_(p.challengeId, p.phone); // S4 본인현황
+    case 'myStatus': return myStatus_(p.challengeId, p.phone, p.blogUrl); // S4 본인현황
     case 'matrix': return matrix_(p);                   // S5 매트릭스
     case 'notifyLog': return notifyLog_(p);             // S6 알림로그
     case 'settlement': return settlement_(p);           // S7 정산

@@ -122,13 +122,18 @@ function findSubmissionRow_(sh, challengeId, phone, week) {
 }
 
 // ---------- 액션: 본인 진행현황 ----------
-function myStatus_(challengeId, phone) {
+function myStatus_(challengeId, phone, blogUrl) {
   if (!challengeId) return json_({ ok: false, error: 'challenge_required' });
   var norm = normalizePhone(phone);
   if (!norm) return json_({ ok: false, error: 'invalid_phone' });
 
   var p = selectedParticipant_(challengeId, norm);
   if (!p) return json_({ ok: false, error: 'not_found' });
+  if (blogUrl) {
+    var nb = String(blogUrl).trim().replace(/\/+$/, '').toLowerCase();
+    var pb = String(p.blogUrl || '').trim().replace(/\/+$/, '').toLowerCase();
+    if (nb && pb && nb !== pb) return json_({ ok: false, error: 'blog_mismatch' });
+  }
   var selected = String(p.status) === 'selected' || String(p.status) === '선발';
 
   var weeks = weekMissionsFor_(challengeId);
