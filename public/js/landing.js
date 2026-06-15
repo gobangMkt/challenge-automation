@@ -327,11 +327,12 @@ function weekCard(w, d) {
     ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val"><a class="wk-ref__a" href="${esc(w.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(w.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a></div></div>` : '';
   const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
   const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
-  const form = isOpen ? `<div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
-    <div class="wk-submit">
-      <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
-      <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
-    </div>`
+  const form = isOpen ? `<div class="wk-submitbox">
+      <div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
+      <div class="wk-submit">
+        <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
+        <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
+      </div></div>`
     : (w.submittedUrl ? `<div class="wk-done-url"><a href="${esc(w.submittedUrl)}" target="_blank" rel="noopener">제출한 게시물 ↗</a></div>` : '');
   return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${form}</div>`;
 }
@@ -360,7 +361,7 @@ function renderDashboard(r, phone) {
   const chipbar = `<div class="wkchips">${chips}</div>`;
   const resbox = `<div class="resbox"><div class="resbox__title">학습 자료 · 안내</div>
     ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
-    ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
     <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
   </div>`;
   box.innerHTML = userbar + resbox + chipbar + '<div id="wkdetail"></div>';
