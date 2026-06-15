@@ -40,7 +40,7 @@ function richText(str) {
   const hrRe = /^[-–—_▬=]{3,}$/;
   const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/;
   const line = (l) => {
-    let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<span class="hl">$1</span>');
+    let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
     return h;
   };
