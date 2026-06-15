@@ -594,7 +594,7 @@ async function drawManage(camp) {
     ${sechead('manage')}
     <div class="statbar">
       <div class="pill"><b class="tnum">${rows.length}</b><span>신청</span></div>
-      <div class="pill"><b class="tnum">${selN}</b><span>선발</span></div>
+      <div class="pill"><b class="tnum" id="selCount">${selN}</b><span>선발</span></div>
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>선발/탈락</th><th>우수활동자</th><th>삭제</th></tr></thead><tbody>
@@ -602,13 +602,13 @@ async function drawManage(camp) {
         const sel = p.status === 'selected' || p.status === '선발';
         const rej = p.status === 'rejected' || p.status === '탈락';
         const isEx = String(p.note || '').indexOf('excellent') >= 0;
-        return `<tr data-phone="${esc(p.phone)}">
+        return `<tr data-phone="${esc(p.phone)}" class="${isEx ? 'is-excellent' : ''}">
           <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}</td>
           <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a></td>
           <td><span class="seg">
             <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>
             <button class="seg__btn seg__btn--rej js-rej ${rej ? 'is-on' : ''}">탈락</button></span></td>
-          <td><button class="btn btn--ghost btn--sm js-ex ${isEx ? 'is-ex' : ''}">${isEx ? '★ 우수' : '☆ 지정'}</button></td>
+          <td><button class="btn btn--ghost btn--sm js-ex ${isEx ? 'is-ex' : ''}">${isEx ? '<span class="exstar">★</span> 우수' : '☆ 지정'}</button></td>
           <td><button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
       }).join('') : '<tr><td colspan="6" class="empty">신청자가 없습니다.</td></tr>'}
@@ -616,8 +616,8 @@ async function drawManage(camp) {
     </div>`;
   el('content').querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
-    tr.querySelector('.js-sel')?.addEventListener('click', () => decide(camp, phone, 'selected'));
-    tr.querySelector('.js-rej')?.addEventListener('click', () => decide(camp, phone, 'rejected'));
+    tr.querySelector('.js-sel')?.addEventListener('click', () => decide(camp, phone, 'selected', tr));
+    tr.querySelector('.js-rej')?.addEventListener('click', () => decide(camp, phone, 'rejected', tr));
     tr.querySelector('.js-pdel')?.addEventListener('click', async () => {
       const name = tr.querySelector('td')?.textContent || '';
       const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
@@ -626,16 +626,28 @@ async function drawManage(camp) {
       if (r2.ok) { state.loaded = false; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
     });
     tr.querySelector('.js-ex')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
       const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone }));
-      if (r2.ok) { e.target.textContent = r2.excellent ? '★ 우수' : '☆'; toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); }
-      else toast('실패', true);
+      if (r2.ok) {
+        btn.classList.toggle('is-ex', r2.excellent);
+        btn.innerHTML = r2.excellent ? '<span class="exstar">★</span> 우수' : '☆ 지정';
+        tr.classList.toggle('is-excellent', r2.excellent);
+        toast(r2.excellent ? '우수활동자 지정' : '우수 해제');
+      } else toast('실패', true);
     });
   });
 }
-async function decide(camp, phone, decision) {
+async function decide(camp, phone, decision, tr) {
   const r = await apiPost(op({ action: 'select', challengeId: camp.challengeId, phones: [phone], decision }));
-  if (r.ok) { state.loaded = false; toast(decision === 'selected' ? '선발됨' : '탈락 처리'); drawManage(camp); }
-  else toast('실패: ' + (r.error || ''), true);
+  if (!r.ok) return toast('실패: ' + (r.error || ''), true);
+  state.loaded = false; // 홈 카드 통계 다음 진입 시 재계산
+  if (tr) {
+    tr.querySelector('.js-sel')?.classList.toggle('is-on', decision === 'selected');
+    tr.querySelector('.js-rej')?.classList.toggle('is-on', decision === 'rejected');
+    const pill = el('selCount');
+    if (pill) pill.textContent = el('content').querySelectorAll('.js-sel.is-on').length;
+  }
+  toast(decision === 'selected' ? '선발됨' : '탈락 처리');
 }
 
 /* ---------- 탭: 운영 (주차) ---------- */

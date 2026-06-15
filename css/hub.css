@@ -135,6 +135,10 @@
 .linkrow__label { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--color-ink); }
 .linkrow__btns { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 600px) { .linkrow { grid-template-columns: 1fr; } }
+/* 우수활동자 강조 — 지정 시 또렷하게 */
+.js-ex.is-ex { background: #FFF4D6; color: #B26A00; border: 1px solid #FFD56B; font-weight: 800; }
+.exstar { font-size: 17px; vertical-align: -1px; }
+tr.is-excellent { background: #FFFCF2; }
 
 /* 썸네일·포스터 자산 */
 .assets { display: flex; gap: 18px; flex-wrap: wrap; }
