@@ -2,6 +2,8 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
 /* 마이크로 라벨·숫자용 모노 (모던 프로덕트 시그니처) */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* 히어로/포스터 디스플레이 폰트 — 상세페이지·자동생성 이미지(admin) 공통 로드 */
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap');
 
 :root {
   /* 컬러 — 모노크롬 잉크 + 일렉트릭 블루 1액센트 (웜톤·골드 폐기) */

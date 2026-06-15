@@ -1,7 +1,5 @@
 /* 참가자 상세페이지 — 포스터급, 캠페인별 BI 테마(--lp-*)로 변주. 모바일 우선 */
-
-/* 히어로 타이틀 전용 디스플레이 폰트 (Google Fonts) — 작은 텍스트엔 미사용(가독성) */
-@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap');
+/* 디스플레이 폰트(Black Han Sans·Do Hyeon·Jua)는 base.css에서 공통 로드 */
 
 :root {
   /* 테마 미주입 시 기본값(코발트) */
