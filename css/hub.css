@@ -83,14 +83,14 @@
 
 /* 접이식 전역 설정 카드 */
 .foldcard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-bottom: 24px; overflow: hidden; }
-.foldcard__sum { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 16px 24px; transition: background .12s; }
+.foldcard__sum { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 16px 18px 16px 20px; transition: background .12s; }
 .foldcard__sum::-webkit-details-marker { display: none; }
 .foldcard__sum:hover { background: var(--color-surface-2); }
 .foldcard__toggle { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--color-primary); background: var(--color-primary-soft); border-radius: var(--radius-pill); padding: 7px 14px; }
 .foldcard__tlabel::before { content: '펼치기'; }
 .foldcard[open] .foldcard__tlabel::before { content: '접기'; }
-.foldcard__chev { transition: transform .2s; font-size: 12px; }
-.foldcard[open] .foldcard__chev { transform: rotate(180deg); }
+.foldcard__chev { transition: transform .2s; font-size: 17px; font-weight: 700; color: var(--color-ink-muted); flex: none; line-height: 1; }
+.foldcard[open] .foldcard__chev { transform: rotate(90deg); }
 .foldcard:not([open]) .foldcard__sum { border-left: 3px solid var(--color-primary); }
 .foldcard__body { padding: 4px 24px 22px; }
 

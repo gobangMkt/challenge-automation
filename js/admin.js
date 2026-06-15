@@ -499,7 +499,7 @@ async function drawMarketing(camp) {
     ${sechead('mkt')}
     <div class="card"><div class="card__title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <span>신청 상세페이지 배포</span>
-      <button class="btn btn--ghost btn--sm" id="editCamp" title="상세 내용 수정" aria-label="상세 내용 수정"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>
+      <button class="btn btn--ghost btn--sm" id="editCamp" title="상세 내용 수정" aria-label="상세 내용 수정" style="padding:7px 9px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13.1 2.5a1.5 1.5 0 0 1 2.1 0l2.3 2.3a1.5 1.5 0 0 1 0 2.1l-8.6 8.6-4.5 1.2 1.2-4.5z" fill="currentColor"/></svg></button></div>
       <p class="muted" style="margin-bottom:10px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
       <div class="linkrow">
         <div class="linkrow__cell">
@@ -658,7 +658,7 @@ async function drawOperate(camp) {
   const hasGlobal = !!(gd.eduUrl || gd.guide || gd.notice);
   el('opGlobal').innerHTML = `
     <details class="foldcard"${hasGlobal ? '' : ' open'}>
-      <summary class="foldcard__sum"><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span><span class="foldcard__toggle"><span class="foldcard__tlabel"></span><span class="foldcard__chev" aria-hidden="true">▾</span></span></summary>
+      <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span></summary>
       <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />

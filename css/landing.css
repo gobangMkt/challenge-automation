@@ -187,7 +187,9 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-badge--done { background: #E7F7EE; color: #1A9D54; }
 .wk-badge--todo { background: #FFF3E0; color: #C77700; }
 .wk-due { margin-left: auto; font-size: 13px; color: var(--color-ink-muted); }
-.wk-submit { display: flex; gap: 8px; margin-top: 14px; }
+.wk-submit__label { font-size: 13px; font-weight: 700; color: var(--lp-ink); margin: 16px 0 8px; }
+.wk-submit__done { color: #1A9D54; font-weight: 600; }
+.wk-submit { display: flex; gap: 8px; margin-top: 0; }
 .wk-submit .input { flex: 1; min-width: 0; border: 0; background: var(--lp-surface2); }
 .wk-submit .input:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--lp-primary); }
 .wk-done-url { margin-top: 12px; font-size: 14px; }
@@ -197,13 +199,14 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .sb__who { min-width: 0; }
 .wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin: 16px 0; padding: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .wkchips::-webkit-scrollbar { display: none; }
-.wkchip { flex: none; border: 1px solid var(--color-border); background: #fff; border-radius: 999px; padding: 9px 15px; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--lp-ink); white-space: nowrap; }
-.wkchip.is-done { background: var(--lp-surface2); color: var(--lp-primary); border-color: var(--lp-surface2); }
-.wkchip.is-open { background: var(--lp-surface2); border-color: var(--lp-surface2); color: var(--lp-primary); }
-.wkchip.is-closed { color: var(--color-ink-muted); }
+.wkchip { flex: none; min-width: 62px; border: 1px solid var(--color-border); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.wkchip__n { font-size: 15px; font-weight: 800; color: var(--lp-ink); }
+.wkchip__st { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--lp-surface2); color: var(--color-ink-faint); }
+.wkchip.is-done .wkchip__st { background: #E7F7EE; color: #1A9D54; }
+.wkchip.is-open .wkchip__st { background: var(--lp-surface2); color: var(--lp-primary); }
 .wkchip.is-soon { opacity: .5; }
-.wkchip.is-active { background: var(--lp-primary); color: #fff; border-color: var(--lp-primary); }
-.wkchip__new { display: inline-block; margin-left: 5px; background: #FF3B30; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 6px; vertical-align: 1px; }
+.wkchip.is-active { border-color: var(--lp-primary); background: var(--lp-surface2); }
+.wkchip.is-active .wkchip__n { color: var(--lp-primary); }
 .wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */
 .wkguide { margin-top: 14px; border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; }

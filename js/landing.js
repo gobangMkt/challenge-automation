@@ -327,7 +327,8 @@ function weekCard(w, d) {
     ? `<div class="wk-row"><span class="wk-row__tag">아티클</span><div class="wk-row__val"><a class="wk-ref__a" href="${esc(w.articleUrl || '#')}" target="_blank" rel="noopener"><span class="wk-ref__nm">${esc(w.articleName || '아티클 보기')}</span><span class="wk-ref__go">↗</span></a></div></div>` : '';
   const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
   const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
-  const form = isOpen ? `<div class="wk-submit">
+  const form = isOpen ? `<div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
+    <div class="wk-submit">
       <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
       <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
     </div>`
@@ -352,8 +353,8 @@ function renderDashboard(r, phone) {
   const chips = weeks.map((w) => {
     const st = String(w.status || '');
     const cls = w.submitted ? 'is-done' : (st === '오픈' ? 'is-open' : (st === '마감' ? 'is-closed' : 'is-soon'));
-    const isNew = st === '오픈' && !w.submitted;
-    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${esc(w.week)}주차${w.submitted ? ' ✓' : ''}${isNew ? '<span class="wkchip__new">NEW</span>' : ''}</button>`;
+    const label = w.submitted ? '완료' : (st === '오픈' ? '오픈' : (st === '마감' ? '마감' : '대기'));
+    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}"><span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
   const userbar = `<div class="sb">${head}</div>`;
   const chipbar = `<div class="wkchips">${chips}</div>`;
@@ -375,6 +376,8 @@ function renderDashboard(r, phone) {
     if (b) b.addEventListener('click', () => submitWeek(phone, b));
   };
   box.querySelectorAll('.wkchip').forEach((c) => c.addEventListener('click', () => select(c.dataset.chip)));
+  const chipCont = box.querySelector('.wkchips');
+  if (chipCont) chipCont.addEventListener('wheel', (e) => { if (e.deltaY) { e.preventDefault(); chipCont.scrollLeft += e.deltaY; } }, { passive: false });
   const def = weeks.find((w) => String(w.status) === '오픈') || weeks.find((w) => !w.submitted) || weeks[0];
   select(def.week);
 }
