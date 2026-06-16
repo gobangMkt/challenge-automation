@@ -832,7 +832,7 @@ async function drawReward(camp) {
 async function drawOperate(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
-  el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
+  el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div><div id="opStatus" style="margin-top:22px"></div>`;
   const [r, det] = await Promise.all([
     apiGet({ action: 'missions', token: state.token, challengeId: id }),
     loadDetail(id),
@@ -859,6 +859,35 @@ async function drawOperate(camp) {
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
     if (rr.ok) { state.cache.detail[id] = null; toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
+  // 챌린지 종료/재개 — 종료 시 신청·주차제출 페이지가 종료 안내로 전환(리워드 신청은 계속 가능)
+  const renderEndBox = () => {
+    const ended = String(camp.status || '') === '종료';
+    el('opStatus').innerHTML = `
+      <div class="endbox ${ended ? 'is-ended' : ''}">
+        <div class="endbox__info">
+          <div class="endbox__t">챌린지 상태 <span class="badge ${ended ? '' : 'badge--primary'}">${esc(camp.status || '모집중')}</span></div>
+          <div class="endbox__d">${ended ? '신청·주차 제출이 마감 상태입니다. 리워드 신청(마무리 폼)은 계속 열려 있어요.' : '종료하면 신청·주차 제출 페이지가 모두 “종료” 안내로 바뀝니다. (리워드 신청 폼은 계속 가능)'}</div>
+        </div>
+        <button class="btn ${ended ? 'btn--secondary' : 'btn--danger'} btn--sm" id="endBtn">${ended ? '챌린지 재개' : '챌린지 종료하기'}</button>
+      </div>`;
+    el('endBtn').addEventListener('click', async () => {
+      const isEnded = String(camp.status || '') === '종료';
+      const ok = await confirmModal({
+        title: isEnded ? '챌린지를 재개할까요?' : '챌린지를 종료할까요?',
+        message: isEnded ? '신청·주차 제출 페이지가 다시 열립니다.' : '신청·주차 제출 페이지가 모두 “종료되었습니다” 안내로 바뀝니다. 리워드 신청 폼은 계속 열려 있습니다.',
+        confirmLabel: isEnded ? '재개' : '종료', danger: !isEnded,
+      });
+      if (!ok) return;
+      const next = isEnded ? '진행중' : '종료';
+      const rr2 = await apiPost(op({ action: 'setCampaignStatus', challengeId: id, status: next })).catch(() => ({ ok: false }));
+      if (rr2.ok) {
+        camp.status = rr2.status; state.loaded = false; state.cache.board[id] = null; state.cache.detail[id] = null;
+        toast(next === '종료' ? '챌린지를 종료했어요' : '챌린지를 재개했어요');
+        renderWorkspace(id, 'operate');
+      } else toast('실패: ' + (rr2.error || ''), true);
+    });
+  };
+  renderEndBox();
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }

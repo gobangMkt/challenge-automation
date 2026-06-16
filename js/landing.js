@@ -150,9 +150,26 @@ function cautionsSection(d) {
 
 function route() {
   const h = location.hash.replace(/^#\/?/, ''); // '#submit'·'#/submit' 모두 'submit'
+  const ended = !!(DATA && DATA.challenge && String(DATA.challenge.status || '') === '종료');
+  if (h === 'wrapup') return renderWrapup();      // 리워드 신청은 종료 후에도 가능
+  if (ended) return renderClosed();               // 신청·주차 제출은 종료 안내
   if (h === 'submit') return renderSubmit();
-  if (h === 'wrapup') return renderWrapup();
   return renderLanding();
+}
+
+// 종료된 챌린지 — 신청/주차 제출 진입 시 안내
+function renderClosed() {
+  const c = DATA.challenge || {};
+  app.innerHTML = `
+    <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,38px)">종료된 챌린지</h1></div>
+      <p class="hero__sub">이 챌린지는 종료되었습니다.</p></header>
+    <div class="wrap" style="padding-top:28px">
+      <div class="card center">
+        <p class="muted" style="line-height:1.75;margin-bottom:4px">함께해 주셔서 감사합니다.<br>신청과 주차 제출은 마감되었습니다.</p>
+        <a class="btn btn--primary btn--block" href="#wrapup" style="margin-top:16px">리워드 신청하기</a>
+      </div>
+    </div>`;
 }
 
 function rewardSection(d, c) {
