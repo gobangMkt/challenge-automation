@@ -191,6 +191,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-badge--soon { background: var(--lp-surface2); color: var(--color-ink-faint); }
 .wk-badge--done { background: #E7F7EE; color: #1A9D54; }
 .wk-badge--todo { background: #FFF3E0; color: #C77700; }
+.wk-badge--star { background: #FFF0C2; color: #9A6B00; }
 .wk-due { margin-left: auto; font-size: 13px; color: var(--color-ink-muted); }
 .wk-submitbox { background: color-mix(in srgb, var(--lp-primary) 9%, #fff); border-radius: 14px; padding: 16px; margin-top: 18px; }
 .wk-submit__label { font-size: 14px; font-weight: 800; color: var(--lp-ink); margin: 0 0 10px; }

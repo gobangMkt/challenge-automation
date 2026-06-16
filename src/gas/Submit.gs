@@ -197,6 +197,7 @@ function myStatus_(challengeId, phone, blogUrl) {
     ok: true,
     name: p.name || '',
     selected: selected,
+    excellent: String(p.note == null ? '' : p.note).indexOf('excellent') >= 0,
     progress: progress,
     current: current,
     weeks: weekList,

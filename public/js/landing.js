@@ -337,7 +337,7 @@ async function loadStatus() {
 }
 
 // 회차 1건 카드 — 오픈=제출폼, 마감=읽기전용, 예정=잠김
-function weekCard(w, d) {
+function weekCard(w, d, excellent) {
   const st = String(w.status || '');
   const isOpen = st === '오픈';
   const isClosed = st === '마감';
@@ -351,7 +351,8 @@ function weekCard(w, d) {
   const dd = w['마감일'] ? dday(w['마감일']) : '';
   const period = (openMd || closeMd)
     ? `<span class="wk-due">${openMd || '?'} ~ ${closeMd || '?'}${dd ? ` · <b class="wk-dday">${dd}</b>` : ''}</span>` : '';
-  const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${period}</div>`;
+  const exBadge = excellent ? '<span class="wk-badge wk-badge--star">★ 우수활동자</span>' : '';
+  const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${exBadge}${period}</div>`;
   if (!isOpen && !isClosed && !w.submitted) {
     return `<div class="wk-card is-soon">${head}<p class="muted" style="font-size:13px;margin-top:8px">아직 열리지 않았어요.</p></div>`;
   }
@@ -430,7 +431,7 @@ function renderDashboard(r, phone) {
     box.querySelectorAll('.wkchip').forEach((c) => c.classList.toggle('is-active', c.dataset.chip === String(w.week)));
     const active = box.querySelector('.wkchip.is-active'), cont = box.querySelector('.wkchips');
     if (active && cont) cont.scrollLeft += active.getBoundingClientRect().left + active.offsetWidth / 2 - (cont.getBoundingClientRect().left + cont.offsetWidth / 2);
-    $('#wkdetail').innerHTML = weekCard(w, d);
+    $('#wkdetail').innerHTML = weekCard(w, d, r.excellent);
     const b = $('#wkdetail').querySelector('[data-week]');
     if (b) b.addEventListener('click', () => submitWeek(phone, b));
   };
