@@ -918,8 +918,9 @@ async function drawWeek(camp, round, weeks) {
         ${submitted.map((s) => {
         const rej = s.검수상태 === '반려';
         return `<tr data-phone="${esc(s.phone)}" class="${rej ? 'is-rejected' : ''}">
-          <td class="ellip"><span class="op-name"><span class="op-name__t">${esc(s.name)}</span>
-            <button class="exbtn js-wex ${s.excellent ? 'is-ex' : ''}" title="우수활동자 지정/해제" aria-label="우수활동자">${s.excellent ? '★' : '☆'}</button></span></td>
+          <td class="ellip"><span class="op-name">
+            <button class="exbtn js-wex ${s.excellent ? 'is-ex' : ''}" title="우수활동자 지정/해제" aria-label="우수활동자"><span class="exbtn__star">${s.excellent ? '★' : '☆'}</span>${s.excellent ? '<span class="exbtn__t">우수</span>' : ''}</button>
+            <span class="op-name__t">${esc(s.name)}</span></span></td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
           <td class="ta-c"><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
