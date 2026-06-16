@@ -141,7 +141,13 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-body .rich-p { margin: 0 0 6px; line-height: 1.6; }
 .wk-body .rich-list { gap: 6px; margin: 0 0 6px; }
 .wk-body .rich-list li { line-height: 1.55; }
-.wk-body .rich-h { margin: 6px 0 10px; }
+/* 작성가이드 소제목(##헤딩) = 단순 컬러 heading2 (인용구 박스 아님) */
+.wk-body .rich-h, .wk-cautions .rich-h {
+  background: none; border: 0; border-radius: 0; padding: 0;
+  color: var(--lp-primary); font-size: 17px; font-weight: 800;
+  margin: 22px 0 8px; line-height: 1.3;
+}
+.wk-body .rich-h:first-child, .wk-cautions .rich-h:first-child { margin-top: 0; }
 .wk-body .rich-hr { margin: 12px 0; }
 .wk-body .rich-blank { height: 16px; }
 
@@ -165,8 +171,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-ref__nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wk-ref__go { flex: none; }
 /* 키워드 칩: 넘치면 가로 스크롤(줄바꿈 X) */
-/* 키워드 칩의 좌측 패딩(13px) 보정 → 아티클 값 텍스트와 시작점 정렬 */
-.wk-row--kw .wk-row__val { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-left: -13px; }
+.wk-row--kw .wk-row__val { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* 주차 제출 대시보드 — 회차 리스트형 */
 .sb { background: var(--lp-surface2); border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; }
@@ -228,9 +233,9 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .resbtn { display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 16px; font-weight: 800; color: #fff; background: var(--lp-primary); padding: 15px 20px; border-radius: 12px; text-decoration: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); }
 .resbtn__ic { flex: none; }
 .resbtn__go { opacity: .9; }
-/* 운영팀이 직접 작성한 본문 — 시스템 라벨과 구분(좌측 강조선 + 연한 면) */
-.userdoc { background: var(--lp-surface2); border-left: 3px solid var(--lp-primary); border-radius: 0 10px 10px 0; padding: 14px 16px !important; }
 .wk-row__val .wk-kw__chip { font-size: 14px; flex: none; }
+/* 제출완료 상태 입력칸(읽기전용) */
+.wk-submit .input:disabled { background: var(--lp-surface2); color: var(--color-ink-muted); cursor: default; }
 
 /* 인증 후 헤더 — 신원·진행·로그아웃을 본문에서 헤더로 흡수 */
 .hero--auth { padding-top: 20px; padding-bottom: 22px; }
