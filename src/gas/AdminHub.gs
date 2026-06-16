@@ -225,6 +225,43 @@ function setExcellent_(body) {
   return json_({ ok: false, error: 'not_found' });
 }
 
+// 주차별 우수: participant note에 'exw=6,8' 형태로 저장(전역 'excellent'와 별개).
+function exWeeks_(note) {
+  var m = String(note == null ? '' : note).match(/exw=([\d,]+)/);
+  if (!m) return [];
+  return m[1].split(',').map(function (x) { return parseInt(x, 10); }).filter(function (n) { return !isNaN(n); });
+}
+function setNoteExWeek_(note, week, on) {
+  var set = {};
+  exWeeks_(note).forEach(function (w) { set[w] = true; });
+  if (on) set[week] = true; else delete set[week];
+  var weeks = Object.keys(set).map(Number).sort(function (a, b) { return a - b; });
+  var rest = String(note == null ? '' : note).replace(/exw=[\d,]*/g, '').replace(/;{2,}/g, ';').replace(/^;|;$/g, '');
+  var token = weeks.length ? ('exw=' + weeks.join(',')) : '';
+  return [rest, token].filter(Boolean).join(';');
+}
+
+// ---------- 액션: 주차별 우수 토글 (운영 — 해당 주차에만 표시) ----------
+function setWeekExcellent_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var round = parseInt(body.round, 10);
+  if (!body.challengeId || isNaN(round)) return json_({ ok: false, error: 'bad_request' });
+  var sh = getSheet_(SHEETS.participants, PARTICIPANT_HEADERS);
+  var values = sh.getDataRange().getValues();
+  var h = values[0];
+  var idC = h.indexOf('challengeId'), phC = h.indexOf('phone'), nC = h.indexOf('note');
+  var phone = normalizePhone(body.phone) || String(body.phone);
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idC]) === String(body.challengeId) && String(values[i][phC]) === String(phone)) {
+      var note = String(values[i][nC] || '');
+      var has = exWeeks_(note).indexOf(round) >= 0;
+      sh.getRange(i + 1, nC + 1).setValue(setNoteExWeek_(note, round, !has));
+      return json_({ ok: true, excellent: !has, week: round });
+    }
+  }
+  return json_({ ok: false, error: 'not_found' });
+}
+
 // ---------- 액션: 주차 미션 목록 (운영) ----------
 function missions_(p) {
   if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
@@ -363,7 +400,7 @@ function weekSubmissions_(p) {
     return {
       phone: s.phone, name: pp.name || '', blogUrl: pp.blogUrl || '',
       postUrl: s.postUrl, 제출일시: fmtDate_(s['제출일시']), 검수상태: s['검수상태'] || '',
-      excellent: String(pp.note || '').indexOf('excellent') >= 0,
+      excellent: exWeeks_(pp.note).indexOf(round) >= 0, // 이 주차 우수 여부
     };
   });
   var done = {};

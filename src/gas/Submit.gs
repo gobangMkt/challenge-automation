@@ -177,6 +177,7 @@ function myStatus_(challengeId, phone, blogUrl) {
     };
   }
 
+  var exw = exWeeks_(p.note);
   var weekList = weeks.map(function (wm) {
     var wk = wm['회차'];
     var sub = mySubs.filter(function (s) { return String(s['회차']) === String(wk); })[0];
@@ -190,6 +191,7 @@ function myStatus_(challengeId, phone, blogUrl) {
       body: wm['미션본문'] || '',
       submitted: !!sub,
       submittedUrl: sub ? (sub['postUrl'] || '') : '',
+      excellent: exw.indexOf(parseInt(wk, 10)) >= 0, // 이 주차 우수활동자
     };
   }).sort(function (a, b) { return (parseInt(a.week, 10) || 0) - (parseInt(b.week, 10) || 0); });
 

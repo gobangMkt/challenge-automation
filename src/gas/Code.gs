@@ -91,7 +91,8 @@ function doPostInner_(e) {
     case 'notifyWeek': return notifyWeek_(body);        // Hub 주차 알림톡 일괄 발송
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
     case 'deleteCampaign': return deleteCampaign_(body); // Hub 캠페인 삭제
-    case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글
+    case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글(전역·리워드)
+    case 'setWeekExcellent': return setWeekExcellent_(body); // Hub 주차별 우수(표시)
     case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
     case 'saveMission': return saveMission_(body);      // Hub 단일 회차 미션 저장
     case 'saveCampaignMeta': return saveCampaignMeta_(body); // Hub 전역 교육자료·유의사항
