@@ -27,6 +27,10 @@
 .appbar__tab.sec-operate.is-active { color: #B54708; border-bottom-color: var(--color-warning); }
 .appbar__tab.sec-reward.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
 
+/* 관리 — 중복 행 강조 */
+.table tr.is-dup { background: color-mix(in srgb, var(--color-danger) 7%, transparent); }
+.table tr.is-dup:hover { background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
+
 /* 아이콘 전용 버튼 (앱바 새로고침 등) */
 .btn--icon { padding: 7px 9px; line-height: 0; }
 .btn--icon svg { width: 16px; height: 16px; display: block; }

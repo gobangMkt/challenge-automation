@@ -682,11 +682,19 @@ async function drawManage(camp) {
   const totalW = (b.ok && Number(b.totalWeeks)) || Number(camp.totalRounds) || 0;
   const pol = rewardPolicy_(b.policy, b.policy);
   const cntOf = (p) => Number(p.submitted) || 0;
+  // 중복 탐지: 휴대폰(숫자만)·블로그(정규화)
+  const normBlog = (u) => String(u == null ? '' : u).trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '');
+  const phoneCnt = {}, blogCnt = {};
+  rows.forEach((p) => { const k = digits_(p.phone); if (k) phoneCnt[k] = (phoneCnt[k] || 0) + 1; const bk = normBlog(p.blogUrl); if (bk) blogCnt[bk] = (blogCnt[bk] || 0) + 1; });
+  const dupP = Object.values(phoneCnt).filter((n) => n > 1).length;
+  const dupB = Object.values(blogCnt).filter((n) => n > 1).length;
+  const DUP = '<span class="badge badge--danger" style="margin-left:6px;font-size:10px;padding:1px 6px">중복</span>';
   el('content').innerHTML = `
     ${sechead('manage')}
     <div class="statbar">
       <div class="pill"><b class="tnum">${rows.length}</b><span>신청</span></div>
       <div class="pill"><b class="tnum" id="selCount">${selN}</b><span>선발</span></div>
+      ${(dupP || dupB) ? `<div class="pill" style="border-color:var(--color-danger)"><b class="tnum" style="color:var(--color-danger)">${dupP + dupB}</b><span>중복 ${dupP ? '번호' : ''}${dupP && dupB ? '·' : ''}${dupB ? '블로그' : ''}</span></div>` : ''}
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>선발/탈락</th><th>우수활동자</th><th>예상 리워드</th><th>삭제</th></tr></thead><tbody>
@@ -695,9 +703,11 @@ async function drawManage(camp) {
         const rej = p.status === 'rejected' || p.status === '탈락';
         const isEx = String(p.note || '').indexOf('excellent') >= 0;
         const cnt = cntOf(p);
-        return `<tr data-phone="${esc(p.phone)}" data-count="${cnt}" class="${isEx ? 'is-excellent' : ''}">
-          <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}</td>
-          <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a></td>
+        const pDup = phoneCnt[digits_(p.phone)] > 1;
+        const bDup = blogCnt[normBlog(p.blogUrl)] > 1;
+        return `<tr data-phone="${esc(p.phone)}" data-count="${cnt}" class="${isEx ? 'is-excellent' : ''}${(pDup || bDup) ? ' is-dup' : ''}">
+          <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}${pDup ? DUP : ''}</td>
+          <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a>${bDup ? DUP : ''}</td>
           <td class="tnum js-sub">${sel ? `${cnt}/${totalW}` : '–'}</td>
           <td><span class="seg">
             <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>

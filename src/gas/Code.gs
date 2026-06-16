@@ -111,6 +111,7 @@ function doGet(e) {
     case 'settlement': return settlement_(p);           // S7 정산
     case 'campaigns': return campaigns_(p);             // Hub 캠페인 목록
     case 'campaignDetail': return campaignDetail_(p);   // Hub 캠페인 상세(공개)
+    case 'blogInfo': return blogInfo_(p);               // 신청 블로그 URL 미리보기(공개)
     case 'missions': return missions_(p);               // Hub 주차 미션 목록
     case 'weekSubmissions': return weekSubmissions_(p); // Hub 그 주 제출현황
     default: return json_({ ok: false, error: 'unknown_action' });

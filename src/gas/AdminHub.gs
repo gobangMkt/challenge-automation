@@ -318,6 +318,27 @@ function fetchPageTitle_(url) {
   } catch (e) { return ''; }
 }
 
+// ---------- 액션: 블로그 URL 미리보기 (공개 — 신청 시 본인 확인용) ----------
+function blogInfo_(p) {
+  var url = (p && p.url) || '';
+  if (!/^https?:\/\//i.test(url)) return json_({ ok: false, error: 'invalid_url' });
+  try {
+    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (res.getResponseCode() >= 400) return json_({ ok: false, error: 'fetch_failed' });
+    var html = res.getContentText();
+    var dec = function (s) { return String(s || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim(); };
+    var pick = function (re) { var m = html.match(re); return m ? dec(m[1]) : ''; };
+    var title = pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+      || pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["']/i)
+      || pick(/<title[^>]*>([^<]+)<\/title>/i);
+    var image = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+      || pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    var desc = pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["']/i)
+      || pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:description["']/i);
+    return json_({ ok: true, title: title.slice(0, 120), image: image, desc: desc.slice(0, 160) });
+  } catch (e) { return json_({ ok: false, error: 'error' }); }
+}
+
 // ---------- 액션: 그 주 제출현황 (운영 — 검수 대상) ----------
 function weekSubmissions_(p) {
   if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
