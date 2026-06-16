@@ -336,3 +336,24 @@ function resend_(body) {
   });
   return json_({ ok: result === '성공', result: result });
 }
+
+// ---------- 액션: 주차 알림톡 일괄 발송 (선발자 전원, 날짜 변경 없음) ----------
+function notifyWeek_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var cid = body.challengeId;
+  var week = parseInt(body.round != null ? body.round : body.week, 10);
+  if (!cid || isNaN(week)) return json_({ ok: false, error: 'bad_request' });
+  var c = challengeById_(cid);
+  if (!c) return json_({ ok: false, error: 'not_found' });
+  var mission = weekMissionRows_(cid).filter(function (m) { return Number(m['회차']) === week; })[0] || {};
+  var link = submitLink_(c);
+  var sent = 0, fail = 0;
+  selectedParticipants_(cid).forEach(function (p) {
+    var r = sendAlimtalk_('open', p.phone, {
+      '#{name}': p.name || '', '#{week}': String(week),
+      '#{title}': mission['미션제목'] || '', '#{article}': mission.articleUrl || '', '#{link}': link,
+    }, { challengeId: cid, week: week });
+    if (r === '성공') sent += 1; else fail += 1;
+  });
+  return json_({ ok: true, sent: sent, fail: fail });
+}

@@ -858,35 +858,41 @@ async function drawWeek(camp, round, weeks) {
   const r = await apiGet({ action: 'weekSubmissions', token: state.token, challengeId: id, round });
   const submitted = r.ok ? r.submitted : [];
   const missing = r.ok ? r.missing : [];
+  const locked = status === '오픈' || status === '마감';
+  const stLabel = status === '마감' ? '종료' : status; // 종료=마감
+  const dis = locked ? ' disabled' : '';
   pane.innerHTML = `
     <div class="card">
       <div class="page-head__row">
         <div class="card__title" style="margin:0;display:flex;align-items:center;gap:10px">${round}주차
-          <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--primary'}">${esc(status)}</span></div>
+          <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--primary'}">${esc(stLabel)}</span></div>
         <div style="display:flex;gap:10px;align-items:center">
-          ${status === '오픈'
-    ? '<button class="btn btn--secondary btn--sm" id="wk-toggle" data-st="마감">마감하기</button>'
-    : `<button class="btn btn--primary btn--sm" id="wk-toggle" data-st="오픈">${status === '마감' ? '다시 오픈' : '오픈하기'}</button>`}
-          <button class="btn btn--ghost btn--sm" id="wk-refresh">↻ 새로고침</button>
+          <label class="switch${status === '대기' ? ' is-disabled' : ''}" title="${status === '대기' ? '저장하면 오픈됩니다' : '오픈/종료 전환'}">
+            <input type="checkbox" id="wk-onoff" ${status === '오픈' ? 'checked' : ''}${status === '대기' ? ' disabled' : ''} />
+            <span class="switch__track"><span class="switch__thumb"></span></span>
+            <span class="switch__txt">${status === '오픈' ? '오픈' : '종료'}</span>
+          </label>
+          <button class="btn ${locked ? 'btn--ghost' : 'btn--primary'} btn--sm" id="wk-save" data-mode="${locked ? 'edit' : 'save'}">${locked ? '수정' : '저장'}</button>
+          <button class="btn btn--ghost btn--sm" id="wk-refresh">↻</button>
         </div>
       </div>
-      <p class="muted" style="margin-top:14px;font-size:13px"><b>기간(오픈일·마감일)</b>은 필수입니다. 아티클·키워드와 함께 저장한 뒤 발송(오픈)하세요. 작성가이드·교육자료는 <b>전역 설정</b>에서 관리됩니다.</p>
+      <p class="muted" style="margin-top:14px;font-size:13px">내용 입력 후 <b>저장</b>하면 잠기고 주차가 <b>오픈</b>됩니다. 오픈/종료는 우측 토글로 전환하세요. 작성가이드·교육자료는 <b>전역 설정</b>에서 관리됩니다.</p>
       <div class="row2">
         <div class="field"><label class="field__label">오픈일 <span class="req">*</span></label>
-          <input class="input" id="m-open" type="date" value="${esc(toDateInput(wm['오픈일']))}" /></div>
+          <input class="input" id="m-open" type="date" value="${esc(toDateInput(wm['오픈일']))}"${dis} /></div>
         <div class="field"><label class="field__label">마감일 <span class="req">*</span></label>
-          <input class="input" id="m-due" type="date" value="${esc(toDateInput(wm['마감일']))}" /></div>
+          <input class="input" id="m-due" type="date" value="${esc(toDateInput(wm['마감일']))}"${dis} /></div>
       </div>
       <div class="row2">
         <div class="field"><label class="field__label">참고 아티클 URL</label>
-          <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명 자동 추출)" />
+          <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명 자동 추출)"${dis} />
           ${wm['articleName'] ? `<div class="field__hint">현재: <b>${esc(wm['articleName'])}</b></div>` : '<div class="field__hint">저장 시 제목 자동 추출</div>'}</div>
         <div class="field"><label class="field__label">키워드</label>
-          <input class="input" id="m-keyword" value="${esc(wm['미션본문'] || '')}" placeholder="예: #고시원준비물 (여러 개면 쉼표)" /></div>
+          <input class="input" id="m-keyword" value="${esc(wm['미션본문'] || '')}" placeholder="예: #고시원준비물 (여러 개면 쉼표)"${dis} /></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn--secondary btn--sm" id="m-save">이번 주 저장</button>
-        <span class="muted" style="font-size:13px">기간·미션 저장 후 발송(오픈) 하세요.</span>
+        <button class="btn btn--secondary btn--sm" id="wk-notify"${status === '대기' ? ' disabled' : ''}>📨 알림톡 발송</button>
+        <span class="muted" style="font-size:13px">${status === '대기' ? '저장(오픈) 후 발송할 수 있어요.' : '선발자 전원에게 이번 주 안내를 보냅니다.'}</span>
       </div>
     </div>
     <div class="card">
@@ -908,28 +914,47 @@ async function drawWeek(camp, round, weeks) {
       <div class="card__title">미제출 <span class="muted" style="font-size:13px;font-weight:500">${missing.length}명</span></div>
       ${missing.length ? `<div class="namechips">${missing.map((m) => `<span class="namechip">${esc(m.name)}</span>`).join('')}</div>` : '<p class="empty">선발자 전원 제출 완료!</p>'}
     </div>`;
-  el('m-save')?.addEventListener('click', async (e) => {
+  el('wk-save')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.dataset.mode === 'edit') { // 잠금 해제 → 수정 모드
+      ['m-open', 'm-due', 'm-article', 'm-keyword'].forEach((i) => { el(i).disabled = false; });
+      el('m-open').focus();
+      btn.dataset.mode = 'save'; btn.textContent = '저장';
+      btn.classList.remove('btn--ghost'); btn.classList.add('btn--primary');
+      return;
+    }
     const openDate = el('m-open').value, dueDate = el('m-due').value;
     const keyword = el('m-keyword').value.trim(), articleUrl = el('m-article').value.trim();
     if (!openDate || !dueDate) return toast('오픈일·마감일을 모두 입력하세요.', true);
     if (openDate > dueDate) return toast('마감일이 오픈일보다 빠릅니다.', true);
-    e.target.disabled = true; e.target.textContent = '저장 중…';
+    btn.disabled = true; btn.textContent = '저장 중…';
     const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: keyword, articleUrl, openDate, dueDate })).catch(() => ({ ok: false }));
-    e.target.disabled = false; e.target.textContent = '이번 주 저장';
-    if (!rr.ok) return toast('저장 실패', true);
-    // 저장값을 로컬 weeks에 반영(서버 재조회 없이) → 재렌더 시 방금 입력값 유지
+    if (!rr.ok) { btn.disabled = false; btn.textContent = '저장'; return toast('저장 실패', true); }
+    // 저장 후 자동 오픈
+    await apiPost(op({ action: 'openWeek', challengeId: id, round, status: '오픈' })).catch(() => ({}));
     wm['미션본문'] = keyword; wm['articleUrl'] = articleUrl;
-    wm['오픈일'] = openDate; wm['마감일'] = dueDate;
+    wm['오픈일'] = openDate; wm['마감일'] = dueDate; wm['상태'] = '오픈';
     if (rr.articleName != null) wm['articleName'] = rr.articleName;
     state.cache.matrix[id] = null;
-    toast(`${round}주차 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`);
+    toast(`${round}주차 저장 · 오픈됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`);
     drawWeek(camp, round, weeks);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
-  el('wk-toggle')?.addEventListener('click', () => {
-    const next = el('wk-toggle').dataset.st;
-    if (next === '오픈' && (!el('m-open').value || !el('m-due').value)) return toast('기간(오픈일·마감일)을 먼저 저장하세요.', true);
-    setWeek(camp, round, next, weeks);
+  el('wk-onoff')?.addEventListener('change', async (e) => {
+    const next = e.target.checked ? '오픈' : '마감';
+    const rr = await apiPost(op({ action: 'openWeek', challengeId: id, round, status: next })).catch(() => ({ ok: false }));
+    if (rr.ok) { wm['상태'] = next; state.cache.matrix[id] = null; toast(`${round}주차 ${next === '오픈' ? '오픈' : '종료'}`); drawWeek(camp, round, weeks); }
+    else { e.target.checked = !e.target.checked; toast('상태 변경 실패', true); }
+  });
+  el('wk-notify')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const ok = await confirmModal({ title: `${round}주차 알림톡을 발송할까요?`, message: '선발자 전원에게 이번 주 안내가 발송됩니다.', confirmLabel: '발송' });
+    if (!ok) return;
+    btn.disabled = true; btn.textContent = '발송 중…';
+    const rr = await apiPost(op({ action: 'notifyWeek', challengeId: id, round })).catch(() => ({ ok: false }));
+    btn.disabled = false; btn.textContent = '📨 알림톡 발송';
+    if (rr.ok) toast(`발송 완료 · 성공 ${rr.sent || 0}${rr.fail ? ` · 실패 ${rr.fail}` : ''}`, rr.fail > 0);
+    else toast('발송 실패: ' + (rr.error || 'SOLAPI 설정 확인'), true);
   });
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
@@ -940,11 +965,6 @@ async function drawWeek(camp, round, weeks) {
       if (r2.ok) { toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
     });
   });
-}
-async function setWeek(camp, round, status, weeks) {
-  const r = await apiPost(op({ action: 'openWeek', challengeId: camp.challengeId, round, status }));
-  if (r.ok) { toast(`${round}주차 ${status}`); drawOperate(camp); }
-  else toast('실패', true);
 }
 async function review(camp, phone, round, status, weeks) {
   const r = await apiPost(op({ action: 'reviewSubmission', challengeId: camp.challengeId, phone, round, status }));
