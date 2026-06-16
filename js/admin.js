@@ -868,29 +868,16 @@ async function drawOperate(camp) {
     const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
     const isLast = Number(w['회차']) === lastRound;
     return `<button class="weekchip ${cls}${isLast ? ' is-last' : ''}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span>${isLast ? '<span class="weekchip__fin">최종</span>' : ''}</button>`;
-  }).join('')}</div>
-    <div class="rwd-notify">
-      <div class="rwd-notify__txt"><b>리워드 신청 안내</b><span class="muted">마지막 회차(${lastRound}주차) 종료 후, 선발자 전원에게 마무리 폼(리워드 신청) 링크를 알림톡으로 보냅니다.</span></div>
-      <div class="rwd-notify__btns">
-        <button class="btn btn--ghost btn--sm" id="copyWrapup">폼 링크 복사</button>
-        <button class="btn btn--kakao" id="notifyReward">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.6.1 1.3.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
-          리워드 신청 알림 발송</button>
-      </div>
-    </div>`;
-  wrap.querySelectorAll('.weekchip').forEach((b) =>
+  }).join('')}<button class="weekchip weekchip--reward" id="notifyReward" title="선발자 전원에게 마무리 폼(리워드 신청) 안내 발송"><span class="weekchip__n">리워드</span><span class="weekchip__st">신청 알림</span></button></div>`;
+  wrap.querySelectorAll('.weekchip[data-r]').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
-  const wrapupUrl = `${landingUrl(id)}#wrapup`;
-  el('copyWrapup')?.addEventListener('click', () => { navigator.clipboard.writeText(wrapupUrl); toast('마무리 폼 링크 복사됨'); });
-  el('notifyReward')?.addEventListener('click', async (e) => {
-    const ok = await confirmModal({ title: '리워드 신청 알림을 발송할까요?', message: '선발자 전원에게 마무리 폼(리워드 신청) 안내가 발송됩니다.', confirmLabel: '발송' });
+  el('notifyReward')?.addEventListener('click', async () => {
+    const wrapupUrl = `${landingUrl(id)}#wrapup`;
+    const ok = await confirmModal({ title: '리워드 신청 알림을 발송할까요?', message: '선발자 전원에게 마무리 폼(리워드 신청) 안내가 알림톡으로 발송됩니다.', confirmLabel: '발송' });
     if (!ok) return;
-    const btn = e.currentTarget, orig = btn.innerHTML;
-    btn.disabled = true; btn.textContent = '발송 중…';
     const rr = await apiPost(op({ action: 'notifyWrapup', challengeId: id })).catch(() => ({ ok: false }));
-    btn.disabled = false; btn.innerHTML = orig;
     if (rr.ok) toast(`발송 완료 · 성공 ${rr.sent || 0}${rr.fail ? ` · 실패 ${rr.fail}` : ''}`, rr.fail > 0);
-    else toast('발송 실패: ' + (rr.error || 'SOLAPI 설정 확인'), true);
+    else toast('발송 실패: ' + (rr.error || 'SOLAPI 설정 확인') + ` · 링크: ${wrapupUrl}`, true);
   });
 }
 async function drawWeek(camp, round, weeks) {
