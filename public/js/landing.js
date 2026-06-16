@@ -460,23 +460,24 @@ function renderDashboard(r, phone) {
   const chipCont = box.querySelector('.wkchips');
   if (chipCont) {
     chipCont.addEventListener('wheel', (e) => { if (e.deltaY) { e.preventDefault(); chipCont.scrollLeft += e.deltaY; } }, { passive: false });
-    // 클릭&끌기 가로 스크롤 (드래그로 넘기기). 드래그 후 칩 클릭(선택)은 무시.
+    // 클릭&끌기 가로 스크롤. setPointerCapture는 click 타깃을 컨테이너로 바꿔 칩 클릭을 막으므로 쓰지 않는다.
     let down = false, sx = 0, sl = 0, moved = false;
     chipCont.addEventListener('pointerdown', (e) => {
+      if (e.button) return;
       down = true; moved = false; sx = e.clientX; sl = chipCont.scrollLeft;
-      chipCont.classList.add('is-dragging');
-      try { chipCont.setPointerCapture(e.pointerId); } catch (err) {}
     });
     chipCont.addEventListener('pointermove', (e) => {
       if (!down) return;
       const dx = e.clientX - sx;
-      if (Math.abs(dx) > 4) moved = true;
-      chipCont.scrollLeft = sl - dx;
+      if (!moved && Math.abs(dx) > 6) { moved = true; chipCont.classList.add('is-dragging'); }
+      if (moved) chipCont.scrollLeft = sl - dx;
     });
     const end = () => { down = false; chipCont.classList.remove('is-dragging'); };
     chipCont.addEventListener('pointerup', end);
+    chipCont.addEventListener('pointerleave', end);
     chipCont.addEventListener('pointercancel', end);
-    chipCont.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    // 실제로 끌었을 때만 클릭(칩 선택) 무시. 단순 클릭은 그대로 통과.
+    chipCont.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
   const def = weeks.find((w) => String(w.status) === '오픈') || weeks.find((w) => !w.submitted) || weeks[0];
   select(def.week);
