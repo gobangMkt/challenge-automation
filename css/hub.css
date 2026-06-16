@@ -40,11 +40,14 @@
 .table--fixed td.ellip { overflow: hidden; text-overflow: ellipsis; }
 /* 가운데 정렬 열 (상태·처리) — 헤더·셀 동일 정렬 */
 .table--fixed th.ta-c, .table--fixed td.ta-c { text-align: center; }
-/* 성함 + 우수 별 토글 (이름 옆) */
-.op-name { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+/* 성함 + 우수 토글 (이름 좌측, 고정폭으로 성함 정렬 유지) */
+.op-name { display: inline-flex; align-items: center; gap: 9px; min-width: 0; width: 100%; }
 .op-name__t { overflow: hidden; text-overflow: ellipsis; }
-.exbtn { flex: none; border: 0; background: transparent; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px; color: var(--color-ink-faint); transition: color .12s, transform .12s; }
-.exbtn:hover { transform: scale(1.15); color: var(--color-warning); }
+.exbtn { flex: none; width: 58px; display: inline-flex; align-items: center; gap: 3px; border: 0; background: transparent; cursor: pointer; line-height: 1; padding: 3px 0; color: var(--color-ink-faint); transition: color .12s, transform .12s; }
+.exbtn:hover { color: var(--color-warning); }
+.exbtn:hover .exbtn__star { transform: scale(1.15); }
+.exbtn__star { font-size: 18px; display: inline-block; transition: transform .12s; }
+.exbtn__t { font-size: 12px; font-weight: 800; }
 .exbtn.is-ex { color: #F5A623; }
 /* 관리 — 우수활동자 읽기전용 태그 */
 .ex-cell { white-space: nowrap; }

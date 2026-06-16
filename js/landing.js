@@ -293,6 +293,9 @@ function renderDone(title, sub) {
 /* ---------- 주차 제출 ---------- */
 const PHONE_KEY = (id) => `challenge.phone.${id}`;
 const BLOG_KEY = (id) => `challenge.blog.${id}`;
+const STATUS_KEY = (id) => `challenge.status.${id}`; // 마지막 조회 결과(즉시 표시용)
+const getCachedStatus = (id) => { try { return JSON.parse(localStorage.getItem(STATUS_KEY(id)) || 'null'); } catch (e) { return null; } };
+const setCachedStatus = (id, r, phone) => { try { localStorage.setItem(STATUS_KEY(id), JSON.stringify({ r, phone })); } catch (e) {} };
 function renderSubmit() {
   const c = DATA.challenge, d = DATA.detail || {};
   const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
@@ -313,26 +316,44 @@ function renderSubmit() {
     <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#wrapup">마무리 제출</a></p>
   </div>`;
   bindPhone($('#s-phone'));
-  $('#s-check').addEventListener('click', loadStatus);
+  $('#s-check').addEventListener('click', () => loadStatus());
   $('#s-phone').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
   $('#s-blog').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStatus(); });
-  if (normPhone(savedPhone) && savedBlog) loadStatus();
+  if (normPhone(savedPhone) && savedBlog) {
+    const cached = getCachedStatus(cid);
+    if (cached && cached.r && cached.r.ok && cached.r.selected) {
+      renderDashboard(cached.r, cached.phone || normPhone(savedPhone)); // 캐시로 즉시 표시(로그인창·스피너 생략)
+      loadStatus(true); // 백그라운드 최신화
+    } else {
+      loadStatus(); // 첫 방문: 일반 조회(스피너)
+    }
+  }
 }
-async function loadStatus() {
+async function loadStatus(silent) {
   const phone = $('#s-phone').value.trim();
   const blogUrl = $('#s-blog') ? $('#s-blog').value.trim() : '';
-  if (!normPhone(phone)) return toast('올바른 휴대폰 번호를 입력하세요.', true);
-  if (!/^https?:\/\/.+/.test(blogUrl)) return toast('참가한 블로그 URL을 입력하세요.', true);
+  if (!normPhone(phone)) { if (silent) return; return toast('올바른 휴대폰 번호를 입력하세요.', true); }
+  if (!/^https?:\/\/.+/.test(blogUrl)) { if (silent) return; return toast('참가한 블로그 URL을 입력하세요.', true); }
   localStorage.setItem(PHONE_KEY(cid), normPhone(phone)); // 이 기기에 기억
   localStorage.setItem(BLOG_KEY(cid), blogUrl);
-  const box = $('#s-status'); box.innerHTML = '<div class="loading"><span class="spinner"></span> 조회 중…</div>';
+  const box = $('#s-status');
+  if (!silent && box) box.innerHTML = '<div class="loading"><span class="spinner"></span> 조회 중…</div>';
   const r = await apiGet({ action: 'myStatus', challengeId: cid, phone, blogUrl }).catch(() => ({ ok: false }));
   if (!r.ok) {
+    if (silent) return; // 백그라운드 실패 시 캐시 화면 유지
     const msg = r.error === 'blog_mismatch' ? '블로그 URL이 신청 정보와 일치하지 않습니다.'
       : r.error === 'not_found' ? '신청 내역이 없습니다.' : '조회 실패';
     box.innerHTML = `<div class="card center muted">${msg}</div>`; return;
   }
-  if (!r.selected) { box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return; }
+  if (!r.selected) {
+    localStorage.removeItem(STATUS_KEY(cid));
+    if (silent) return;
+    box.innerHTML = `<div class="card center muted">아직 선발 전이거나 선발되지 않았습니다.<br>발표일을 기다려 주세요.</div>`; return;
+  }
+  const cached = getCachedStatus(cid);
+  setCachedStatus(cid, r, normPhone(phone));
+  // 백그라운드 최신화인데 내용이 동일하면 다시 그리지 않음(깜빡임 방지)
+  if (silent && cached && JSON.stringify(cached.r) === JSON.stringify(r)) return;
   renderDashboard(r, normPhone(phone));
 }
 
@@ -393,7 +414,7 @@ function renderDashboard(r, phone) {
           <div class="shead__bar"><span style="width:${pct}%"></span></div>
         </div>
       </div></header>`;
-    $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
+    $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); localStorage.removeItem(STATUS_KEY(cid)); renderSubmit(); });
   };
   if (!weeks.length) { box.innerHTML = `<div class="card center muted">현재 열린 회차가 없습니다.</div>`; setupCommon(); return; }
 
