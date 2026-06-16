@@ -164,11 +164,11 @@
 .weekchip.is-active .weekchip__n { color: var(--color-primary-hover); }
 .weekchip { position: relative; }
 
-/* 리워드 신청 알림 칩 (최종 회차 다음, 브랜드 톤) */
-.weekchip--reward { border-color: var(--color-primary); background: var(--color-primary-soft); }
-.weekchip--reward .weekchip__n { color: var(--color-primary-hover); }
-.weekchip--reward .weekchip__st { background: var(--color-primary); color: #fff; }
-.weekchip--reward:hover { background: color-mix(in srgb, var(--color-primary) 14%, #fff); }
+/* 리워드 신청 알림 칩 (최종 회차 다음) — 연한 솔리드 */
+.weekchip--reward { border-color: transparent; background: color-mix(in srgb, var(--color-primary) 60%, #fff); }
+.weekchip--reward .weekchip__n { color: #fff; }
+.weekchip--reward .weekchip__st { background: rgba(255,255,255,.28); color: #fff; }
+.weekchip--reward:hover { background: color-mix(in srgb, var(--color-primary) 72%, #fff); }
 
 /* 상태 토글(대기/오픈/마감) */
 .seg--status .seg__btn.is-on { background: var(--color-success); }
