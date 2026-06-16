@@ -576,6 +576,12 @@ async function drawMarketing(camp) {
             <button class="btn btn--secondary btn--sm" id="copySubmit">링크 복사</button>
             <a class="btn btn--primary btn--sm" href="${esc(link)}#submit" target="_blank">열기</a></div>
         </div>
+        <div class="linkrow__cell">
+          <div class="linkrow__label">마무리 · 리워드 신청 폼</div>
+          <div class="linkrow__btns">
+            <button class="btn btn--secondary btn--sm" id="copyWrapupMkt">링크 복사</button>
+            <a class="btn btn--primary btn--sm" href="${esc(link)}#wrapup" target="_blank">열기</a></div>
+        </div>
       </div>
     </div>
     <div class="card"><div class="card__title">썸네일 · 포스터 <span class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500">자동 생성</span></div>
@@ -599,6 +605,7 @@ async function drawMarketing(camp) {
     </div>`;
   el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
   el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
+  el('copyWrapupMkt')?.addEventListener('click', () => { navigator.clipboard.writeText(`${link}#wrapup`); toast('마무리 폼 링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 
   // 썸네일·포스터 (상세 fetch 후 html2canvas로 미리보기 이미지 + 다운로드)
@@ -855,13 +862,36 @@ async function drawOperate(camp) {
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }
+  const lastRound = weeks.reduce((m, w) => Math.max(m, Number(w['회차']) || 0), 0);
   wrap.innerHTML = `<div class="op-sectit">회차 선택</div><div class="weekchips">${weeks.map((w) => {
     const st = w['상태'] || '대기';
     const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
-    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span></button>`;
-  }).join('')}</div>`;
+    const isLast = Number(w['회차']) === lastRound;
+    return `<button class="weekchip ${cls}${isLast ? ' is-last' : ''}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span>${isLast ? '<span class="weekchip__fin">최종</span>' : ''}</button>`;
+  }).join('')}</div>
+    <div class="rwd-notify">
+      <div class="rwd-notify__txt"><b>리워드 신청 안내</b><span class="muted">마지막 회차(${lastRound}주차) 종료 후, 선발자 전원에게 마무리 폼(리워드 신청) 링크를 알림톡으로 보냅니다.</span></div>
+      <div class="rwd-notify__btns">
+        <button class="btn btn--ghost btn--sm" id="copyWrapup">폼 링크 복사</button>
+        <button class="btn btn--kakao" id="notifyReward">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.6.1 1.3.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+          리워드 신청 알림 발송</button>
+      </div>
+    </div>`;
   wrap.querySelectorAll('.weekchip').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
+  const wrapupUrl = `${landingUrl(id)}#wrapup`;
+  el('copyWrapup')?.addEventListener('click', () => { navigator.clipboard.writeText(wrapupUrl); toast('마무리 폼 링크 복사됨'); });
+  el('notifyReward')?.addEventListener('click', async (e) => {
+    const ok = await confirmModal({ title: '리워드 신청 알림을 발송할까요?', message: '선발자 전원에게 마무리 폼(리워드 신청) 안내가 발송됩니다.', confirmLabel: '발송' });
+    if (!ok) return;
+    const btn = e.currentTarget, orig = btn.innerHTML;
+    btn.disabled = true; btn.textContent = '발송 중…';
+    const rr = await apiPost(op({ action: 'notifyWrapup', challengeId: id })).catch(() => ({ ok: false }));
+    btn.disabled = false; btn.innerHTML = orig;
+    if (rr.ok) toast(`발송 완료 · 성공 ${rr.sent || 0}${rr.fail ? ` · 실패 ${rr.fail}` : ''}`, rr.fail > 0);
+    else toast('발송 실패: ' + (rr.error || 'SOLAPI 설정 확인'), true);
+  });
 }
 async function drawWeek(camp, round, weeks) {
   const id = camp.challengeId;

@@ -294,3 +294,19 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .center { text-align: center; } .muted { color: #6B7280; }
 .linkbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
 @media (prefers-reduced-motion: reduce) { .done__icon { animation: none; } }
+
+/* 마무리 · 리워드 신청 폼 */
+.wru-intro p { margin: 0 0 10px; line-height: 1.6; font-size: 15.5px; }
+.wru-intro p:last-child { margin-bottom: 0; }
+.wru-stars { list-style: none; padding: 0; margin: 4px 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.wru-stars li { position: relative; padding-left: 26px; line-height: 1.5; }
+.wru-stars li::before { content: '★'; position: absolute; left: 0; top: 0; color: var(--lp-pop); font-size: 16px; }
+.wru-cta { margin-top: 14px !important; padding: 14px 16px; background: var(--lp-surface2); border-radius: 12px; font-weight: 600; color: var(--lp-ink); line-height: 1.6; }
+.wru-tiers { list-style: none; padding: 0; margin: 0; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+.wru-tiers li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--color-border); }
+.wru-tiers li:last-child { border-bottom: 0; }
+.wru-tiers li:nth-child(odd) { background: var(--lp-surface2); }
+.wru-range { font-weight: 600; color: var(--lp-ink); }
+.wru-amt { font-weight: 800; color: var(--lp-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wru-notes { margin-top: 14px; }
+.wru-notes p { margin: 0 0 6px; font-size: 13px; color: #6B7280; line-height: 1.55; }
