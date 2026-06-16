@@ -458,7 +458,26 @@ function renderDashboard(r, phone) {
   };
   box.querySelectorAll('.wkchip').forEach((c) => c.addEventListener('click', () => select(c.dataset.chip)));
   const chipCont = box.querySelector('.wkchips');
-  if (chipCont) chipCont.addEventListener('wheel', (e) => { if (e.deltaY) { e.preventDefault(); chipCont.scrollLeft += e.deltaY; } }, { passive: false });
+  if (chipCont) {
+    chipCont.addEventListener('wheel', (e) => { if (e.deltaY) { e.preventDefault(); chipCont.scrollLeft += e.deltaY; } }, { passive: false });
+    // 클릭&끌기 가로 스크롤 (드래그로 넘기기). 드래그 후 칩 클릭(선택)은 무시.
+    let down = false, sx = 0, sl = 0, moved = false;
+    chipCont.addEventListener('pointerdown', (e) => {
+      down = true; moved = false; sx = e.clientX; sl = chipCont.scrollLeft;
+      chipCont.classList.add('is-dragging');
+      try { chipCont.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    chipCont.addEventListener('pointermove', (e) => {
+      if (!down) return;
+      const dx = e.clientX - sx;
+      if (Math.abs(dx) > 4) moved = true;
+      chipCont.scrollLeft = sl - dx;
+    });
+    const end = () => { down = false; chipCont.classList.remove('is-dragging'); };
+    chipCont.addEventListener('pointerup', end);
+    chipCont.addEventListener('pointercancel', end);
+    chipCont.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+  }
   const def = weeks.find((w) => String(w.status) === '오픈') || weeks.find((w) => !w.submitted) || weeks[0];
   select(def.week);
 }
