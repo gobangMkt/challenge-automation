@@ -989,8 +989,8 @@ async function drawWeek(camp, round, weeks) {
       review(camp, phone, round, rejNow ? '' : '반려', weeks); // 토글: 반려 ↔ 해제
     });
     tr.querySelector('.js-wex')?.addEventListener('click', async () => {
-      const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone })).catch(() => ({ ok: false }));
-      if (r2.ok) { state.cache.board[id] = null; toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
+      const r2 = await apiPost(op({ action: 'setWeekExcellent', challengeId: id, round, phone })).catch(() => ({ ok: false }));
+      if (r2.ok) { toast(r2.excellent ? `${round}주차 우수 지정` : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
     });
   });
   // 회차 칩 상태 동기화 (오픈/종료 전환 시 칩 라벨·색 즉시 반영)

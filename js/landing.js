@@ -404,7 +404,7 @@ function renderDashboard(r, phone) {
     const urgent = !w.submitted && st === '오픈' && (dd === 'D-DAY' || /^D-[0-2]$/.test(dd));
     if (urgent) cls += ' is-urgent';
     const label = w.submitted ? '완료' : (st === '오픈' ? (dd || '오픈') : (st === '마감' ? '마감' : '대기'));
-    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${r.excellent ? '<span class="wkchip__star" title="우수활동자">★</span>' : ''}<span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
+    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${w.excellent ? '<span class="wkchip__star" title="우수활동자">★</span>' : ''}<span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
 
   // 학습 자료 — 운영팀이 작성한 안내(작성가이드·유의사항)와 외부 교재 링크
@@ -431,7 +431,7 @@ function renderDashboard(r, phone) {
     box.querySelectorAll('.wkchip').forEach((c) => c.classList.toggle('is-active', c.dataset.chip === String(w.week)));
     const active = box.querySelector('.wkchip.is-active'), cont = box.querySelector('.wkchips');
     if (active && cont) cont.scrollLeft += active.getBoundingClientRect().left + active.offsetWidth / 2 - (cont.getBoundingClientRect().left + cont.offsetWidth / 2);
-    $('#wkdetail').innerHTML = weekCard(w, d, r.excellent);
+    $('#wkdetail').innerHTML = weekCard(w, d, w.excellent);
     const b = $('#wkdetail').querySelector('[data-week]');
     if (b) b.addEventListener('click', () => submitWeek(phone, b));
   };
