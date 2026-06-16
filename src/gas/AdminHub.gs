@@ -91,6 +91,26 @@ function saveCampaign_(body) {
   return json_({ ok: true, challengeId: challengeId, totalRounds: totalRounds });
 }
 
+// ---------- 액션: 캠페인 상태 변경 (종료/재개) ----------
+function setCampaignStatus_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var cid = body.challengeId;
+  if (!cid) return json_({ ok: false, error: 'challenge_required' });
+  var status = String(body.status || '');
+  if (['종료', '모집중', '진행중'].indexOf(status) === -1) return json_({ ok: false, error: 'bad_status' });
+  var sh = getSheet_(SHEETS.challenges, CHALLENGE_HEADERS);
+  var values = sh.getDataRange().getValues();
+  var stC = values[0].indexOf('status');
+  if (stC < 0) return json_({ ok: false, error: 'no_status_col' });
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(cid)) {
+      sh.getRange(i + 1, stC + 1).setValue(status);
+      return json_({ ok: true, status: status });
+    }
+  }
+  return json_({ ok: false, error: 'not_found' });
+}
+
 // ---------- 액션: 캠페인 삭제 (관련 전 시트 행 제거) ----------
 function deleteCampaign_(body) {
   if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });

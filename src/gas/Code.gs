@@ -124,6 +124,7 @@ function dispatchPost_(body) {
     case 'notifyWrapup': return notifyWrapup_(body);    // Hub 리워드 신청(마무리 폼) 안내 일괄 발송
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
     case 'deleteCampaign': return deleteCampaign_(body); // Hub 캠페인 삭제
+    case 'setCampaignStatus': return setCampaignStatus_(body); // Hub 캠페인 종료/재개
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글(전역·리워드)
     case 'setWeekExcellent': return setWeekExcellent_(body); // Hub 주차별 우수(표시)
     case 'openWeek': return hubOpenWeek_(body);         // Hub 주차 오픈/마감
