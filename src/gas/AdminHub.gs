@@ -326,7 +326,13 @@ function blogInfo_(p) {
     var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
     if (res.getResponseCode() >= 400) return json_({ ok: false, error: 'fetch_failed' });
     var html = res.getContentText();
-    var dec = function (s) { return String(s || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim(); };
+    var dec = function (s) {
+      return String(s || '')
+        .replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); })
+        .replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(parseInt(d, 10)); })
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ').trim();
+    };
     var pick = function (re) { var m = html.match(re); return m ? dec(m[1]) : ''; };
     var title = pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
       || pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["']/i)
