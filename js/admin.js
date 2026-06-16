@@ -3,7 +3,7 @@ import { thumbNode, posterNode, downloadNode } from './assets.js';
 
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
-const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false, cache: { detail: {}, matrix: {} } };
+const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false, cache: { detail: {}, board: {} } };
 const base = location.pathname.replace(/admin\.html$/, '');
 const landingUrl = (id) => `${location.origin}${base}?c=${encodeURIComponent(id)}`;
 
@@ -157,10 +157,10 @@ async function loadDetail(id, force) {
   const d = await apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({}));
   state.cache.detail[id] = d; return d;
 }
-async function loadMatrix(id, force) {
-  if (!force && state.cache.matrix[id]) return state.cache.matrix[id];
-  const m = await apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false }));
-  state.cache.matrix[id] = m; return m;
+async function loadBoard(id, force) {
+  if (!force && state.cache.board[id]) return state.cache.board[id];
+  const b = await apiGet({ action: 'boardData', token: state.token, challengeId: id }).catch(() => ({ ok: false }));
+  state.cache.board[id] = b; return b;
 }
 
 /* ---------- 리워드 계산 (정책: 갯수 티어 or 제출수×단가, 우수활동자 ×배수) ---------- */
@@ -663,19 +663,13 @@ async function drawManage(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
   el('content').innerHTML = loading('명단 불러오는 중…');
-  const [r, mx, det] = await Promise.all([
-    apiGet({ action: 'participants', token: state.token, challengeId: id }),
-    loadMatrix(id),
-    loadDetail(id),
-  ]);
+  const b = await loadBoard(id);
   if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
-  const rows = r.ok ? r.rows : [];
+  const rows = b.ok ? b.rows : [];
   const selN = rows.filter((x) => x.status === 'selected' || x.status === '선발').length;
-  const totalW = (mx.ok && Number(mx.totalWeeks)) || Number(camp.totalRounds) || 0;
-  const subByPhone = {};
-  if (mx.ok && mx.matrix && mx.matrix.rows) mx.matrix.rows.forEach((x) => { subByPhone[digits_(x.phone)] = Number(x.submitted) || 0; });
-  const pol = rewardPolicy_(det.detail, det.challenge || camp);
-  const cntOf = (p) => subByPhone[digits_(p.phone)] || 0;
+  const totalW = (b.ok && Number(b.totalWeeks)) || Number(camp.totalRounds) || 0;
+  const pol = rewardPolicy_(b.policy, b.policy);
+  const cntOf = (p) => Number(p.submitted) || 0;
   el('content').innerHTML = `
     ${sechead('manage')}
     <div class="statbar">
@@ -721,7 +715,7 @@ async function drawManage(camp) {
       const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
       if (!ok) return;
       const r2 = await apiPost(op({ action: 'deleteParticipant', challengeId: id, phone })).catch(() => ({ ok: false }));
-      if (r2.ok) { state.loaded = false; state.cache.matrix[id] = null; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
+      if (r2.ok) { state.loaded = false; state.cache.board[id] = null; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
     });
     tr.querySelector('.js-ex')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget;
@@ -730,6 +724,7 @@ async function drawManage(camp) {
         btn.classList.toggle('is-ex', r2.excellent);
         btn.innerHTML = r2.excellent ? '<span class="exstar">★</span> 우수' : '☆ 지정';
         tr.classList.toggle('is-excellent', r2.excellent);
+        state.cache.board[id] = null; // 우수 변경 → 리워드 재계산 위해 보드 무효화
         refreshRow(tr);
         toast(r2.excellent ? '우수활동자 지정' : '우수 해제');
       } else toast('실패', true);
@@ -739,7 +734,7 @@ async function drawManage(camp) {
 async function decide(camp, phone, decision, tr) {
   const r = await apiPost(op({ action: 'select', challengeId: camp.challengeId, phones: [phone], decision }));
   if (!r.ok) return toast('실패: ' + (r.error || ''), true);
-  state.loaded = false; state.cache.matrix[camp.challengeId] = null; // 홈 카드 통계 + matrix 재계산
+  state.loaded = false; state.cache.board[camp.challengeId] = null; // 홈 카드 통계 + matrix 재계산
   if (tr) {
     tr.querySelector('.js-sel')?.classList.toggle('is-on', decision === 'selected');
     tr.querySelector('.js-rej')?.classList.toggle('is-on', decision === 'rejected');
@@ -754,20 +749,14 @@ async function drawReward(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
   el('content').innerHTML = loading('정산 계산 중…');
-  const [r, mx, det] = await Promise.all([
-    apiGet({ action: 'participants', token: state.token, challengeId: id }),
-    loadMatrix(id),
-    loadDetail(id),
-  ]);
+  const b = await loadBoard(id);
   if (location.hash !== myHash) return;
-  const totalW = (mx.ok && Number(mx.totalWeeks)) || Number(camp.totalRounds) || 0;
-  const subByPhone = {};
-  if (mx.ok && mx.matrix && mx.matrix.rows) mx.matrix.rows.forEach((x) => { subByPhone[digits_(x.phone)] = Number(x.submitted) || 0; });
-  const pol = rewardPolicy_(det.detail, det.challenge || camp);
-  const selected = (r.ok ? r.rows : []).filter((p) => p.status === 'selected' || p.status === '선발');
+  const totalW = (b.ok && Number(b.totalWeeks)) || Number(camp.totalRounds) || 0;
+  const pol = rewardPolicy_(b.policy, b.policy);
+  const selected = (b.ok ? b.rows : []).filter((p) => p.status === 'selected' || p.status === '선발');
   const people = selected.map((p) => {
     const excellent = String(p.note || '').indexOf('excellent') >= 0;
-    const count = subByPhone[digits_(p.phone)] || 0;
+    const count = Number(p.submitted) || 0;
     return { name: p.name, phone: p.phone, blogUrl: p.blogUrl, count, excellent, amount: rewardFor_(count, excellent, pol) };
   });
   const grand = people.reduce((s, x) => s + x.amount, 0);
@@ -845,7 +834,7 @@ async function drawOperate(camp) {
   wrap.innerHTML = `<div class="op-sectit">회차 선택</div><div class="weekchips">${weeks.map((w) => {
     const st = w['상태'] || '대기';
     const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
-    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st)}</span></button>`;
+    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span></button>`;
   }).join('')}</div>`;
   wrap.querySelectorAll('.weekchip').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
@@ -890,8 +879,10 @@ async function drawWeek(camp, round, weeks) {
         <div class="field"><label class="field__label">키워드</label>
           <input class="input" id="m-keyword" value="${esc(wm['미션본문'] || '')}" placeholder="예: #고시원준비물 (여러 개면 쉼표)"${dis} /></div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn--secondary btn--sm" id="wk-notify"${status === '대기' ? ' disabled' : ''}>📨 알림톡 발송</button>
+      <div class="notifybar">
+        <button class="btn btn--kakao" id="wk-notify"${status === '대기' ? ' disabled' : ''}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.6.1 1.3.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+          알림톡 발송</button>
         <span class="muted" style="font-size:13px">${status === '대기' ? '저장(오픈) 후 발송할 수 있어요.' : '선발자 전원에게 이번 주 안내를 보냅니다.'}</span>
       </div>
     </div>
@@ -935,7 +926,7 @@ async function drawWeek(camp, round, weeks) {
     wm['미션본문'] = keyword; wm['articleUrl'] = articleUrl;
     wm['오픈일'] = openDate; wm['마감일'] = dueDate; wm['상태'] = '오픈';
     if (rr.articleName != null) wm['articleName'] = rr.articleName;
-    state.cache.matrix[id] = null;
+    state.cache.board[id] = null;
     toast(`${round}주차 저장 · 오픈됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`);
     drawWeek(camp, round, weeks);
   });
@@ -943,16 +934,17 @@ async function drawWeek(camp, round, weeks) {
   el('wk-onoff')?.addEventListener('change', async (e) => {
     const next = e.target.checked ? '오픈' : '마감';
     const rr = await apiPost(op({ action: 'openWeek', challengeId: id, round, status: next })).catch(() => ({ ok: false }));
-    if (rr.ok) { wm['상태'] = next; state.cache.matrix[id] = null; toast(`${round}주차 ${next === '오픈' ? '오픈' : '종료'}`); drawWeek(camp, round, weeks); }
+    if (rr.ok) { wm['상태'] = next; state.cache.board[id] = null; toast(`${round}주차 ${next === '오픈' ? '오픈' : '종료'}`); drawWeek(camp, round, weeks); }
     else { e.target.checked = !e.target.checked; toast('상태 변경 실패', true); }
   });
   el('wk-notify')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     const ok = await confirmModal({ title: `${round}주차 알림톡을 발송할까요?`, message: '선발자 전원에게 이번 주 안내가 발송됩니다.', confirmLabel: '발송' });
     if (!ok) return;
+    const orig = btn.innerHTML;
     btn.disabled = true; btn.textContent = '발송 중…';
     const rr = await apiPost(op({ action: 'notifyWeek', challengeId: id, round })).catch(() => ({ ok: false }));
-    btn.disabled = false; btn.textContent = '📨 알림톡 발송';
+    btn.disabled = false; btn.innerHTML = orig;
     if (rr.ok) toast(`발송 완료 · 성공 ${rr.sent || 0}${rr.fail ? ` · 실패 ${rr.fail}` : ''}`, rr.fail > 0);
     else toast('발송 실패: ' + (rr.error || 'SOLAPI 설정 확인'), true);
   });
@@ -962,9 +954,18 @@ async function drawWeek(camp, round, weeks) {
     tr.querySelector('.js-no')?.addEventListener('click', () => review(camp, phone, round, '반려', weeks));
     tr.querySelector('.js-wex')?.addEventListener('click', async () => {
       const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone })).catch(() => ({ ok: false }));
-      if (r2.ok) { toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
+      if (r2.ok) { state.cache.board[id] = null; toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
     });
   });
+  // 회차 칩 상태 동기화 (오픈/종료 전환 시 칩 라벨·색 즉시 반영)
+  const chip = el('weeks')?.querySelector(`.weekchip[data-r="${round}"]`);
+  if (chip) {
+    const stx = wm['상태'] || '대기';
+    chip.classList.remove('s-open', 's-done', 's-wait');
+    chip.classList.add(stx === '오픈' ? 's-open' : stx === '마감' ? 's-done' : 's-wait');
+    const se = chip.querySelector('.weekchip__st');
+    if (se) se.textContent = stx === '마감' ? '종료' : stx;
+  }
 }
 async function review(camp, phone, round, status, weeks) {
   const r = await apiPost(op({ action: 'reviewSubmission', challengeId: camp.challengeId, phone, round, status }));
