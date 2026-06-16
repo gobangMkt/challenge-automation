@@ -390,8 +390,9 @@ function reviewSubmission_(body) {
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][idC]) === String(body.challengeId) &&
       String(values[i][phC]) === String(phone) && parseInt(values[i][rC], 10) === round) {
-      sh.getRange(i + 1, stC + 1).setValue(body.status || '승인');
-      return json_({ ok: true, status: body.status || '승인' });
+      var st = body.status == null ? '' : String(body.status); // '반려' 또는 ''(해제)
+      sh.getRange(i + 1, stC + 1).setValue(st);
+      return json_({ ok: true, status: st });
     }
   }
   return json_({ ok: false, error: 'not_found' });

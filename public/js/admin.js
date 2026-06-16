@@ -921,16 +921,18 @@ async function drawWeek(camp, round, weeks) {
     <div class="card">
       <div class="card__title">제출 <span class="muted" style="font-size:13px;font-weight:500">${submitted.length}명</span></div>
       ${submitted.length ? `<div style="overflow:auto;margin:0 -4px"><table class="table"><thead><tr>
-        <th>성함</th><th>게시물</th><th>제출일</th><th>검수</th><th>처리</th></tr></thead><tbody>
-        ${submitted.map((s) => `<tr data-phone="${esc(s.phone)}">
-          <td>${esc(s.name)} ${s.excellent ? '<span class="badge badge--accent badge--star"></span>' : ''}</td>
+        <th>성함</th><th>게시물</th><th>제출일</th><th>상태</th><th>처리</th></tr></thead><tbody>
+        ${submitted.map((s) => {
+        const rej = s.검수상태 === '반려';
+        return `<tr data-phone="${esc(s.phone)}" class="${rej ? 'is-rejected' : ''}">
+          <td>${esc(s.name)}${s.excellent ? ' <span class="exstar">★</span>' : ''}</td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
-          <td><span class="badge ${s.검수상태 === '승인' ? 'badge--success' : s.검수상태 === '반려' ? 'badge--danger' : ''}">${esc(s.검수상태 || '대기')}</span></td>
-          <td><button class="btn btn--secondary btn--sm js-ok">승인</button>
-            <button class="btn btn--ghost btn--sm js-no">반려</button>
+          <td><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
+          <td><button class="btn ${rej ? 'btn--danger' : 'btn--ghost'} btn--sm js-no" data-rej="${rej ? '1' : ''}">${rej ? '반려 해제' : '반려'}</button>
             <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button></td>
-        </tr>`).join('')}
+        </tr>`;
+      }).join('')}
       </tbody></table></div>` : '<p class="empty">아직 제출이 없습니다.</p>'}
     </div>
     <div class="card">
@@ -982,8 +984,10 @@ async function drawWeek(camp, round, weeks) {
   });
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
-    tr.querySelector('.js-ok')?.addEventListener('click', () => review(camp, phone, round, '승인', weeks));
-    tr.querySelector('.js-no')?.addEventListener('click', () => review(camp, phone, round, '반려', weeks));
+    tr.querySelector('.js-no')?.addEventListener('click', (e) => {
+      const rejNow = e.currentTarget.dataset.rej === '1';
+      review(camp, phone, round, rejNow ? '' : '반려', weeks); // 토글: 반려 ↔ 해제
+    });
     tr.querySelector('.js-wex')?.addEventListener('click', async () => {
       const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone })).catch(() => ({ ok: false }));
       if (r2.ok) { state.cache.board[id] = null; toast(r2.excellent ? '우수활동자 지정' : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
@@ -1001,7 +1005,7 @@ async function drawWeek(camp, round, weeks) {
 }
 async function review(camp, phone, round, status, weeks) {
   const r = await apiPost(op({ action: 'reviewSubmission', challengeId: camp.challengeId, phone, round, status }));
-  if (r.ok) { toast(`검수: ${status}`); drawWeek(camp, round, weeks); }
+  if (r.ok) { toast(status === '반려' ? '반려 처리' : '반려 해제'); drawWeek(camp, round, weeks); }
   else toast('실패', true);
 }
 

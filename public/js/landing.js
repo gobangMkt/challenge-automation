@@ -404,7 +404,7 @@ function renderDashboard(r, phone) {
     const urgent = !w.submitted && st === '오픈' && (dd === 'D-DAY' || /^D-[0-2]$/.test(dd));
     if (urgent) cls += ' is-urgent';
     const label = w.submitted ? '완료' : (st === '오픈' ? (dd || '오픈') : (st === '마감' ? '마감' : '대기'));
-    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}"><span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
+    return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}">${r.excellent ? '<span class="wkchip__star" title="우수활동자">★</span>' : ''}<span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
 
   // 학습 자료 — 운영팀이 작성한 안내(작성가이드·유의사항)와 외부 교재 링크
