@@ -546,12 +546,24 @@ function renderWrapup() {
 
       <section class="card">
         <div class="sec__title" style="font-size:18px;margin-bottom:14px">리워드 신청</div>
-        <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
+        <div class="field"><label class="field__label">성함 <span class="req">*</span></label>
+          <input class="input" id="w-name" type="text" placeholder="예: 김고방" /></div>
+        <div class="field"><label class="field__label">리워드 수령 휴대폰 번호 <span class="req">*</span></label>
           <input class="input tnum" id="w-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /></div>
         <div class="field"><label class="field__label">참가한 블로그 URL <span class="req">*</span></label>
-          <input class="input" id="w-blog" type="url" placeholder="https://blog.naver.com/..." /></div>
+          <input class="input" id="w-blog" type="url" placeholder="https://blog.naver.com/..." />
+          <div class="field__hint">1인 1블로그만 인정됩니다.</div></div>
         <div class="field"><label class="field__label">작성한 블로그 갯수 <span class="req">*</span></label>
-          <input class="input tnum" id="w-count" type="number" min="0" max="${max}" placeholder="0" /></div>
+          <select class="input" id="w-count">
+            <option value="">선택하세요</option>
+            ${Array.from({ length: max + 1 }, (_, i) => `<option value="${i}">${i}개</option>`).join('')}
+          </select></div>
+        <div class="field"><label class="field__label">우수활동자 여부 <span class="req">*</span></label>
+          <div class="radio-row">
+            <label class="radio-pill"><input type="radio" name="w-ex" value="Y" /><span>예 (우수활동자)</span></label>
+            <label class="radio-pill"><input type="radio" name="w-ex" value="N" checked /><span>아니오</span></label>
+          </div>
+          <div class="field__hint">우수활동자는 리워드가 2배 지급됩니다.</div></div>
         <label class="checkrow"><input type="checkbox" id="w-agree" /><span>개인정보 수집·이용에 동의합니다.</span></label>
         <button class="btn btn--primary btn--block" id="w-do" style="margin-top:12px">리워드 신청 제출</button>
       </section>
@@ -559,15 +571,20 @@ function renderWrapup() {
     </div>`;
   bindPhone($('#w-phone'));
   $('#w-do').addEventListener('click', async (e) => {
+    const name = $('#w-name').value.trim();
     const phone = $('#w-phone').value.trim();
     const blogUrl = $('#w-blog').value.trim();
-    const postCount = Number($('#w-count').value);
+    const countV = $('#w-count').value;
+    const exEl = $('input[name="w-ex"]:checked');
+    const excellent = exEl ? exEl.value : '';
+    if (!name) return toast('성함을 입력하세요.', true);
     if (!normPhone(phone)) return toast('휴대폰 번호를 확인하세요.', true);
     if (!/^https?:\/\/.+/.test(blogUrl)) return toast('블로그 URL을 확인하세요.', true);
-    if (!(postCount >= 0)) return toast('작성 갯수를 입력하세요.', true);
+    if (countV === '') return toast('작성 갯수를 선택하세요.', true);
+    if (!excellent) return toast('우수활동자 여부를 선택하세요.', true);
     if (!$('#w-agree').checked) return toast('개인정보 수집·이용에 동의해 주세요.', true);
     e.target.disabled = true; e.target.textContent = '제출 중…';
-    const r = await apiPost({ action: 'wrapup', challengeId: cid, phone, blogUrl, postCount, excellent: 'N', agree: true }).catch(() => ({ ok: false }));
+    const r = await apiPost({ action: 'wrapup', challengeId: cid, name, phone, blogUrl, postCount: Number(countV), excellent, agree: true }).catch(() => ({ ok: false }));
     if (r.ok) renderDone('리워드 신청 완료!', '정산 후 네이버페이 포인트로 안내드릴게요. 수고하셨습니다 🎉');
     else { e.target.disabled = false; e.target.textContent = '리워드 신청 제출'; toast('실패: ' + (r.error || (r.errors && Object.values(r.errors)[0]) || ''), true); }
   });
