@@ -249,7 +249,6 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .shead__bar span { display: block; height: 100%; background: var(--lp-pop, #fff); border-radius: 99px; transition: width .4s ease; }
 
 /* 제출 섹션 강조 */
-.wk-submit { border: 2px solid var(--lp-primary); }
 .wk-submit__title { font-weight: 800; font-size: 17px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
 .wk-submit__title::before { content: ''; width: 6px; height: 20px; border-radius: 3px; background: var(--lp-primary); }
 
