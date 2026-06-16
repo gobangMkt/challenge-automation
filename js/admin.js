@@ -862,12 +862,10 @@ async function drawOperate(camp) {
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }
-  const lastRound = weeks.reduce((m, w) => Math.max(m, Number(w['회차']) || 0), 0);
   wrap.innerHTML = `<div class="op-sectit">회차 선택</div><div class="weekchips">${weeks.map((w) => {
     const st = w['상태'] || '대기';
     const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
-    const isLast = Number(w['회차']) === lastRound;
-    return `<button class="weekchip ${cls}${isLast ? ' is-last' : ''}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span>${isLast ? '<span class="weekchip__fin">최종</span>' : ''}</button>`;
+    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span></button>`;
   }).join('')}<button class="weekchip weekchip--reward" id="notifyReward" title="선발자 전원에게 마무리 폼(리워드 신청) 안내 발송"><span class="weekchip__n">리워드</span><span class="weekchip__st">신청 알림</span></button></div>`;
   wrap.querySelectorAll('.weekchip[data-r]').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
