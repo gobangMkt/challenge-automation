@@ -82,6 +82,7 @@ const ICON = {
   manage: SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
+  refresh: SVG('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>'),
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
 const SECTIONS = {
@@ -190,12 +191,13 @@ function appbarHome() {
     <div class="appbar__in">
       ${brandHtml()}
       <div class="appbar__spacer"></div>
+      <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
       <button class="btn btn--primary btn--sm" id="newBtn">+ 새 캠페인</button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>`;
   el('home').addEventListener('click', goHome);
   el('newBtn').addEventListener('click', () => { location.hash = '#/new'; });
-  bindLogout();
+  bindRefresh(); bindLogout();
 }
 function appbarWorkspace(camp, tab) {
   el('appbar').innerHTML = `
@@ -207,6 +209,7 @@ function appbarWorkspace(camp, tab) {
         <span class="badge ${camp.status === '모집중' ? 'badge--primary' : ''}">${esc(camp.status)}</span>
       </nav>
       <div class="appbar__spacer"></div>
+      <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>
     <div class="appbar__tabs">
@@ -216,7 +219,7 @@ function appbarWorkspace(camp, tab) {
   el('home').addEventListener('click', goHome);
   el('appbar').querySelectorAll('.appbar__tab').forEach((b) =>
     b.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(camp.challengeId)}/${b.dataset.tab}`; }));
-  bindLogout();
+  bindRefresh(); bindLogout();
 }
 function appbarBare() {
   el('appbar').innerHTML = `<div class="appbar__in">${brandHtml()}</div>`;
@@ -226,6 +229,15 @@ function goHome() { location.hash = '#/'; }
 function bindLogout() {
   const lo = el('logout');
   if (lo) lo.addEventListener('click', () => { state.token = ''; state.loaded = false; localStorage.removeItem(TOKEN_KEY); route(); });
+}
+function bindRefresh() {
+  const rb = el('refresh');
+  if (!rb) return;
+  rb.addEventListener('click', () => {
+    state.loaded = false; state.cache = { detail: {}, board: {} }; // 캐시 비우고 현재 화면 새로 로드
+    toast('새로고침');
+    route();
+  });
 }
 
 /* ---------- 토큰 게이트 ---------- */
@@ -780,7 +792,9 @@ async function drawReward(camp) {
         <span class="rwd-group__sum">합계 ${won(sum)}</span>
       </div>
       <div class="card" style="padding:0;overflow:auto;margin:0">
-        <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>우수</th></tr></thead>
+        <table class="table" style="table-layout:fixed">
+        <colgroup><col style="width:22%"/><col style="width:26%"/><col/><col style="width:13%"/><col style="width:11%"/></colgroup>
+        <thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>우수</th></tr></thead>
         <tbody>${body}</tbody></table>
       </div>
     </div>`;
