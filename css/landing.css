@@ -237,21 +237,21 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 /* 제출완료 상태 입력칸(읽기전용) */
 .wk-submit .input:disabled { background: var(--lp-surface2); color: var(--color-ink-muted); cursor: default; }
 
-/* 인증 후 헤더 — 신원·진행·로그아웃을 본문에서 헤더로 흡수 */
-.hero--auth { padding-top: 20px; padding-bottom: 22px; }
-.hero--auth .hero__panel { gap: 0; }
+/* 인증 후 헤더 — 신원·진행·로그아웃 (흰 패널 위, 다크 잉크 텍스트) */
+.hero--auth { padding-top: 24px; padding-bottom: 30px; }
+.hero--auth .hero__panel { max-width: 420px; padding: 22px 24px; text-align: left; }
 .shead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .shead__id { min-width: 0; text-align: left; }
-.shead__name { font-size: 22px; font-weight: 800; color: #fff; margin-top: 4px; }
+.shead__name { font-size: 22px; font-weight: 800; color: var(--lp-ink); margin-top: 4px; }
 .shead__name b { font-weight: 800; }
-.shead__out { flex: none; background: rgba(255,255,255,.16); color: #fff; }
-.shead__out:hover { background: rgba(255,255,255,.26); }
+.shead__out { flex: none; background: var(--lp-surface2); color: var(--color-ink-muted); border-color: transparent; }
+.shead__out:hover { background: var(--color-border); }
 .shead__prog { margin-top: 18px; text-align: left; }
-.shead__progtop { display: flex; justify-content: space-between; align-items: baseline; color: rgba(255,255,255,.85); font-size: 13px; font-weight: 600; margin-bottom: 7px; }
-.shead__progtop b { font-size: 18px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
-.shead__progtop b i { font-style: normal; font-size: 14px; color: rgba(255,255,255,.7); }
-.shead__bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
-.shead__bar span { display: block; height: 100%; background: var(--lp-pop, #fff); border-radius: 99px; transition: width .4s ease; }
+.shead__progtop { display: flex; justify-content: space-between; align-items: baseline; color: var(--color-ink-muted); font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+.shead__progtop b { font-size: 18px; font-weight: 800; color: var(--lp-primary); font-variant-numeric: tabular-nums; }
+.shead__progtop b i { font-style: normal; font-size: 14px; color: var(--color-ink-faint); }
+.shead__bar { height: 8px; border-radius: 99px; background: var(--lp-surface2); overflow: hidden; }
+.shead__bar span { display: block; height: 100%; background: var(--lp-primary); border-radius: 99px; transition: width .4s ease; }
 
 /* 제출 섹션 강조 */
 .wk-submit__title { font-weight: 800; font-size: 17px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }

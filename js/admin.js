@@ -81,12 +81,14 @@ const ICON = {
   mkt: SVG('<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'),
   manage: SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
 const SECTIONS = {
   mkt: { label: '마케팅', icon: ICON.mkt, desc: '신청 상세페이지를 배포합니다', cls: 'sec-mkt' },
   manage: { label: '관리', icon: ICON.manage, desc: '신청자 명단·선발·우수활동자를 관리합니다', cls: 'sec-manage' },
   operate: { label: '운영', icon: ICON.operate, desc: '주차별 미션 발송과 제출 검수를 진행합니다', cls: 'sec-operate' },
+  reward: { label: '리워드', icon: ICON.reward, desc: '지급 금액별로 정산을 정리합니다', cls: 'sec-reward' },
 };
 const sechead = () => ''; // 섹션 배너 제거 — 설명은 상단 탭 툴팁(title)으로 노출
 
@@ -147,6 +149,25 @@ async function loadCampaigns(force) {
   return state.campaigns;
 }
 const findCamp = (id) => state.campaigns.find((c) => String(c.challengeId) === String(id));
+
+/* ---------- 리워드 계산 (정책: 갯수 티어 or 제출수×단가, 우수활동자 ×배수) ---------- */
+const won = (n) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
+const digits_ = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+function rewardPolicy_(detail, challenge) {
+  const d = detail || {}, c = challenge || {};
+  // excellentMultiplier는 campaignDetail에 미노출 → 앱 기본·랜딩 표기와 동일하게 2배
+  const mult = Number(d.excellentMultiplier || c.excellentMultiplier) || 2;
+  if (d.rewardType === 'grade' && Array.isArray(d.rewardTiers) && d.rewardTiers.length) {
+    return { type: 'grade', tiers: d.rewardTiers.slice().sort((a, b) => Number(a.min) - Number(b.min)), mult };
+  }
+  return { type: 'linear', perPost: Number(d.rewardAmount || c.rewardPerPost || 0), mult };
+}
+function rewardFor_(count, excellent, pol) {
+  let base = 0;
+  if (pol.type === 'grade') { for (const t of pol.tiers) if (Number(count) >= Number(t.min)) base = Number(t.amount) || 0; }
+  else base = (Number(count) || 0) * pol.perPost;
+  return excellent ? base * pol.mult : base;
+}
 
 /* ---------- 앱바 ---------- */
 function brandHtml() { return `<button class="brand" id="home">${ICON.star} 챌린지 허브</button>`; }
@@ -460,6 +481,7 @@ async function renderWorkspace(id, tab) {
   appbarWorkspace(camp, tab);
   if (tab === 'manage') return drawManage(camp);
   if (tab === 'operate') return drawOperate(camp);
+  if (tab === 'reward') return drawReward(camp);
   return drawMarketing(camp);
 }
 
@@ -624,10 +646,19 @@ async function drawManage(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
   el('content').innerHTML = loading('명단 불러오는 중…');
-  const r = await apiGet({ action: 'participants', token: state.token, challengeId: id });
+  const [r, mx, det] = await Promise.all([
+    apiGet({ action: 'participants', token: state.token, challengeId: id }),
+    apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false })),
+    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+  ]);
   if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
   const rows = r.ok ? r.rows : [];
   const selN = rows.filter((x) => x.status === 'selected' || x.status === '선발').length;
+  const totalW = (mx.ok && Number(mx.totalWeeks)) || Number(camp.totalRounds) || 0;
+  const subByPhone = {};
+  if (mx.ok && mx.matrix && mx.matrix.rows) mx.matrix.rows.forEach((x) => { subByPhone[digits_(x.phone)] = Number(x.submitted) || 0; });
+  const pol = rewardPolicy_(det.detail, det.challenge || camp);
+  const cntOf = (p) => subByPhone[digits_(p.phone)] || 0;
   el('content').innerHTML = `
     ${sechead('manage')}
     <div class="statbar">
@@ -635,27 +666,39 @@ async function drawManage(camp) {
       <div class="pill"><b class="tnum" id="selCount">${selN}</b><span>선발</span></div>
     </div>
     <div class="card" style="padding:0;overflow:auto">
-      <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>선발/탈락</th><th>우수활동자</th><th>삭제</th></tr></thead><tbody>
+      <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>선발/탈락</th><th>우수활동자</th><th>예상 리워드</th><th>삭제</th></tr></thead><tbody>
       ${rows.length ? rows.map((p) => {
         const sel = p.status === 'selected' || p.status === '선발';
         const rej = p.status === 'rejected' || p.status === '탈락';
         const isEx = String(p.note || '').indexOf('excellent') >= 0;
-        return `<tr data-phone="${esc(p.phone)}" class="${isEx ? 'is-excellent' : ''}">
+        const cnt = cntOf(p);
+        return `<tr data-phone="${esc(p.phone)}" data-count="${cnt}" class="${isEx ? 'is-excellent' : ''}">
           <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}</td>
           <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a></td>
+          <td class="tnum js-sub">${sel ? `${cnt}/${totalW}` : '–'}</td>
           <td><span class="seg">
             <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>
             <button class="seg__btn seg__btn--rej js-rej ${rej ? 'is-on' : ''}">탈락</button></span></td>
           <td><button class="btn btn--ghost btn--sm js-ex ${isEx ? 'is-ex' : ''}">${isEx ? '<span class="exstar">★</span> 우수' : '☆ 지정'}</button></td>
+          <td class="tnum js-amt">${sel ? won(rewardFor_(cnt, isEx, pol)) : '–'}</td>
           <td><button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
-      }).join('') : '<tr><td colspan="6" class="empty">신청자가 없습니다.</td></tr>'}
+      }).join('') : '<tr><td colspan="8" class="empty">신청자가 없습니다.</td></tr>'}
       </tbody></table>
-    </div>`;
+    </div>
+    <p class="muted" style="margin-top:10px;font-size:12px">제출수=실제 제출 건수 · 예상 리워드=${pol.type === 'grade' ? '제출갯수 티어' : '제출수×단가'} 기준, 우수활동자 ×${pol.mult}. 확정 정산은 <b>리워드</b> 탭 참고.</p>`;
+  const refreshRow = (tr) => {
+    const cnt = Number(tr.dataset.count) || 0;
+    const selNow = tr.querySelector('.js-sel')?.classList.contains('is-on');
+    const isEx = tr.classList.contains('is-excellent');
+    const sub = tr.querySelector('.js-sub'), amt = tr.querySelector('.js-amt');
+    if (sub) sub.textContent = selNow ? `${cnt}/${totalW}` : '–';
+    if (amt) amt.textContent = selNow ? won(rewardFor_(cnt, isEx, pol)) : '–';
+  };
   el('content').querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
-    tr.querySelector('.js-sel')?.addEventListener('click', () => decide(camp, phone, 'selected', tr));
-    tr.querySelector('.js-rej')?.addEventListener('click', () => decide(camp, phone, 'rejected', tr));
+    tr.querySelector('.js-sel')?.addEventListener('click', async () => { await decide(camp, phone, 'selected', tr); refreshRow(tr); });
+    tr.querySelector('.js-rej')?.addEventListener('click', async () => { await decide(camp, phone, 'rejected', tr); refreshRow(tr); });
     tr.querySelector('.js-pdel')?.addEventListener('click', async () => {
       const name = tr.querySelector('td')?.textContent || '';
       const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
@@ -670,6 +713,7 @@ async function drawManage(camp) {
         btn.classList.toggle('is-ex', r2.excellent);
         btn.innerHTML = r2.excellent ? '<span class="exstar">★</span> 우수' : '☆ 지정';
         tr.classList.toggle('is-excellent', r2.excellent);
+        refreshRow(tr);
         toast(r2.excellent ? '우수활동자 지정' : '우수 해제');
       } else toast('실패', true);
     });
@@ -686,6 +730,65 @@ async function decide(camp, phone, decision, tr) {
     if (pill) pill.textContent = el('content').querySelectorAll('.js-sel.is-on').length;
   }
   toast(decision === 'selected' ? '선발됨' : '탈락 처리');
+}
+
+/* ---------- 탭: 리워드 (지급 금액별 정산 정리) ---------- */
+async function drawReward(camp) {
+  const id = camp.challengeId;
+  const myHash = location.hash;
+  el('content').innerHTML = loading('정산 계산 중…');
+  const [r, mx, det] = await Promise.all([
+    apiGet({ action: 'participants', token: state.token, challengeId: id }),
+    apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false })),
+    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+  ]);
+  if (location.hash !== myHash) return;
+  const totalW = (mx.ok && Number(mx.totalWeeks)) || Number(camp.totalRounds) || 0;
+  const subByPhone = {};
+  if (mx.ok && mx.matrix && mx.matrix.rows) mx.matrix.rows.forEach((x) => { subByPhone[digits_(x.phone)] = Number(x.submitted) || 0; });
+  const pol = rewardPolicy_(det.detail, det.challenge || camp);
+  const selected = (r.ok ? r.rows : []).filter((p) => p.status === 'selected' || p.status === '선발');
+  const people = selected.map((p) => {
+    const excellent = String(p.note || '').indexOf('excellent') >= 0;
+    const count = subByPhone[digits_(p.phone)] || 0;
+    return { name: p.name, phone: p.phone, blogUrl: p.blogUrl, count, excellent, amount: rewardFor_(count, excellent, pol) };
+  });
+  const grand = people.reduce((s, x) => s + x.amount, 0);
+  const groups = {};
+  people.forEach((x) => { (groups[x.amount] = groups[x.amount] || []).push(x); });
+  const amounts = Object.keys(groups).map(Number).sort((a, b) => b - a);
+
+  const groupsHtml = amounts.map((amt) => {
+    const list = groups[amt].slice().sort((a, b) => b.count - a.count);
+    const sum = amt * list.length;
+    const body = list.map((x) => `<tr>
+      <td>${esc(x.name)}${x.excellent ? ' <span class="exstar">★</span>' : ''}</td>
+      <td class="tnum">${esc(x.phone)}</td>
+      <td><a href="${esc(x.blogUrl)}" target="_blank">블로그</a></td>
+      <td class="tnum">${x.count}/${totalW}</td>
+      <td class="tnum">${x.excellent ? 'Y' : 'N'}</td></tr>`).join('');
+    return `<div class="rwd-group">
+      <div class="rwd-group__head">
+        <span class="rwd-group__amt">${won(amt)}<i>/인</i></span>
+        <span class="rwd-group__cnt">${list.length}명</span>
+        <span class="rwd-group__sum">합계 ${won(sum)}</span>
+      </div>
+      <div class="card" style="padding:0;overflow:auto;margin:0">
+        <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>우수</th></tr></thead>
+        <tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+
+  el('content').innerHTML = `
+    ${sechead('reward')}
+    <div class="statbar">
+      <div class="pill"><b class="tnum">${people.length}</b><span>정산 대상</span></div>
+      <div class="pill"><b class="tnum">${won(grand)}</b><span>총 지급액</span></div>
+      <div class="pill"><b class="tnum">${pol.type === 'grade' ? '갯수 티어' : won(pol.perPost) + '/건'}</b><span>단가 · 우수 ×${pol.mult}</span></div>
+    </div>
+    ${people.length ? groupsHtml : '<div class="card center muted">정산 대상(선발자)이 없습니다.</div>'}
+    <p class="muted" style="margin-top:12px;font-size:12px">금액별 그룹 · 제출 실건수 기준 · 우수활동자 ★는 ×${pol.mult}. excellentMultiplier 미설정 시 기본 2배 적용.</p>`;
 }
 
 /* ---------- 탭: 운영 (주차) ---------- */

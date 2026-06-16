@@ -25,6 +25,15 @@
 .appbar__tab.sec-mkt.is-active { color: var(--color-primary-hover); border-bottom-color: var(--color-primary); }
 .appbar__tab.sec-manage.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
 .appbar__tab.sec-operate.is-active { color: #B54708; border-bottom-color: var(--color-warning); }
+.appbar__tab.sec-reward.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
+
+/* 리워드 탭 — 금액별 그룹 */
+.rwd-group { margin-bottom: 20px; }
+.rwd-group__head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 0 2px 10px; }
+.rwd-group__amt { font-size: 20px; font-weight: 800; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.rwd-group__amt i { font-style: normal; font-size: 13px; font-weight: 600; color: var(--color-ink-faint); margin-left: 2px; }
+.rwd-group__cnt { font-size: 13px; font-weight: 700; color: var(--color-ink-muted); background: var(--color-surface-2); padding: 3px 10px; border-radius: var(--radius-pill); }
+.rwd-group__sum { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
 
 /* 섹션 헤더 배너 (현재 위치 표시) */
 .sechead { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: var(--radius-lg); margin-bottom: 22px; border: 1px solid var(--color-border); border-left-width: 5px; background: var(--color-surface); box-shadow: var(--shadow-card); }
