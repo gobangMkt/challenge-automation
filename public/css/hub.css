@@ -57,10 +57,10 @@
 .btn--icon { padding: 7px 9px; line-height: 0; }
 .btn--icon svg { width: 16px; height: 16px; display: block; }
 
-/* 알림톡 발송 버튼 (카카오 옐로우 — 강조) */
+/* 알림톡 발송 버튼 (브랜드 프라이머리 — BI 준수) */
 .notifybar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-.btn--kakao { display: inline-flex; align-items: center; gap: 8px; background: #FEE500; color: #3C1E1E; border: 0; font-weight: 800; font-size: 15px; padding: 12px 22px; border-radius: 12px; box-shadow: 0 4px 14px rgba(254,229,0,.5); }
-.btn--kakao:hover { background: #FADA00; box-shadow: 0 6px 18px rgba(254,229,0,.6); transform: translateY(-1px); }
+.btn--kakao { display: inline-flex; align-items: center; gap: 8px; background: var(--color-primary); color: #fff; border: 0; font-weight: 700; font-size: 15px; padding: 12px 22px; border-radius: 10px; }
+.btn--kakao:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
 .btn--kakao:active { transform: translateY(0); }
 .btn--kakao:disabled { background: var(--color-surface-2); color: var(--color-ink-faint); box-shadow: none; cursor: not-allowed; transform: none; }
 
@@ -162,16 +162,13 @@
 .weekchip.s-wait .weekchip__st { background: #FEF0DC; color: #B54708; }
 .weekchip.is-active { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .weekchip.is-active .weekchip__n { color: var(--color-primary-hover); }
-/* 최종 회차 강조 + 칩 라벨 */
-.weekchip.is-last { border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border)); }
-.weekchip__fin { position: absolute; top: -8px; right: -6px; font-size: 9px; font-weight: 800; color: #fff; background: var(--color-primary); padding: 2px 6px; border-radius: 999px; letter-spacing: .02em; }
 .weekchip { position: relative; }
 
-/* 리워드 신청 알림 칩 (최종 회차 다음) */
-.weekchip--reward { border-color: #FEE500; background: #FEE500; }
-.weekchip--reward .weekchip__n { color: #3C1E1E; }
-.weekchip--reward .weekchip__st { background: rgba(0,0,0,.08); color: #3C1E1E; }
-.weekchip--reward:hover { background: #FADA00; box-shadow: 0 4px 12px rgba(254,229,0,.5); }
+/* 리워드 신청 알림 칩 (최종 회차 다음, 브랜드 톤) */
+.weekchip--reward { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.weekchip--reward .weekchip__n { color: var(--color-primary-hover); }
+.weekchip--reward .weekchip__st { background: var(--color-primary); color: #fff; }
+.weekchip--reward:hover { background: color-mix(in srgb, var(--color-primary) 14%, #fff); }
 
 /* 상태 토글(대기/오픈/마감) */
 .seg--status .seg__btn.is-on { background: var(--color-success); }
