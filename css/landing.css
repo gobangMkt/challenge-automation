@@ -221,8 +221,8 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 /* 섹션 — 학습 자료 / 이번 주 미션 (시스템 구획) */
 .ssec { margin-top: 28px; }
 .ssec:first-child { margin-top: 4px; }
-.ssec__h { display: flex; align-items: center; gap: 8px; font-family: var(--font-display, inherit); font-size: 18px; font-weight: 800; color: var(--lp-ink); letter-spacing: -.01em; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--lp-ink); }
-.ssec__ic { font-size: 18px; line-height: 1; }
+.ssec__h { display: flex; align-items: center; gap: 9px; font-family: var(--font-display, inherit); font-size: 18px; font-weight: 800; color: var(--lp-ink); letter-spacing: -.01em; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--lp-ink); }
+.ssec__ic { width: 19px; height: 19px; flex: none; color: var(--lp-primary); }
 .ssec--mission .ssec__h { border-bottom-color: var(--lp-primary); }
 /* 교재 바로가기 버튼 */
 .resbtn { display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 16px; font-weight: 800; color: #fff; background: var(--lp-primary); padding: 15px 20px; border-radius: 12px; text-decoration: none; box-shadow: 0 6px 16px color-mix(in srgb, var(--lp-primary) 30%, transparent); }
@@ -230,7 +230,6 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .resbtn__go { opacity: .9; }
 /* 운영팀이 직접 작성한 본문 — 시스템 라벨과 구분(좌측 강조선 + 연한 면) */
 .userdoc { background: var(--lp-surface2); border-left: 3px solid var(--lp-primary); border-radius: 0 10px 10px 0; padding: 14px 16px !important; }
-.userdoc::before { content: '운영팀 안내'; display: block; font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--lp-primary); margin-bottom: 8px; }
 .wk-row__val .wk-kw__chip { font-size: 14px; flex: none; }
 
 /* 인증 후 헤더 — 신원·진행·로그아웃을 본문에서 헤더로 흡수 */
