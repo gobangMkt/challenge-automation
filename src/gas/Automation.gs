@@ -312,8 +312,30 @@ function headerCol_(sh, name) {
 }
 function submitLink_(c) {
   var base = PropertiesService.getScriptProperties().getProperty('APP_BASE_URL') || '';
-  // 쿼리(?c=)는 해시(#/submit) 앞에 와야 location.search에서 잡힌다.
-  return base ? (base + '?c=' + encodeURIComponent(c.challengeId) + '#/submit') : '';
+  // 쿼리(?c=)는 해시 앞에 와야 location.search에서 잡힌다.
+  return base ? (base + '?c=' + encodeURIComponent(c.challengeId) + '#submit') : '';
+}
+function wrapupLink_(c) {
+  var base = PropertiesService.getScriptProperties().getProperty('APP_BASE_URL') || '';
+  return base ? (base + '?c=' + encodeURIComponent(c.challengeId) + '#wrapup') : '';
+}
+
+// ---------- 액션: 리워드 신청(마무리 폼) 안내 일괄 발송 (선발자 전원) ----------
+function notifyWrapup_(body) {
+  if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var cid = body.challengeId;
+  if (!cid) return json_({ ok: false, error: 'bad_request' });
+  var c = challengeById_(cid);
+  if (!c) return json_({ ok: false, error: 'not_found' });
+  var link = wrapupLink_(c);
+  var sent = 0, fail = 0;
+  selectedParticipants_(cid).forEach(function (p) {
+    var r = sendAlimtalk_('done', p.phone, {
+      '#{name}': p.name || '', '#{link}': link,
+    }, { challengeId: cid, week: 'wrapup' });
+    if (r === '성공') sent += 1; else fail += 1;
+  });
+  return json_({ ok: true, sent: sent, fail: fail });
 }
 
 // ---------- 액션(doGet/doPost에서 분기 호출) ----------

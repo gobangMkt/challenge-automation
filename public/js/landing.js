@@ -149,7 +149,7 @@ function cautionsSection(d) {
 }
 
 function route() {
-  const h = location.hash.replace('#', '');
+  const h = location.hash.replace(/^#\/?/, ''); // '#submit'·'#/submit' 모두 'submit'
   if (h === 'submit') return renderSubmit();
   if (h === 'wrapup') return renderWrapup();
   return renderLanding();
@@ -487,35 +487,70 @@ async function submitWeek(phone, btn) {
 
 /* ---------- 마무리 ---------- */
 function renderWrapup() {
-  const c = DATA.challenge;
+  const c = DATA.challenge || {}, d = DATA.detail || {};
+  const max = Number(c.totalRounds || 10);
+  const tiers = (Array.isArray(d.rewardTiers) && d.rewardTiers.length)
+    ? d.rewardTiers.slice().sort((a, b) => Number(a.min) - Number(b.min))
+    : [{ min: 0, amount: 0 }, { min: 2, amount: 3000 }, { min: 5, amount: 5000 }, { min: 10, amount: 10000 }];
+  const unit = d.rewardUnit || '네이버페이';
+  const tierRows = tiers.map((t, i) => {
+    const next = tiers[i + 1];
+    const range = next ? `${t.min}~${Number(next.min) - 1}개` : `${t.min}개 이상`;
+    const amt = Number(t.amount) || 0;
+    return `<li><span class="wru-range">${range} 작성</span><b class="wru-amt">${unit} ${amt.toLocaleString('ko-KR')} P</b></li>`;
+  }).join('');
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
-      <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">챌린지 마무리</h1></div>
-      <p class="hero__sub">완주를 축하합니다</p></header>
-    <div class="wrap" style="padding-top:28px">
-    <div class="card">
-      <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
-        <input class="input tnum" id="w-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /></div>
-      <div class="field"><label class="field__label">참가한 블로그 URL <span class="req">*</span></label>
-        <input class="input" id="w-blog" type="url" placeholder="https://blog.naver.com/..." /></div>
-      <div class="field"><label class="field__label">작성한 블로그 갯수 <span class="req">*</span></label>
-        <input class="input tnum" id="w-count" type="number" min="0" max="${esc(c.totalRounds || 10)}" placeholder="0" /></div>
-      <label class="checkrow"><input type="checkbox" id="w-ex" /><span>우수활동자 여부 (해당 시 체크)</span></label>
-      <button class="btn btn--primary btn--block" id="w-do" style="margin-top:12px">마무리 제출</button>
-    </div>
-    <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a></p>
-  </div>`;
+      <h1 class="hero__title" style="font-size:clamp(24px,6vw,34px)">챌린지 마무리 · 리워드 신청</h1></div>
+      <p class="hero__sub">완주를 진심으로 축하합니다 🎉</p></header>
+    <div class="wrap" style="padding-top:24px">
+      <section class="card wru-intro">
+        <p><b>${esc(c.name)}</b>가 드디어 끝났습니다! 🎉</p>
+        <p>이번 챌린지를 통해</p>
+        <ul class="wru-stars">
+          <li>검색 상위에 노출되는 <b>키워드 전략력</b></li>
+          <li>독자의 행동을 유도하는 <b>콘텐츠 기획력</b></li>
+          <li>데이터를 분석하고 개선하는 <b>운영 최적화 감각</b></li>
+        </ul>
+        <p>실무에서 바로 써먹을 수 있는 블로그 운영 역량을 쌓으셨을 거예요. 💪</p>
+        <p class="wru-cta">💙 아래 폼을 꼭 작성하고 <b>챌린지 리워드</b>를 받아가세요! 💙<br>함께해 주셔서 진심으로 감사합니다. 😊</p>
+      </section>
+
+      <section class="card">
+        <div class="sec__title" style="font-size:18px;margin-bottom:14px">리워드 상세</div>
+        <ul class="wru-tiers">${tierRows}</ul>
+        <div class="wru-notes">
+          <p>※ <b>화요일 10:00</b> 이전까지 폼을 제출하지 않으면 리워드를 받을 수 없습니다.</p>
+          <p>※ 문의는 오픈카카오톡으로 연락주세요.${c.openchatUrl ? ` <a href="${esc(c.openchatUrl)}" target="_blank" rel="noopener">문의하기 ↗</a>` : ''}</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="sec__title" style="font-size:18px;margin-bottom:14px">리워드 신청</div>
+        <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
+          <input class="input tnum" id="w-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /></div>
+        <div class="field"><label class="field__label">참가한 블로그 URL <span class="req">*</span></label>
+          <input class="input" id="w-blog" type="url" placeholder="https://blog.naver.com/..." /></div>
+        <div class="field"><label class="field__label">작성한 블로그 갯수 <span class="req">*</span></label>
+          <input class="input tnum" id="w-count" type="number" min="0" max="${max}" placeholder="0" /></div>
+        <label class="checkrow"><input type="checkbox" id="w-agree" /><span>개인정보 수집·이용에 동의합니다.</span></label>
+        <button class="btn btn--primary btn--block" id="w-do" style="margin-top:12px">리워드 신청 제출</button>
+      </section>
+      <p class="center muted" style="margin-top:18px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#submit">주차 제출</a></p>
+    </div>`;
   bindPhone($('#w-phone'));
   $('#w-do').addEventListener('click', async (e) => {
     const phone = $('#w-phone').value.trim();
     const blogUrl = $('#w-blog').value.trim();
     const postCount = Number($('#w-count').value);
-    if (!normPhone(phone)) return toast('휴대폰 번호 확인', true);
-    if (!/^https?:\/\/.+/.test(blogUrl)) return toast('블로그 URL 확인', true);
+    if (!normPhone(phone)) return toast('휴대폰 번호를 확인하세요.', true);
+    if (!/^https?:\/\/.+/.test(blogUrl)) return toast('블로그 URL을 확인하세요.', true);
+    if (!(postCount >= 0)) return toast('작성 갯수를 입력하세요.', true);
+    if (!$('#w-agree').checked) return toast('개인정보 수집·이용에 동의해 주세요.', true);
     e.target.disabled = true; e.target.textContent = '제출 중…';
-    const r = await apiPost({ action: 'wrapup', challengeId: cid, phone, blogUrl, postCount, excellent: $('#w-ex').checked ? 'Y' : 'N', agree: true }).catch(() => ({ ok: false }));
-    if (r.ok) renderDone('마무리 제출 완료!', '활동비 정산 후 안내드릴게요. 수고하셨습니다.');
-    else { e.target.disabled = false; e.target.textContent = '마무리 제출'; toast('실패: ' + (r.error || ''), true); }
+    const r = await apiPost({ action: 'wrapup', challengeId: cid, phone, blogUrl, postCount, excellent: 'N', agree: true }).catch(() => ({ ok: false }));
+    if (r.ok) renderDone('리워드 신청 완료!', '정산 후 네이버페이 포인트로 안내드릴게요. 수고하셨습니다 🎉');
+    else { e.target.disabled = false; e.target.textContent = '리워드 신청 제출'; toast('실패: ' + (r.error || (r.errors && Object.values(r.errors)[0]) || ''), true); }
   });
 }
 

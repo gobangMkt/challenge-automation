@@ -162,6 +162,19 @@
 .weekchip.s-wait .weekchip__st { background: #FEF0DC; color: #B54708; }
 .weekchip.is-active { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .weekchip.is-active .weekchip__n { color: var(--color-primary-hover); }
+/* 최종 회차 강조 + 칩 라벨 */
+.weekchip.is-last { border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border)); }
+.weekchip__fin { position: absolute; top: -8px; right: -6px; font-size: 9px; font-weight: 800; color: #fff; background: var(--color-primary); padding: 2px 6px; border-radius: 999px; letter-spacing: .02em; }
+.weekchip { position: relative; }
+
+/* 리워드 신청 알림 발송 바 (마지막 회차 영역) */
+.rwd-notify { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin: -8px 0 24px; padding: 14px 16px; border: 1.5px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  border-radius: var(--radius); background: var(--color-primary-soft); }
+.rwd-notify__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rwd-notify__txt b { font-size: 14px; color: var(--color-ink); }
+.rwd-notify__txt span { font-size: 12.5px; }
+.rwd-notify__btns { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 /* 상태 토글(대기/오픈/마감) */
 .seg--status .seg__btn.is-on { background: var(--color-success); }

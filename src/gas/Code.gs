@@ -69,6 +69,32 @@ function operatorToken_() {
   return PropertiesService.getScriptProperties().getProperty('OPERATOR_TOKEN');
 }
 
+// ---------- 응답 캐싱 (CacheService) — 읽기 응답 캐시 + 쓰기 시 무효화 ----------
+// 캠페인별 rev를 키에 포함 → 쓰기 시 bumpRev_로 rev 변경하면 옛 캐시는 자동 무용지물.
+function challengeRev_(scope) {
+  var c = CacheService.getScriptCache();
+  var k = 'rev:' + (scope || '_all');
+  var v = c.get(k);
+  if (!v) { v = '1'; c.put(k, v, 21600); }
+  return v;
+}
+function bumpRev_(cid) {
+  var c = CacheService.getScriptCache();
+  var t = String(new Date().getTime());
+  c.put('rev:_all', t, 21600);          // 목록(campaigns) 등 전역 캐시 무효화
+  if (cid) c.put('rev:' + cid, t, 21600); // 해당 캠페인 캐시 무효화
+}
+function cachedGet_(p, ttl, producer, revScope) {
+  var cache = CacheService.getScriptCache();
+  var scope = revScope || p.challengeId || '_all';
+  var key = 'g:' + p.action + ':' + (p.challengeId || '') + ':' + (p.round || '') + ':' + challengeRev_(scope);
+  var hit; try { hit = cache.get(key); } catch (e) { hit = null; }
+  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  var out = producer();
+  try { cache.put(key, out.getContent(), ttl); } catch (e) {}
+  return out;
+}
+
 // ---------- 엔드포인트 ----------
 function doPost(e) {
   try { return doPostInner_(e); }
@@ -78,6 +104,12 @@ function doPost(e) {
 function doPostInner_(e) {
   var body = {};
   try { body = JSON.parse(e.postData.contents); } catch (err) { body = {}; }
+  var res = dispatchPost_(body);
+  if (body.action) bumpRev_(body.challengeId); // 쓰기 후 관련 캐시 무효화(다음 조회 최신)
+  return res;
+}
+
+function dispatchPost_(body) {
   switch (body.action) {
     case 'apply': return apply_(body);                  // S1 신청
     case 'createChallenge': return createChallenge_(body); // S2
@@ -86,9 +118,10 @@ function doPostInner_(e) {
     case 'select': return select_(body);                // S3 선발
     case 'deleteParticipant': return deleteParticipant_(body); // 신청자 삭제
     case 'submit': return submit_(body);                // S4 주차제출
-    case 'wrapup': return wrapup_(body);                // S7 마무리
+    case 'wrapup': return wrapup_(body);                // S7 마무리(리워드 신청)
     case 'resend': return resend_(body);                // S6 수동 재발송
     case 'notifyWeek': return notifyWeek_(body);        // Hub 주차 알림톡 일괄 발송
+    case 'notifyWrapup': return notifyWrapup_(body);    // Hub 리워드 신청(마무리 폼) 안내 일괄 발송
     case 'saveCampaign': return saveCampaign_(body);    // Hub 캠페인 생성/수정
     case 'deleteCampaign': return deleteCampaign_(body); // Hub 캠페인 삭제
     case 'setExcellent': return setExcellent_(body);    // Hub 우수선정 토글(전역·리워드)
@@ -105,16 +138,16 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   switch (p.action) {
     case 'participants': return participants_(p);       // S1 명단
-    case 'myStatus': return myStatus_(p.challengeId, p.phone, p.blogUrl); // S4 본인현황
-    case 'matrix': return matrix_(p);                   // S5 매트릭스
-    case 'boardData': return boardData_(p);             // Hub 관리/리워드 통합(명단+제출수+정책)
+    case 'myStatus': return myStatus_(p.challengeId, p.phone, p.blogUrl); // S4 본인현황(블로그 검증 — 캐시 제외)
+    case 'matrix': return cachedGet_(p, 30, function () { return matrix_(p); }); // S5
+    case 'boardData': return cachedGet_(p, 30, function () { return boardData_(p); }); // Hub 관리/리워드
     case 'notifyLog': return notifyLog_(p);             // S6 알림로그
     case 'settlement': return settlement_(p);           // S7 정산
-    case 'campaigns': return campaigns_(p);             // Hub 캠페인 목록
-    case 'campaignDetail': return campaignDetail_(p);   // Hub 캠페인 상세(공개)
+    case 'campaigns': return cachedGet_(p, 30, function () { return campaigns_(p); }, '_all'); // Hub 목록
+    case 'campaignDetail': return cachedGet_(p, 120, function () { return campaignDetail_(p); }); // 공개 상세(거의 불변)
     case 'blogInfo': return blogInfo_(p);               // 신청 블로그 URL 미리보기(공개)
-    case 'missions': return missions_(p);               // Hub 주차 미션 목록
-    case 'weekSubmissions': return weekSubmissions_(p); // Hub 그 주 제출현황
+    case 'missions': return cachedGet_(p, 60, function () { return missions_(p); }); // Hub 주차 미션
+    case 'weekSubmissions': return cachedGet_(p, 20, function () { return weekSubmissions_(p); }); // Hub 그 주 제출
     default: return json_({ ok: false, error: 'unknown_action' });
   }
 }
