@@ -320,9 +320,12 @@ function weekCard(w, d) {
       : '<span class="wk-badge wk-badge--soon">예정</span>';
   const subBadge = w.submitted ? '<span class="wk-badge wk-badge--done">✓ 제출완료</span>'
     : (isOpen ? '<span class="wk-badge wk-badge--todo">미제출</span>' : '');
+  const openMd = w['오픈일'] ? fmtMD(w['오픈일']) : '';
+  const closeMd = w['마감일'] ? fmtMD(w['마감일']) : '';
   const dd = w['마감일'] ? dday(w['마감일']) : '';
-  const due = w['마감일'] ? `<span class="wk-due">${fmtMD(w['마감일'])} 마감${dd ? ` · <b class="wk-dday">${dd}</b>` : ''}</span>` : '';
-  const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${due}</div>`;
+  const period = (openMd || closeMd)
+    ? `<span class="wk-due">${openMd || '?'} ~ ${closeMd || '?'}${dd ? ` · <b class="wk-dday">${dd}</b>` : ''}</span>` : '';
+  const head = `<div class="wk-card__head"><span class="wk-card__n">${esc(w.week)}주차</span>${stBadge}${subBadge}${period}</div>`;
   if (!isOpen && !isClosed && !w.submitted) {
     return `<div class="wk-card is-soon">${head}<p class="muted" style="font-size:13px;margin-top:8px">아직 열리지 않았어요.</p></div>`;
   }
@@ -370,7 +373,8 @@ function renderDashboard(r, phone) {
   const chips = weeks.map((w) => {
     const st = String(w.status || '');
     const cls = w.submitted ? 'is-done' : (st === '오픈' ? 'is-open' : (st === '마감' ? 'is-closed' : 'is-soon'));
-    const label = w.submitted ? '완료' : (st === '오픈' ? '오픈' : (st === '마감' ? '마감' : '대기'));
+    const dd = (st === '오픈' && w['마감일']) ? dday(w['마감일']) : '';
+    const label = w.submitted ? '완료' : (st === '오픈' ? (dd || '오픈') : (st === '마감' ? '마감' : '대기'));
     return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}"><span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
 
@@ -420,9 +424,15 @@ async function submitWeek(phone, btn) {
   const url = input.value.trim();
   if (!/^https?:\/\/.+/.test(url)) return toast('게시물 URL을 입력하세요.', true);
   btn.disabled = true; const old = btn.textContent; btn.textContent = '제출 중…';
-  const r = await apiPost({ action: 'submit', challengeId: cid, phone, postUrl: url }).catch(() => ({ ok: false }));
+  const r = await apiPost({ action: 'submit', challengeId: cid, phone, week: wk, postUrl: url }).catch(() => ({ ok: false }));
   if (r.ok) { toast('제출 완료!'); loadStatus(); }
-  else { btn.disabled = false; btn.textContent = old; toast('제출 실패: ' + (r.error || ''), true); }
+  else {
+    btn.disabled = false; btn.textContent = old;
+    const msg = r.error === 'week_not_open' ? '해당 주차가 열려 있지 않습니다.'
+      : r.error === 'invalid_week' ? '존재하지 않는 회차입니다.'
+      : r.error === 'invalid_url' ? '게시물 URL을 확인하세요.' : ('제출 실패: ' + (r.error || ''));
+    toast(msg, true);
+  }
 }
 
 /* ---------- 마무리 ---------- */

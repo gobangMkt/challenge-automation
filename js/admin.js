@@ -3,7 +3,7 @@ import { thumbNode, posterNode, downloadNode } from './assets.js';
 
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
-const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false };
+const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false, cache: { detail: {}, matrix: {} } };
 const base = location.pathname.replace(/admin\.html$/, '');
 const landingUrl = (id) => `${location.origin}${base}?c=${encodeURIComponent(id)}`;
 
@@ -145,14 +145,28 @@ async function loadCampaigns(force) {
   if (state.loaded && !force) return state.campaigns;
   const r = await apiGet({ action: 'campaigns', token: state.token });
   state.campaigns = r.ok ? r.rows : [];
+  if (r && r.dbUrl) state.dbUrl = r.dbUrl;
   state.loaded = true;
   return state.campaigns;
 }
 const findCamp = (id) => state.campaigns.find((c) => String(c.challengeId) === String(id));
 
+/* 캐시: campaignDetail(거의 불변)·matrix(변경 시 무효화) — 탭 전환 시 재조회 줄여 속도 개선 */
+async function loadDetail(id, force) {
+  if (!force && state.cache.detail[id]) return state.cache.detail[id];
+  const d = await apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({}));
+  state.cache.detail[id] = d; return d;
+}
+async function loadMatrix(id, force) {
+  if (!force && state.cache.matrix[id]) return state.cache.matrix[id];
+  const m = await apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false }));
+  state.cache.matrix[id] = m; return m;
+}
+
 /* ---------- 리워드 계산 (정책: 갯수 티어 or 제출수×단가, 우수활동자 ×배수) ---------- */
 const won = (n) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
 const digits_ = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+const toDateInput = (v) => { const m = String(v == null ? '' : v).match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : ''; };
 function rewardPolicy_(detail, challenge) {
   const d = detail || {}, c = challenge || {};
   // excellentMultiplier는 campaignDetail에 미노출 → 앱 기본·랜딩 표기와 동일하게 2배
@@ -270,8 +284,11 @@ async function renderHome() {
   const tApplied = c.reduce((s, x) => s + (x.applied || 0), 0);
   const tSel = c.reduce((s, x) => s + (x.selected || 0), 0);
   el('content').innerHTML = `
-    <div class="page-head"><h1 class="page-head__title">캠페인 허브</h1>
+    <div class="page-head page-head__row"><div>
+      <h1 class="page-head__title">캠페인 허브</h1>
       <p class="page-head__desc">캠페인을 누르면 마케팅·관리·운영을 한 곳에서 처리합니다.</p></div>
+      ${state.dbUrl ? `<a class="btn btn--secondary btn--sm" href="${esc(state.dbUrl)}" target="_blank" rel="noopener">🗄 DB 시트 열기 ↗</a>` : ''}
+    </div>
     <div class="statbar">
       <div class="pill"><b class="tnum">${c.length}</b><span>캠페인</span></div>
       <div class="pill"><b class="tnum">${tApplied}</b><span>총 신청</span></div>
@@ -648,8 +665,8 @@ async function drawManage(camp) {
   el('content').innerHTML = loading('명단 불러오는 중…');
   const [r, mx, det] = await Promise.all([
     apiGet({ action: 'participants', token: state.token, challengeId: id }),
-    apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false })),
-    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+    loadMatrix(id),
+    loadDetail(id),
   ]);
   if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
   const rows = r.ok ? r.rows : [];
@@ -704,7 +721,7 @@ async function drawManage(camp) {
       const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
       if (!ok) return;
       const r2 = await apiPost(op({ action: 'deleteParticipant', challengeId: id, phone })).catch(() => ({ ok: false }));
-      if (r2.ok) { state.loaded = false; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
+      if (r2.ok) { state.loaded = false; state.cache.matrix[id] = null; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
     });
     tr.querySelector('.js-ex')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget;
@@ -722,7 +739,7 @@ async function drawManage(camp) {
 async function decide(camp, phone, decision, tr) {
   const r = await apiPost(op({ action: 'select', challengeId: camp.challengeId, phones: [phone], decision }));
   if (!r.ok) return toast('실패: ' + (r.error || ''), true);
-  state.loaded = false; // 홈 카드 통계 다음 진입 시 재계산
+  state.loaded = false; state.cache.matrix[camp.challengeId] = null; // 홈 카드 통계 + matrix 재계산
   if (tr) {
     tr.querySelector('.js-sel')?.classList.toggle('is-on', decision === 'selected');
     tr.querySelector('.js-rej')?.classList.toggle('is-on', decision === 'rejected');
@@ -739,8 +756,8 @@ async function drawReward(camp) {
   el('content').innerHTML = loading('정산 계산 중…');
   const [r, mx, det] = await Promise.all([
     apiGet({ action: 'participants', token: state.token, challengeId: id }),
-    apiGet({ action: 'matrix', token: state.token, challengeId: id }).catch(() => ({ ok: false })),
-    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+    loadMatrix(id),
+    loadDetail(id),
   ]);
   if (location.hash !== myHash) return;
   const totalW = (mx.ok && Number(mx.totalWeeks)) || Number(camp.totalRounds) || 0;
@@ -798,7 +815,7 @@ async function drawOperate(camp) {
   el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
   const [r, det] = await Promise.all([
     apiGet({ action: 'missions', token: state.token, challengeId: id }),
-    apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
+    loadDetail(id),
   ]);
   if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
   const gd = det.detail || {};
@@ -820,7 +837,7 @@ async function drawOperate(camp) {
     e.target.disabled = true; e.target.textContent = '저장 중…';
     const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), guide: el('g-guide').value })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
-    if (rr.ok) { toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
+    if (rr.ok) { state.cache.detail[id] = null; toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
@@ -854,7 +871,13 @@ async function drawWeek(camp, round, weeks) {
           <button class="btn btn--ghost btn--sm" id="wk-refresh">↻ 새로고침</button>
         </div>
       </div>
-      <p class="muted" style="margin-top:14px;font-size:13px">이번 주는 <b>아티클 URL · 키워드</b>만 입력하면 됩니다. 작성가이드·교육자료·유의사항은 <b>전역 설정</b>에서 관리됩니다.</p>
+      <p class="muted" style="margin-top:14px;font-size:13px"><b>기간(오픈일·마감일)</b>은 필수입니다. 아티클·키워드와 함께 저장한 뒤 발송(오픈)하세요. 작성가이드·교육자료는 <b>전역 설정</b>에서 관리됩니다.</p>
+      <div class="row2">
+        <div class="field"><label class="field__label">오픈일 <span class="req">*</span></label>
+          <input class="input" id="m-open" type="date" value="${esc(toDateInput(wm['오픈일']))}" /></div>
+        <div class="field"><label class="field__label">마감일 <span class="req">*</span></label>
+          <input class="input" id="m-due" type="date" value="${esc(toDateInput(wm['마감일']))}" /></div>
+      </div>
       <div class="row2">
         <div class="field"><label class="field__label">참고 아티클 URL</label>
           <input class="input" id="m-article" value="${esc(wm['articleUrl'] || '')}" placeholder="https://... (아티클명 자동 추출)" />
@@ -864,7 +887,7 @@ async function drawWeek(camp, round, weeks) {
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn--secondary btn--sm" id="m-save">이번 주 저장</button>
-        <span class="muted" style="font-size:13px">발송(오픈) 전에 저장하세요.</span>
+        <span class="muted" style="font-size:13px">기간·미션 저장 후 발송(오픈) 하세요.</span>
       </div>
     </div>
     <div class="card">
@@ -887,14 +910,19 @@ async function drawWeek(camp, round, weeks) {
       ${missing.length ? `<div class="namechips">${missing.map((m) => `<span class="namechip">${esc(m.name)}</span>`).join('')}</div>` : '<p class="empty">선발자 전원 제출 완료!</p>'}
     </div>`;
   el('m-save')?.addEventListener('click', async (e) => {
+    const openDate = el('m-open').value, dueDate = el('m-due').value;
+    if (!openDate || !dueDate) return toast('오픈일·마감일을 모두 입력하세요.', true);
+    if (openDate > dueDate) return toast('마감일이 오픈일보다 빠릅니다.', true);
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: el('m-keyword').value.trim(), articleUrl: el('m-article').value.trim() })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: el('m-keyword').value.trim(), articleUrl: el('m-article').value.trim(), openDate, dueDate })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '이번 주 저장';
-    if (rr.ok) { toast(`${round}주차 미션 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
+    if (rr.ok) { state.cache.matrix[id] = null; toast(`${round}주차 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
   pane.querySelectorAll('.js-st').forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.st !== status) setWeek(camp, round, b.dataset.st, weeks);
+    if (b.dataset.st === status) return;
+    if (b.dataset.st === '오픈' && (!el('m-open').value || !el('m-due').value)) return toast('기간(오픈일·마감일)을 먼저 저장하세요.', true);
+    setWeek(camp, round, b.dataset.st, weeks);
   }));
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
