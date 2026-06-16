@@ -27,6 +27,10 @@
 .appbar__tab.sec-operate.is-active { color: #B54708; border-bottom-color: var(--color-warning); }
 .appbar__tab.sec-reward.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
 
+/* 아이콘 전용 버튼 (앱바 새로고침 등) */
+.btn--icon { padding: 7px 9px; line-height: 0; }
+.btn--icon svg { width: 16px; height: 16px; display: block; }
+
 /* 알림톡 발송 버튼 (카카오 옐로우 — 강조) */
 .notifybar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 .btn--kakao { display: inline-flex; align-items: center; gap: 8px; background: #FEE500; color: #3C1E1E; border: 0; font-weight: 800; font-size: 15px; padding: 12px 22px; border-radius: 12px; box-shadow: 0 4px 14px rgba(254,229,0,.5); }
