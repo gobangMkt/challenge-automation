@@ -168,6 +168,9 @@ async function loadBoard(id, force) {
 const won = (n) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
 const digits_ = (v) => String(v == null ? '' : v).replace(/\D/g, '');
 const toDateInput = (v) => { const m = String(v == null ? '' : v).match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : ''; };
+// 주차별 우수(운영에서 지정) — note의 'exw=6,8' 토큰. 우수 주차가 하나라도 있으면 우수활동자(리워드 ×배수).
+const exWeeks_ = (note) => { const m = String(note == null ? '' : note).match(/exw=([\d,]+)/); return m ? m[1].split(',').map(Number).filter((n) => !isNaN(n)) : []; };
+const isExcellent_ = (note) => exWeeks_(note).length > 0;
 function rewardPolicy_(detail, challenge) {
   const d = detail || {}, c = challenge || {};
   // excellentMultiplier는 campaignDetail에 미노출 → 앱 기본·랜딩 표기와 동일하게 2배
@@ -709,7 +712,8 @@ async function drawManage(camp) {
       ${rows.length ? rows.map((p) => {
         const sel = p.status === 'selected' || p.status === '선발';
         const rej = p.status === 'rejected' || p.status === '탈락';
-        const isEx = String(p.note || '').indexOf('excellent') >= 0;
+        const exwks = exWeeks_(p.note);
+        const isEx = exwks.length > 0;
         const cnt = cntOf(p);
         const pDup = phoneCnt[digits_(p.phone)] > 1;
         const bDup = blogCnt[normBlog(p.blogUrl)] > 1;
@@ -720,14 +724,14 @@ async function drawManage(camp) {
           <td><span class="seg">
             <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>
             <button class="seg__btn seg__btn--rej js-rej ${rej ? 'is-on' : ''}">탈락</button></span></td>
-          <td><button class="btn btn--ghost btn--sm js-ex ${isEx ? 'is-ex' : ''}">${isEx ? '<span class="exstar">★</span> 우수' : '☆ 지정'}</button></td>
+          <td class="ex-cell">${isEx ? `<span class="ex-tag" title="우수 주차: ${exwks.join(', ')}주차"><span class="exstar">★</span> ${exwks.length}주</span>` : '<span class="muted">–</span>'}</td>
           <td class="tnum js-amt">${sel ? won(rewardFor_(cnt, isEx, pol)) : '–'}</td>
           <td><button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
       }).join('') : '<tr><td colspan="8" class="empty">신청자가 없습니다.</td></tr>'}
       </tbody></table>
     </div>
-    <p class="muted" style="margin-top:10px;font-size:12px">제출수=실제 제출 건수 · 예상 리워드=${pol.type === 'grade' ? '제출갯수 티어' : '제출수×단가'} 기준, 우수활동자 ×${pol.mult}. 확정 정산은 <b>리워드</b> 탭 참고.</p>`;
+    <p class="muted" style="margin-top:10px;font-size:12px">제출수=실제 제출 건수 · 예상 리워드=${pol.type === 'grade' ? '제출갯수 티어' : '제출수×단가'} 기준, 우수활동자 ×${pol.mult}. <b>우수활동자는 운영 탭의 주차별 제출 검수에서 지정</b>하며 여기서는 표시만 됩니다. 확정 정산은 <b>리워드</b> 탭 참고.</p>`;
   const refreshRow = (tr) => {
     const cnt = Number(tr.dataset.count) || 0;
     const selNow = tr.querySelector('.js-sel')?.classList.contains('is-on');
@@ -746,18 +750,6 @@ async function drawManage(camp) {
       if (!ok) return;
       const r2 = await apiPost(op({ action: 'deleteParticipant', challengeId: id, phone })).catch(() => ({ ok: false }));
       if (r2.ok) { state.loaded = false; state.cache.board[id] = null; toast('삭제됨'); drawManage(camp); } else toast('삭제 실패: ' + (r2.error || ''), true);
-    });
-    tr.querySelector('.js-ex')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      const r2 = await apiPost(op({ action: 'setExcellent', challengeId: id, phone }));
-      if (r2.ok) {
-        btn.classList.toggle('is-ex', r2.excellent);
-        btn.innerHTML = r2.excellent ? '<span class="exstar">★</span> 우수' : '☆ 지정';
-        tr.classList.toggle('is-excellent', r2.excellent);
-        state.cache.board[id] = null; // 우수 변경 → 리워드 재계산 위해 보드 무효화
-        refreshRow(tr);
-        toast(r2.excellent ? '우수활동자 지정' : '우수 해제');
-      } else toast('실패', true);
     });
   });
 }
@@ -785,7 +777,7 @@ async function drawReward(camp) {
   const pol = rewardPolicy_(b.policy, b.policy);
   const selected = (b.ok ? b.rows : []).filter((p) => p.status === 'selected' || p.status === '선발');
   const people = selected.map((p) => {
-    const excellent = String(p.note || '').indexOf('excellent') >= 0;
+    const excellent = isExcellent_(p.note);
     const count = Number(p.submitted) || 0;
     return { name: p.name, phone: p.phone, blogUrl: p.blogUrl, count, excellent, amount: rewardFor_(count, excellent, pol) };
   });
@@ -920,17 +912,20 @@ async function drawWeek(camp, round, weeks) {
     </div>
     <div class="card">
       <div class="card__title">제출 <span class="muted" style="font-size:13px;font-weight:500">${submitted.length}명</span></div>
-      ${submitted.length ? `<div style="overflow:auto;margin:0 -4px"><table class="table"><thead><tr>
-        <th>성함</th><th>게시물</th><th>제출일</th><th>상태</th><th>처리</th></tr></thead><tbody>
+      ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed">
+        <colgroup><col style="width:24%"/><col style="width:14%"/><col style="width:22%"/><col style="width:12%"/><col style="width:28%"/></colgroup>
+        <thead><tr><th>성함</th><th>게시물</th><th>제출일</th><th>상태</th><th>처리</th></tr></thead><tbody>
         ${submitted.map((s) => {
         const rej = s.검수상태 === '반려';
         return `<tr data-phone="${esc(s.phone)}" class="${rej ? 'is-rejected' : ''}">
-          <td>${esc(s.name)}${s.excellent ? ' <span class="exstar">★</span>' : ''}</td>
+          <td class="ellip">${esc(s.name)}${s.excellent ? ' <span class="exstar">★</span>' : ''}</td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
           <td><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
-          <td><button class="btn ${rej ? 'btn--danger' : 'btn--ghost'} btn--sm js-no" data-rej="${rej ? '1' : ''}">${rej ? '반려 해제' : '반려'}</button>
-            <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button></td>
+          <td><div class="op-acts">
+            <button class="btn ${rej ? 'btn--danger' : 'btn--ghost'} btn--sm js-no" data-rej="${rej ? '1' : ''}">${rej ? '반려 해제' : '반려'}</button>
+            <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button>
+          </div></td>
         </tr>`;
       }).join('')}
       </tbody></table></div>` : '<p class="empty">아직 제출이 없습니다.</p>'}
