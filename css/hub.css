@@ -30,6 +30,9 @@
 /* 관리 — 중복 행 강조 */
 .table tr.is-dup { background: color-mix(in srgb, var(--color-danger) 7%, transparent); }
 .table tr.is-dup:hover { background: color-mix(in srgb, var(--color-danger) 12%, transparent); }
+/* 운영 — 반려된 제출 행 */
+.table tr.is-rejected { background: color-mix(in srgb, var(--color-danger) 6%, transparent); }
+.table tr.is-rejected td:nth-child(2) a { text-decoration: line-through; opacity: .7; }
 
 /* 아이콘 전용 버튼 (앱바 새로고침 등) */
 .btn--icon { padding: 7px 9px; line-height: 0; }
