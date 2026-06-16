@@ -207,11 +207,18 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wkchips::-webkit-scrollbar { display: none; }
 .wkchip { flex: none; min-width: 62px; border: 1px solid var(--color-border); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .wkchip__n { font-size: 15px; font-weight: 800; color: var(--lp-ink); }
-.wkchip__st { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--lp-surface2); color: var(--color-ink-faint); }
+.wkchip__st { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--lp-surface2); color: var(--color-ink-faint); }
+/* 상태별 색 구분: 오픈=파랑 / D-day·임박=빨강 / 완료=초록 / 마감=회색 / 대기=흐림 */
+.wkchip.is-open { border-color: color-mix(in srgb, var(--lp-primary) 45%, var(--color-border)); }
+.wkchip.is-open .wkchip__st { background: color-mix(in srgb, var(--lp-primary) 14%, #fff); color: var(--lp-primary); }
+.wkchip.is-urgent { border-color: #F2B8B5; }
+.wkchip.is-urgent .wkchip__st { background: #FDE7E6; color: #DC2F26; }
+.wkchip.is-done { border-color: #BFE8D0; }
 .wkchip.is-done .wkchip__st { background: #E7F7EE; color: #1A9D54; }
-.wkchip.is-open .wkchip__st { background: var(--lp-surface2); color: var(--lp-primary); }
-.wkchip.is-soon { opacity: .5; }
-.wkchip.is-active { border-color: var(--lp-primary); background: var(--lp-surface2); }
+.wkchip.is-closed .wkchip__st { background: var(--lp-surface2); color: var(--color-ink-muted); }
+.wkchip.is-soon { opacity: .55; }
+.wkchip.is-soon .wkchip__st { background: var(--lp-surface2); color: var(--color-ink-faint); }
+.wkchip.is-active { border-color: var(--lp-primary); background: var(--lp-surface2); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lp-primary) 18%, transparent); }
 .wkchip.is-active .wkchip__n { color: var(--lp-primary); }
 .wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */

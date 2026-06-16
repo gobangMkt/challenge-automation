@@ -398,8 +398,10 @@ function renderDashboard(r, phone) {
 
   const chips = weeks.map((w) => {
     const st = String(w.status || '');
-    const cls = w.submitted ? 'is-done' : (st === '오픈' ? 'is-open' : (st === '마감' ? 'is-closed' : 'is-soon'));
+    let cls = w.submitted ? 'is-done' : (st === '오픈' ? 'is-open' : (st === '마감' ? 'is-closed' : 'is-soon'));
     const dd = (st === '오픈' && w['마감일']) ? dday(w['마감일']) : '';
+    const urgent = !w.submitted && st === '오픈' && (dd === 'D-DAY' || /^D-[0-2]$/.test(dd));
+    if (urgent) cls += ' is-urgent';
     const label = w.submitted ? '완료' : (st === '오픈' ? (dd || '오픈') : (st === '마감' ? '마감' : '대기'));
     return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}"><span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
