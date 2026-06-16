@@ -269,7 +269,7 @@ function renderSubmit() {
   const savedPhone = localStorage.getItem(PHONE_KEY(cid)) || '';
   const savedBlog = localStorage.getItem(BLOG_KEY(cid)) || '';
   app.innerHTML = `
-    <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
+    <header class="hero" id="s-hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
       <h1 class="hero__title" style="font-size:clamp(26px,7vw,36px)">주차 미션 제출</h1></div></header>
     <div class="wrap" style="padding-top:28px">
     <div class="card" id="s-loginCard">
@@ -343,13 +343,25 @@ function renderDashboard(r, phone) {
   const box = $('#s-status');
   const weeks = (Array.isArray(r.weeks) && r.weeks.length) ? r.weeks
     : (r.current ? [{ week: r.current.week, status: '오픈', '마감일': r.current['마감일'], articleName: r.current.articleName, articleUrl: r.current.articleUrl, body: r.current.body, submitted: r.current.submitted, submittedUrl: r.current.submittedUrl }] : []);
+  const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
   const setupCommon = () => {
     const lc = $('#s-loginCard'); if (lc) lc.style.display = 'none'; // 본인확인 후 입력칸 숨김
+    const hero = $('#s-hero');
+    if (hero) hero.outerHTML = `
+      <header class="hero hero--auth" id="s-hero"><div class="hero__panel">
+        <div class="shead">
+          <div class="shead__id"><span class="hero__eyebrow" style="margin:0">${esc(c.name)}</span>
+            <div class="shead__name"><b>${esc(r.name)}</b>님</div></div>
+          <button class="btn btn--ghost btn--sm shead__out" id="s-logout">로그아웃</button>
+        </div>
+        <div class="shead__prog">
+          <div class="shead__progtop"><span>제출 진행</span><b>${p.done}<i>/${p.total}</i></b></div>
+          <div class="shead__bar"><span style="width:${pct}%"></span></div>
+        </div>
+      </div></header>`;
     $('#s-logout').addEventListener('click', () => { localStorage.removeItem(PHONE_KEY(cid)); renderSubmit(); });
   };
-  const head = `<div class="sb__top"><span class="sb__who"><b>${esc(r.name)}</b>님 · <b>${p.done}/${p.total}</b> 제출</span>
-      <button class="btn btn--ghost btn--sm" id="s-logout">로그아웃</button></div>`;
-  if (!weeks.length) { box.innerHTML = `<div class="sb">${head}</div><div class="card center muted">현재 열린 회차가 없습니다.</div>`; setupCommon(); return; }
+  if (!weeks.length) { box.innerHTML = `<div class="card center muted">현재 열린 회차가 없습니다.</div>`; setupCommon(); return; }
 
   const chips = weeks.map((w) => {
     const st = String(w.status || '');
@@ -357,14 +369,22 @@ function renderDashboard(r, phone) {
     const label = w.submitted ? '완료' : (st === '오픈' ? '오픈' : (st === '마감' ? '마감' : '대기'));
     return `<button class="wkchip ${cls}" data-chip="${esc(w.week)}"><span class="wkchip__n">${esc(w.week)}주</span><span class="wkchip__st">${label}</span></button>`;
   }).join('');
-  const userbar = `<div class="sb">${head}</div>`;
-  const chipbar = `<div class="wkchips">${chips}</div>`;
-  const resbox = `<div class="resbox"><div class="resbox__title">학습 자료 · 안내</div>
+
+  // 학습 자료 — 운영팀이 작성한 안내(작성가이드·유의사항)와 외부 교재 링크
+  const learnSection = `<section class="ssec">
+    <h2 class="ssec__h"><span class="ssec__ic">📚</span>학습 자료</h2>
     ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
-    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
-    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
-  </div>`;
-  box.innerHTML = userbar + resbox + chipbar + '<div id="wkdetail"></div>';
+    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body userdoc">${richText(d.guide)}</div></details>` : ''}
+    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions userdoc">${cautionsList(d)}</div></details>
+  </section>`;
+
+  const weekSection = `<section class="ssec ssec--mission">
+    <h2 class="ssec__h"><span class="ssec__ic">📝</span>이번 주 미션</h2>
+    <div class="wkchips">${chips}</div>
+    <div id="wkdetail"></div>
+  </section>`;
+
+  box.innerHTML = learnSection + weekSection;
   setupCommon();
 
   const select = (wk) => {
