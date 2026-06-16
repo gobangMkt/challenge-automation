@@ -333,8 +333,8 @@ function weekCard(w, d) {
   const form = isOpen ? `<div class="wk-submitbox">
       <div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
       <div class="wk-submit">
-        <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}" />
-        <button class="btn btn--primary" data-week="${esc(w.week)}">${w.submitted ? '제출 수정' : '제출하기'}</button>
+        <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}"${w.submitted ? ' disabled' : ''} />
+        <button class="btn ${w.submitted ? 'btn--secondary' : 'btn--primary'}" data-week="${esc(w.week)}">${w.submitted ? '수정' : '제출하기'}</button>
       </div></div>`
     : (w.submittedUrl ? `<div class="wk-done-url"><a href="${esc(w.submittedUrl)}" target="_blank" rel="noopener">제출한 게시물 ↗</a></div>` : '');
   return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${form}</div>`;
@@ -380,8 +380,8 @@ function renderDashboard(r, phone) {
   const learnSection = `<section class="ssec">
     <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
     ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
-    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body userdoc">${richText(d.guide)}</div></details>` : ''}
-    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions userdoc">${cautionsList(d)}</div></details>
+    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
   </section>`;
 
   const weekSection = `<section class="ssec ssec--mission">
@@ -411,7 +411,13 @@ function renderDashboard(r, phone) {
 
 async function submitWeek(phone, btn) {
   const wk = btn.dataset.week;
-  const url = $(`#s-url-${wk}`).value.trim();
+  const input = $(`#s-url-${wk}`);
+  if (input.disabled) { // 제출완료 → '수정' 클릭: 입력 활성화 후 재제출 대기
+    input.disabled = false; input.focus();
+    btn.textContent = '제출하기'; btn.classList.remove('btn--secondary'); btn.classList.add('btn--primary');
+    return;
+  }
+  const url = input.value.trim();
   if (!/^https?:\/\/.+/.test(url)) return toast('게시물 URL을 입력하세요.', true);
   btn.disabled = true; const old = btn.textContent; btn.textContent = '제출 중…';
   const r = await apiPost({ action: 'submit', challengeId: cid, phone, postUrl: url }).catch(() => ({ ok: false }));
