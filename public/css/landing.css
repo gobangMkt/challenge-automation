@@ -204,8 +204,10 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 /* 회차 칩 탭 — 한 번에 한 회차만 */
 .hero__edu { display: inline-block; margin-top: 16px; font-size: 14px; font-weight: 700; color: var(--lp-primary); background: var(--lp-surface2); padding: 10px 16px; border-radius: 10px; text-decoration: none; }
 .sb__who { min-width: 0; }
-.wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin: 16px 0; padding: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.wkchips { display: flex; gap: 8px; overflow-x: auto; flex-wrap: nowrap; margin: 16px 0; padding: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; cursor: grab; touch-action: pan-y; }
 .wkchips::-webkit-scrollbar { display: none; }
+.wkchips.is-dragging { cursor: grabbing; user-select: none; scroll-behavior: auto; }
+.wkchips.is-dragging .wkchip { pointer-events: none; }
 .wkchip { position: relative; flex: none; min-width: 62px; border: 1px solid var(--color-border); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .wkchip__star { position: absolute; top: -7px; right: -5px; font-size: 13px; color: #E8A700; filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
 .wkchip__n { font-size: 15px; font-weight: 800; color: var(--lp-ink); }
