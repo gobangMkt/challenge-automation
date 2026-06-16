@@ -861,13 +861,12 @@ async function drawWeek(camp, round, weeks) {
   pane.innerHTML = `
     <div class="card">
       <div class="page-head__row">
-        <div class="card__title" style="margin:0">${round}주차</div>
+        <div class="card__title" style="margin:0;display:flex;align-items:center;gap:10px">${round}주차
+          <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--primary'}">${esc(status)}</span></div>
         <div style="display:flex;gap:10px;align-items:center">
-          <span class="seg seg--status">
-            <button class="seg__btn js-st ${status === '대기' ? 'is-on' : ''}" data-st="대기">대기</button>
-            <button class="seg__btn js-st ${status === '오픈' ? 'is-on' : ''}" data-st="오픈">오픈 발송</button>
-            <button class="seg__btn js-st ${status === '마감' ? 'is-on' : ''}" data-st="마감">마감</button>
-          </span>
+          ${status === '오픈'
+    ? '<button class="btn btn--secondary btn--sm" id="wk-toggle" data-st="마감">마감하기</button>'
+    : `<button class="btn btn--primary btn--sm" id="wk-toggle" data-st="오픈">${status === '마감' ? '다시 오픈' : '오픈하기'}</button>`}
           <button class="btn btn--ghost btn--sm" id="wk-refresh">↻ 새로고침</button>
         </div>
       </div>
@@ -911,19 +910,27 @@ async function drawWeek(camp, round, weeks) {
     </div>`;
   el('m-save')?.addEventListener('click', async (e) => {
     const openDate = el('m-open').value, dueDate = el('m-due').value;
+    const keyword = el('m-keyword').value.trim(), articleUrl = el('m-article').value.trim();
     if (!openDate || !dueDate) return toast('오픈일·마감일을 모두 입력하세요.', true);
     if (openDate > dueDate) return toast('마감일이 오픈일보다 빠릅니다.', true);
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: el('m-keyword').value.trim(), articleUrl: el('m-article').value.trim(), openDate, dueDate })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({ action: 'saveMission', challengeId: id, round, body: keyword, articleUrl, openDate, dueDate })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '이번 주 저장';
-    if (rr.ok) { state.cache.matrix[id] = null; toast(`${round}주차 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`); drawWeek(camp, round, weeks); } else toast('저장 실패', true);
+    if (!rr.ok) return toast('저장 실패', true);
+    // 저장값을 로컬 weeks에 반영(서버 재조회 없이) → 재렌더 시 방금 입력값 유지
+    wm['미션본문'] = keyword; wm['articleUrl'] = articleUrl;
+    wm['오픈일'] = openDate; wm['마감일'] = dueDate;
+    if (rr.articleName != null) wm['articleName'] = rr.articleName;
+    state.cache.matrix[id] = null;
+    toast(`${round}주차 저장됨${rr.articleName ? ` · 아티클: ${rr.articleName}` : ''}`);
+    drawWeek(camp, round, weeks);
   });
   el('wk-refresh')?.addEventListener('click', () => drawWeek(camp, round, weeks));
-  pane.querySelectorAll('.js-st').forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.st === status) return;
-    if (b.dataset.st === '오픈' && (!el('m-open').value || !el('m-due').value)) return toast('기간(오픈일·마감일)을 먼저 저장하세요.', true);
-    setWeek(camp, round, b.dataset.st, weeks);
-  }));
+  el('wk-toggle')?.addEventListener('click', () => {
+    const next = el('wk-toggle').dataset.st;
+    if (next === '오픈' && (!el('m-open').value || !el('m-due').value)) return toast('기간(오픈일·마감일)을 먼저 저장하세요.', true);
+    setWeek(camp, round, next, weeks);
+  });
   pane.querySelectorAll('tr[data-phone]').forEach((tr) => {
     const phone = tr.dataset.phone;
     tr.querySelector('.js-ok')?.addEventListener('click', () => review(camp, phone, round, '승인', weeks));
