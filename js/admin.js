@@ -683,7 +683,15 @@ async function drawManage(camp) {
   const pol = rewardPolicy_(b.policy, b.policy);
   const cntOf = (p) => Number(p.submitted) || 0;
   // 중복 탐지: 휴대폰(숫자만)·블로그(정규화)
-  const normBlog = (u) => String(u == null ? '' : u).trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '');
+  const normBlog = (u) => {
+    const s = String(u == null ? '' : u).trim().toLowerCase();
+    if (!s) return '';
+    const mid = s.match(/blogid=([a-z0-9_-]+)/);
+    if (mid) return 'naver:' + mid[1];
+    const mp = s.match(/(?:m\.)?blog\.naver\.com\/([a-z0-9_-]+)/);
+    if (mp && mp[1] !== 'postlist.naver') return 'naver:' + mp[1];
+    return s.replace(/[?#].*$/, '').replace(/\/+$/, '');
+  };
   const phoneCnt = {}, blogCnt = {};
   rows.forEach((p) => { const k = digits_(p.phone); if (k) phoneCnt[k] = (phoneCnt[k] || 0) + 1; const bk = normBlog(p.blogUrl); if (bk) blogCnt[bk] = (blogCnt[bk] || 0) + 1; });
   const dupP = Object.values(phoneCnt).filter((n) => n > 1).length;
