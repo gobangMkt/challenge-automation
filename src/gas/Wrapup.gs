@@ -9,10 +9,20 @@
  */
 
 var WRAPUP_SHEET = 'Wrapup';
+// name은 기존 시트 호환 위해 맨 끝에 추가(앞 6열 위치 불변).
 var WRAPUP_HEADERS = [
-  'challengeId', 'phone', 'blogUrl', 'postCount', 'excellent', 'submittedAt',
+  'challengeId', 'phone', 'blogUrl', 'postCount', 'excellent', 'submittedAt', 'name',
 ];
 var SUBMISSION_SHEET = 'Submissions';
+
+// 기존 시트에 누락된 후행 헤더(name 등)를 보강 — 열 위치 정합 유지.
+function ensureHeaders_(sh, headers) {
+  var lastCol = sh.getLastColumn();
+  var cur = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  for (var i = 0; i < headers.length; i++) {
+    if (String(cur[i] || '') !== headers[i]) sh.getRange(1, i + 1).setValue(headers[i]);
+  }
+}
 
 // ---------- 순수 로직 미러 (settlement.js) ----------
 function phoneKey_(raw) {
@@ -59,6 +69,8 @@ function wrapup_(body) {
   if (!phone) return json_({ ok: false, errors: { phone: '올바른 휴대폰 번호를 입력하세요.' } });
 
   var errors = {};
+  var name = body.name ? String(body.name).trim() : '';
+  if (!name) errors.name = '성함을 입력하세요.';
   var postCount = Number(body.postCount);
   if (!(postCount >= 0)) errors.postCount = '작성 갯수를 선택하세요.';
   var excellent = String(body.excellent || '').toUpperCase() === 'Y' ? 'Y' : 'N';
@@ -69,8 +81,9 @@ function wrapup_(body) {
   if (Object.keys(errors).length) return json_({ ok: false, errors: errors });
 
   var sh = getSheet_(WRAPUP_SHEET, WRAPUP_HEADERS);
+  ensureHeaders_(sh, WRAPUP_HEADERS);
   var blogUrl = body.blogUrl ? String(body.blogUrl).trim() : '';
-  var record = [challengeId, phone, blogUrl, postCount, excellent, new Date()];
+  var record = [challengeId, phone, blogUrl, postCount, excellent, new Date(), name];
 
   var existing = findWrapupRow_(sh, challengeId, phone);
   if (existing > 0) {
