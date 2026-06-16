@@ -220,7 +220,10 @@ function renderLanding() {
           <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
             <input class="input tnum" id="a-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /><div class="field__hint">결과·리워드 안내를 받을 번호예요.</div></div>
           <div class="field"><label class="field__label">참가할 블로그 URL <span class="req">*</span></label>
-            <input class="input" id="a-blog" type="url" placeholder="https://blog.naver.com/..." /><div class="field__hint">본인 명의 블로그 1개 (도배·어뷰징 불가).</div></div>
+            <div class="blogrow"><input class="input" id="a-blog" type="url" placeholder="https://blog.naver.com/..." />
+              <button type="button" class="btn btn--secondary" id="a-blogcheck">확인</button></div>
+            <div class="field__hint">본인 명의 블로그 1개 (도배·어뷰징 불가). URL 입력 후 <b>확인</b>으로 내 블로그가 맞는지 봐주세요.</div>
+            <div id="a-blogprev" class="blogprev" style="display:none"></div></div>
           <label class="checkrow"><input type="checkbox" id="a-agree" /><span>성명·휴대폰 번호 수집 및 이벤트 종료 시까지 보유에 동의합니다. (필수)</span></label>
           <div class="field__err" id="a-err" style="display:none"></div>
           <div class="cta-fixed"><button class="btn btn--primary btn--block" id="a-submit">신청하기</button></div>
@@ -232,6 +235,30 @@ function renderLanding() {
 
   if (closed) return;
   bindPhone($('#a-phone'));
+  // 블로그 URL 미리보기(크롤링) — 본인 블로그 확인용
+  const checkBlog = async () => {
+    const url = $('#a-blog').value.trim();
+    const prev = $('#a-blogprev');
+    if (!/^https?:\/\/.+/.test(url)) { prev.style.display = 'none'; return toast('블로그 URL을 입력하세요.', true); }
+    const btn = $('#a-blogcheck'); const old = btn.textContent; btn.disabled = true; btn.textContent = '확인 중…';
+    const r = await apiGet({ action: 'blogInfo', url }).catch(() => ({ ok: false }));
+    btn.disabled = false; btn.textContent = old;
+    if (!r.ok || !(r.title || r.image)) {
+      prev.style.display = 'block';
+      prev.innerHTML = '<div class="blogprev__empty">정보를 불러오지 못했어요. URL이 정확한지 확인해 주세요. (그래도 신청은 가능)</div>';
+      return;
+    }
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      ${r.image ? `<img class="blogprev__img" src="${esc(r.image)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'" />` : ''}
+      <div class="blogprev__body">
+        <div class="blogprev__t">${esc(r.title || '제목 없음')}</div>
+        ${r.desc ? `<div class="blogprev__d">${esc(r.desc)}</div>` : ''}
+        <div class="blogprev__ok">✓ 이 블로그가 맞나요?</div>
+      </div>`;
+  };
+  $('#a-blogcheck').addEventListener('click', checkBlog);
+  $('#a-blog').addEventListener('blur', () => { if ($('#a-blog').value.trim()) checkBlog(); });
   $('#a-submit').addEventListener('click', async (e) => {
     const name = $('#a-name').value.trim();
     const phone = $('#a-phone').value.trim();
