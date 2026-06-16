@@ -478,22 +478,30 @@ const uploadKey = (id) => `challenge.upload.${id}`;
 const getUploaded = (id) => { try { return new Set(JSON.parse(localStorage.getItem(uploadKey(id)) || '[]')); } catch (e) { return new Set(); } };
 const setUploaded = (id, set) => localStorage.setItem(uploadKey(id), JSON.stringify([...set]));
 
+// 직접 추가한 업로드 사이트 (모든 캠페인 공통, 이 기기에 저장)
+const CUSTOM_SITES_KEY = 'challenge.usites.custom';
+const getCustomSites = () => { try { return JSON.parse(localStorage.getItem(CUSTOM_SITES_KEY) || '[]'); } catch (e) { return []; } };
+const setCustomSites = (arr) => localStorage.setItem(CUSTOM_SITES_KEY, JSON.stringify(arr));
+
 /* ---------- 탭: 마케팅 ---------- */
 async function drawMarketing(camp) {
   const id = camp.challengeId;
   const link = landingUrl(id);
   const done = getUploaded(id);
-  const sitesHtml = UPLOAD_SITES.map((s) => `
+  const sites = UPLOAD_SITES.concat(getCustomSites());
+  const sitesHtml = sites.map((s) => `
     <li class="usite ${done.has(s.name) ? 'is-done' : ''}">
       <label class="usite__chk"><input type="checkbox" data-name="${esc(s.name)}" ${done.has(s.name) ? 'checked' : ''} /></label>
       <div class="usite__main">
         <div class="usite__top"><span class="usite__name">${esc(s.name)}</span>
-          ${s.tags.map((t) => `<span class="badge">${esc(t)}</span>`).join('')}</div>
-        <div class="usite__meta"><span>ID <b>${esc(s.loginId)}</b></span>
-          <button class="btn btn--ghost btn--sm js-cpid" data-id="${esc(s.loginId)}">ID 복사</button>
+          ${(s.tags || []).map((t) => `<span class="badge">${esc(t)}</span>`).join('')}</div>
+        <div class="usite__meta">
+          ${s.loginId ? `<span>ID <b>${esc(s.loginId)}</b></span>
+          <button class="btn btn--ghost btn--sm js-cpid" data-id="${esc(s.loginId)}">ID 복사</button>` : ''}
           ${s.note ? `<span class="usite__note">${esc(s.note)}</span>` : ''}</div>
       </div>
       <a class="btn btn--secondary btn--sm" href="${esc(s.url)}" target="_blank" rel="noopener">열기</a>
+      ${s.custom ? `<button class="btn btn--ghost btn--sm js-usite-del" data-name="${esc(s.name)}" style="color:var(--color-danger)">삭제</button>` : ''}
     </li>`).join('');
   el('content').innerHTML = `
     ${sechead('mkt')}
@@ -528,6 +536,12 @@ async function drawMarketing(camp) {
     <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
       <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
       <ul class="usites">${sitesHtml}</ul>
+      <div class="usite-add">
+        <input class="input" id="us-name" placeholder="사이트명" />
+        <input class="input" id="us-url" placeholder="https://..." />
+        <input class="input" id="us-id" placeholder="로그인 ID (선택)" />
+        <button class="btn btn--secondary btn--sm" id="us-add">+ 사이트 추가</button>
+      </div>
     </div>`;
   el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
   el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
@@ -564,7 +578,7 @@ async function drawMarketing(camp) {
     dl('dlPoster', () => posterNode(cc, dd), '포스터');
   })();
 
-  const refreshCount = () => { el('uploadCount').textContent = `${getUploaded(id).size}/${UPLOAD_SITES.length}`; };
+  const refreshCount = () => { el('uploadCount').textContent = `${getUploaded(id).size}/${sites.length}`; };
   refreshCount();
   el('content').querySelectorAll('.usite input[type=checkbox]').forEach((cb) => {
     cb.addEventListener('change', () => {
@@ -577,13 +591,41 @@ async function drawMarketing(camp) {
   });
   el('content').querySelectorAll('.js-cpid').forEach((b) =>
     b.addEventListener('click', () => { navigator.clipboard.writeText(b.dataset.id); toast('ID 복사됨'); }));
+
+  // 직접 추가
+  el('us-add').addEventListener('click', () => {
+    const name = el('us-name').value.trim();
+    let url = el('us-url').value.trim();
+    const loginId = el('us-id').value.trim();
+    if (!name || !url) return toast('사이트명과 URL을 입력하세요.', true);
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const list = getCustomSites();
+    if (UPLOAD_SITES.concat(list).some((s) => s.name === name)) return toast('이미 같은 이름의 사이트가 있습니다.', true);
+    list.push({ name, url, loginId, tags: ['직접추가'], custom: true });
+    setCustomSites(list);
+    drawMarketing(camp);
+    toast('사이트 추가됨');
+  });
+
+  // 직접 추가 사이트 삭제
+  el('content').querySelectorAll('.js-usite-del').forEach((b) =>
+    b.addEventListener('click', () => {
+      const name = b.dataset.name;
+      setCustomSites(getCustomSites().filter((s) => s.name !== name));
+      const set = getUploaded(id);
+      if (set.delete(name)) setUploaded(id, set);
+      drawMarketing(camp);
+      toast('삭제됨');
+    }));
 }
 
 /* ---------- 탭: 관리 ---------- */
 async function drawManage(camp) {
   const id = camp.challengeId;
+  const myHash = location.hash;
   el('content').innerHTML = loading('명단 불러오는 중…');
   const r = await apiGet({ action: 'participants', token: state.token, challengeId: id });
+  if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
   const rows = r.ok ? r.rows : [];
   const selN = rows.filter((x) => x.status === 'selected' || x.status === '선발').length;
   el('content').innerHTML = `
@@ -649,11 +691,13 @@ async function decide(camp, phone, decision, tr) {
 /* ---------- 탭: 운영 (주차) ---------- */
 async function drawOperate(camp) {
   const id = camp.challengeId;
+  const myHash = location.hash;
   el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
   const [r, det] = await Promise.all([
     apiGet({ action: 'missions', token: state.token, challengeId: id }),
     apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({})),
   ]);
+  if (location.hash !== myHash) return; // 응답 대기 중 다른 탭으로 이동 → 덮어쓰기 방지
   const gd = det.detail || {};
   const hasGlobal = !!(gd.eduUrl || gd.guide || gd.notice);
   el('opGlobal').innerHTML = `

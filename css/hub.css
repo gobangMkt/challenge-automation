@@ -160,6 +160,10 @@ tr.is-excellent { background: #FFFCF2; }
 .usite__note { color: var(--color-ink-muted); }
 .usite.is-done { opacity: .55; }
 .usite.is-done .usite__name { text-decoration: line-through; }
+.usite-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--color-border); }
+.usite-add .input { flex: 1; min-width: 140px; }
+.usite-add #us-id { flex: 0 1 180px; }
+.usite-add #us-add { flex: none; white-space: nowrap; }
 
 /* 생성/저장 진행률 */
 .genprog { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
