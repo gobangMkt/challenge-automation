@@ -39,6 +39,7 @@ function richText(str) {
   const olRe = /^\d+[.)]\s+/;
   const hrRe = /^[-–—_▬=]{3,}$/;
   const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/;
+  const mdHdRe = /^#{1,6}\s*(.+?)\s*#*$/; // 마크다운식 ## 제목
   const line = (l) => {
     let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
@@ -61,6 +62,8 @@ function richText(str) {
     if (hrRe.test(l)) { flush(); html += '<hr class="rich-hr">'; continue; }
     const hd = l.match(hdRe);
     if (hd) { flush(); html += `<div class="rich-h">${line(hd[1])}</div>`; continue; }
+    const mhd = l.match(mdHdRe);
+    if (mhd) { flush(); html += `<div class="rich-h">${line(mhd[1])}</div>`; continue; }
     if (ulRe.test(l)) { flushP(); if (lt !== 'ul') flushL(), (lt = 'ul'); lbuf.push(line(l.replace(ulRe, ''))); continue; }
     if (olRe.test(l)) { flushP(); if (lt !== 'ol') flushL(), (lt = 'ol'); lbuf.push(line(l.replace(olRe, ''))); continue; }
     flushL(); pbuf.push(line(l));
@@ -338,6 +341,7 @@ function weekCard(w, d) {
 }
 
 function renderDashboard(r, phone) {
+  const c = DATA.challenge || {};
   const d = DATA.detail || {};
   const p = r.progress || { done: 0, total: 0 };
   const box = $('#s-status');
@@ -371,15 +375,17 @@ function renderDashboard(r, phone) {
   }).join('');
 
   // 학습 자료 — 운영팀이 작성한 안내(작성가이드·유의사항)와 외부 교재 링크
+  const ICO_BOOK = '<svg class="ssec__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+  const ICO_TASK = '<svg class="ssec__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 13 2 2 4-4"/></svg>';
   const learnSection = `<section class="ssec">
-    <h2 class="ssec__h"><span class="ssec__ic">📚</span>학습 자료</h2>
+    <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
     ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
     ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body userdoc">${richText(d.guide)}</div></details>` : ''}
     <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions userdoc">${cautionsList(d)}</div></details>
   </section>`;
 
   const weekSection = `<section class="ssec ssec--mission">
-    <h2 class="ssec__h"><span class="ssec__ic">📝</span>이번 주 미션</h2>
+    <h2 class="ssec__h">${ICO_TASK}이번 주 미션</h2>
     <div class="wkchips">${chips}</div>
     <div id="wkdetail"></div>
   </section>`;
