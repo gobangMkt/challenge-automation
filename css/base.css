@@ -59,9 +59,9 @@ body {
 }
 h1, h2, h3, .display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; }
 .mono, .tnum { font-variant-numeric: tabular-nums; }
-/* 마이크로 라벨(이브로우·배지·테이블헤더·스탯) = 모노 대문자 */
+/* 마이크로 라벨(이브로우·배지·테이블헤더·스탯) — Pretendard 통일(한글 mono 폴백 방지) */
 .eyebrow, .badge, .table th, .stat__l, .statbar .pill span {
-  font-family: var(--font-mono); letter-spacing: .02em; text-transform: uppercase;
+  font-family: var(--font-ui); letter-spacing: .01em; font-weight: 600;
 }
 a { color: var(--color-primary); text-underline-offset: 3px; }
 

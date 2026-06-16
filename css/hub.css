@@ -225,12 +225,12 @@ tr.is-excellent { background: #FFFCF2; }
 .genprog { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .genprog__track { flex: 1; max-width: 280px; height: 8px; border-radius: var(--radius-pill); background: var(--color-surface-2); overflow: hidden; }
 .genprog__track i { display: block; height: 100%; width: 0; background: var(--color-primary); border-radius: var(--radius-pill); transition: width .25s var(--ease-out); }
-.genprog__txt { font-family: var(--font-mono); font-size: 13px; color: var(--color-ink-muted); white-space: nowrap; }
+.genprog__txt { font-family: var(--font-ui); font-size: 13px; color: var(--color-ink-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .genprog__txt b { color: var(--color-primary); font-weight: 600; }
 
 /* 디스플레이 폰트 강조 */
 .brand, .crumbs__cur, .page-head__title, .camp-card__name, .sechead__title, .card__title { font-family: var(--font-display); }
-.stat__n, .statbar .pill b { font-family: var(--font-mono); font-weight: 600; letter-spacing: -0.02em; }
+.stat__n, .statbar .pill b { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 
 /* 홈 카드 스태거 진입 */
 .grid .camp-card { animation: fadeUp .45s var(--ease-out) both; }
