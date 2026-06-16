@@ -913,19 +913,17 @@ async function drawWeek(camp, round, weeks) {
     <div class="card">
       <div class="card__title">제출 <span class="muted" style="font-size:13px;font-weight:500">${submitted.length}명</span></div>
       ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed">
-        <colgroup><col style="width:24%"/><col style="width:14%"/><col style="width:22%"/><col style="width:12%"/><col style="width:28%"/></colgroup>
-        <thead><tr><th>성함</th><th>게시물</th><th>제출일</th><th>상태</th><th>처리</th></tr></thead><tbody>
+        <colgroup><col style="width:30%"/><col style="width:14%"/><col style="width:24%"/><col style="width:16%"/><col style="width:16%"/></colgroup>
+        <thead><tr><th>성함</th><th>게시물</th><th>제출일</th><th class="ta-c">상태</th><th class="ta-c">처리</th></tr></thead><tbody>
         ${submitted.map((s) => {
         const rej = s.검수상태 === '반려';
         return `<tr data-phone="${esc(s.phone)}" class="${rej ? 'is-rejected' : ''}">
-          <td class="ellip">${esc(s.name)}${s.excellent ? ' <span class="exstar">★</span>' : ''}</td>
+          <td class="ellip"><span class="op-name"><span class="op-name__t">${esc(s.name)}</span>
+            <button class="exbtn js-wex ${s.excellent ? 'is-ex' : ''}" title="우수활동자 지정/해제" aria-label="우수활동자">${s.excellent ? '★' : '☆'}</button></span></td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
-          <td><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
-          <td><div class="op-acts">
-            <button class="btn ${rej ? 'btn--danger' : 'btn--ghost'} btn--sm js-no" data-rej="${rej ? '1' : ''}">${rej ? '반려 해제' : '반려'}</button>
-            <button class="btn btn--ghost btn--sm js-wex ${s.excellent ? 'is-ex' : ''}">${s.excellent ? '★ 우수' : '☆ 우수'}</button>
-          </div></td>
+          <td class="ta-c"><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
+          <td class="ta-c"><button class="btn ${rej ? 'btn--danger' : 'btn--ghost'} btn--sm js-no" data-rej="${rej ? '1' : ''}">${rej ? '반려 해제' : '반려'}</button></td>
         </tr>`;
       }).join('')}
       </tbody></table></div>` : '<p class="empty">아직 제출이 없습니다.</p>'}
