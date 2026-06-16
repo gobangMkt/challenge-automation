@@ -274,7 +274,7 @@ function renderLanding() {
     errEl.style.display = 'none';
     e.target.disabled = true; e.target.textContent = '신청 중…';
     const r = await apiPost({ action: 'apply', challengeId: cid, name, phone, blogUrl, agree: true }).catch(() => ({ ok: false }));
-    if (r.ok) renderDone('신청 완료!', '참여가 확정되었어요. 바로 주차 미션을 시작할 수 있어요. 오픈카톡에서 소식을 받아보세요.');
+    if (r.ok) renderDone('신청 완료!', '참여가 확정되었어요. 바로 주차 미션을 시작할 수 있어요.');
     else { e.target.disabled = false; e.target.textContent = '신청하기'; errEl.style.display = 'block'; errEl.textContent = '신청 실패: ' + (r.error || Object.values(r.errors || {}).join(', ')); }
   });
 }
@@ -286,8 +286,7 @@ function renderDone(title, sub) {
     <h1 class="done__title">${esc(title)}</h1>
     <p class="muted" style="margin-top:12px">${esc(sub)}</p>
     <div class="linkbtns">
-      <a class="btn btn--secondary btn--sm" href="#submit">주차 제출하기</a>
-      ${c.openchatUrl ? `<a class="btn btn--primary btn--sm" href="${esc(c.openchatUrl)}" target="_blank">오픈카톡</a>` : ''}
+      <a class="btn btn--primary btn--sm" href="#submit">주차 제출하기</a>
     </div></div></div>`;
 }
 

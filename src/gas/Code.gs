@@ -127,6 +127,16 @@ function apply_(body) {
 
   var sh = getSheet_(SHEETS.participants, PARTICIPANT_HEADERS);
   var phone = normalizePhone(body.phone);
+  // 블로그 URL 중복 차단(다른 사람이 같은 블로그로 신청 불가, 네이버 변형 URL 정규화)
+  var blogKey = normBlog_(body.blogUrl);
+  if (blogKey) {
+    var dup = rowsAsObjects_(sh).some(function (r) {
+      return String(r.challengeId) === String(challengeId)
+        && normBlog_(r.blogUrl) === blogKey
+        && String(r.phone) !== String(phone);
+    });
+    if (dup) return json_({ ok: false, error: 'blog_taken', errors: { blogUrl: '이미 다른 참가자가 등록한 블로그입니다.' } });
+  }
   var existing = findRowIndexByPhone_(sh, challengeId, phone);
   var record = [
     challengeId, phone, String(body.name).trim(), String(body.blogUrl).trim(),
@@ -185,6 +195,17 @@ function findRowIndexByPhone_(sh, challengeId, phone) {
     }
   }
   return -1;
+}
+
+// 블로그 URL 정규화(중복 비교용). 네이버 변형(m./PostList?blogId=)은 blogId로 통일.
+function normBlog_(u) {
+  var s = String(u == null ? '' : u).trim().toLowerCase();
+  if (!s) return '';
+  var mid = s.match(/blogid=([a-z0-9_-]+)/);
+  if (mid) return 'naver:' + mid[1];
+  var mp = s.match(/(?:m\.)?blog\.naver\.com\/([a-z0-9_-]+)/);
+  if (mp && mp[1] !== 'postlist.naver') return 'naver:' + mp[1];
+  return s.replace(/[?#].*$/, '').replace(/\/+$/, '');
 }
 
 function isRecruiting_(challengeId) {
