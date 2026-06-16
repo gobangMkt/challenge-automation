@@ -27,6 +27,13 @@
 .appbar__tab.sec-operate.is-active { color: #B54708; border-bottom-color: var(--color-warning); }
 .appbar__tab.sec-reward.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
 
+/* 알림톡 발송 버튼 (카카오 옐로우 — 강조) */
+.notifybar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.btn--kakao { display: inline-flex; align-items: center; gap: 8px; background: #FEE500; color: #3C1E1E; border: 0; font-weight: 800; font-size: 15px; padding: 12px 22px; border-radius: 12px; box-shadow: 0 4px 14px rgba(254,229,0,.5); }
+.btn--kakao:hover { background: #FADA00; box-shadow: 0 6px 18px rgba(254,229,0,.6); transform: translateY(-1px); }
+.btn--kakao:active { transform: translateY(0); }
+.btn--kakao:disabled { background: var(--color-surface-2); color: var(--color-ink-faint); box-shadow: none; cursor: not-allowed; transform: none; }
+
 /* on/off 토글 스위치 (주차 오픈/종료) */
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }

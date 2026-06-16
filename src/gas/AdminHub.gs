@@ -110,6 +110,46 @@ function deleteCampaign_(body) {
   return json_({ ok: true, removed: removed });
 }
 
+// ---------- 액션: 관리/리워드 통합 보드 (명단+제출수+정책 1회) ----------
+// participants+matrix+campaignDetail 3콜을 1콜로 합쳐 admin 속도 개선.
+function boardData_(p) {
+  if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
+  var cid = p.challengeId;
+  if (!cid) return json_({ ok: false, error: 'challenge_required' });
+  var totalW = totalWeeks_(cid);
+  var parts = rowsAsObjects_(getSheet_(SHEETS.participants, PARTICIPANT_HEADERS)).filter(function (r) {
+    return String(r.challengeId) === String(cid);
+  });
+  var subs = rowsAsObjects_(getSheet_('Submissions', SUBMISSION_HEADERS)).filter(function (s) {
+    return String(s.challengeId) === String(cid);
+  });
+  var byPhone = {};
+  subs.forEach(function (s) {
+    var k = String(s.phone == null ? '' : s.phone).replace(/\D/g, '');
+    var wk = parseInt(s['회차'], 10);
+    if (!k || !(wk >= 1 && wk <= totalW)) return;
+    (byPhone[k] = byPhone[k] || {})[wk] = true;
+  });
+  var rows = parts.map(function (r) {
+    var k = String(r.phone == null ? '' : r.phone).replace(/\D/g, '');
+    return {
+      name: r.name, phone: r.phone, blogUrl: r.blogUrl, status: r.status,
+      note: r.note || '',
+      submitted: byPhone[k] ? Object.keys(byPhone[k]).length : 0,
+    };
+  });
+  var d = campaignDetailObj_(cid) || {};
+  var ch = challengeById_(cid) || {};
+  return json_({
+    ok: true, totalWeeks: totalW, rows: rows,
+    policy: {
+      rewardType: d.rewardType || '', rewardTiers: d.rewardTiers || null,
+      rewardAmount: d.rewardAmount || '', rewardPerPost: ch.rewardPerPost || '',
+      excellentMultiplier: ch.excellentMultiplier || d.excellentMultiplier || '',
+    },
+  });
+}
+
 // ---------- 액션: 캠페인 목록 (허브) ----------
 function campaigns_(p) {
   if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });

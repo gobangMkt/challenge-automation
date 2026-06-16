@@ -106,6 +106,7 @@ function doGet(e) {
     case 'participants': return participants_(p);       // S1 명단
     case 'myStatus': return myStatus_(p.challengeId, p.phone, p.blogUrl); // S4 본인현황
     case 'matrix': return matrix_(p);                   // S5 매트릭스
+    case 'boardData': return boardData_(p);             // Hub 관리/리워드 통합(명단+제출수+정책)
     case 'notifyLog': return notifyLog_(p);             // S6 알림로그
     case 'settlement': return settlement_(p);           // S7 정산
     case 'campaigns': return campaigns_(p);             // Hub 캠페인 목록
