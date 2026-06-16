@@ -87,8 +87,18 @@ function submit_(body) {
     return json_({ ok: false, error: 'not_selected' });
   }
 
-  var week = currentOpenWeek_(weekMissionsFor_(challengeId));
-  if (week == null) return json_({ ok: false, error: 'no_open_week' });
+  var allWeeks = weekMissionsFor_(challengeId);
+  var requested = parseInt(body.week != null ? body.week : body.round, 10);
+  var week;
+  if (!isNaN(requested)) {
+    var wm = allWeeks.filter(function (w) { return parseInt(w['회차'], 10) === requested; })[0];
+    if (!wm) return json_({ ok: false, error: 'invalid_week' });
+    if (String(wm['상태']) !== '오픈') return json_({ ok: false, error: 'week_not_open' });
+    week = requested;
+  } else {
+    week = currentOpenWeek_(allWeeks);
+    if (week == null) return json_({ ok: false, error: 'no_open_week' });
+  }
 
   if (!validatePostUrl_(body.postUrl)) {
     return json_({ ok: false, error: 'invalid_url' });

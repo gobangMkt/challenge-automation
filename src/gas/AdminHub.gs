@@ -131,7 +131,9 @@ function campaigns_(p) {
       applied: applied, selected: selected, submissions: subCount,
     };
   });
-  return json_({ ok: true, rows: list });
+  var dbUrl = '';
+  try { dbUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl(); } catch (e) {}
+  return json_({ ok: true, rows: list, dbUrl: dbUrl });
 }
 
 // ---------- 액션: 캠페인 상세 (공개 — 랜딩용, 토큰 불필요) ----------
@@ -227,11 +229,14 @@ function saveMission_(body) {
   var h = values[0];
   var idC = h.indexOf('challengeId'), rC = h.indexOf('회차'),
     tC = h.indexOf('미션제목'), bC = h.indexOf('미션본문'),
-    anC = h.indexOf('articleName'), auC = h.indexOf('articleUrl');
+    anC = h.indexOf('articleName'), auC = h.indexOf('articleUrl'),
+    opC = h.indexOf('오픈일'), duC = h.indexOf('마감일');
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][idC]) === String(body.challengeId) && parseInt(values[i][rC], 10) === round) {
       if (body.title != null) sh.getRange(i + 1, tC + 1).setValue(String(body.title));
       if (body.body != null) sh.getRange(i + 1, bC + 1).setValue(String(body.body));
+      if (body.openDate != null && opC >= 0) sh.getRange(i + 1, opC + 1).setValue(String(body.openDate).trim());
+      if (body.dueDate != null && duC >= 0) sh.getRange(i + 1, duC + 1).setValue(String(body.dueDate).trim());
       var articleName = null;
       if (body.articleUrl != null) {
         var url = String(body.articleUrl).trim();
