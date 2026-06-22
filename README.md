@@ -15,6 +15,13 @@
 - **아티클**: 노션 「작성기록」 DB에서 `type=혼잘주거` read-only. 회차별 수동 배정 + 미배정 시 최신순 자동.
 - **정산**: 제출 갯수 × 단가, 우수활동자 2배.
 
+## VoC 자동 개선 파이프라인
+참가자 피드백을 모아 에이전트가 개선까지 끌고 가는 흐름. 실행은 Claude Code 세션이 오케스트레이터.
+- **수집**: 앱 우하단 피드백 버튼 → GAS `submitVoc` → 시트 `VoC` 탭.
+- **에이전트**: `voc-router`(글로벌, 수집·분류·배정) → `po-blog-challenge`(PO, PRD·검수·사인오프) → `dev/design/qa-blog-challenge`(구현·디자인·검증).
+- **승인·알림**: 텔레그램 양방향(`scripts/telegram.mjs`) + 터미널. 사람 개입 2지점(개선안 승인 / 최종 커밋).
+- **절차 상세**: `docs/voc-runbook.md`. 설계: `docs/superpowers/specs/2026-06-22-voc-agent-pipeline-design.md`.
+
 ## 디렉토리
 ```
 src/lib/     순수 로직 (GAS·프론트 공용, node --test 대상)
