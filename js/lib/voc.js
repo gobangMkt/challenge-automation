@@ -20,6 +20,7 @@ export function buildVocRecord(input, now) {
   return {
     id, ts,
     project: input.project,
+    category: input.category || '기타',
     channel: input.channel || 'app',
     phone: input.phone || '',
     message,

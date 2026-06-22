@@ -15,6 +15,10 @@
 .appbar__in .btn--sm { font-size: 15px; min-height: 40px; padding: 0 16px; }
 .appbar__in .btn--sm.btn--icon { padding: 0 12px; }
 .appbar__in .btn--sm svg { width: 18px; height: 18px; }
+/* 신고 카테고리 칩 */
+.rp-cat { height: 36px; padding: 0 14px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-ink-muted); font-family: var(--font-ui); font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color .12s, background .12s, color .12s; }
+.rp-cat:hover { border-color: var(--color-ink-faint); color: var(--color-ink); }
+.rp-cat.is-active { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-hover); }
 
 /* 브레드크럼 */
 .crumbs { display: flex; align-items: center; gap: 10px; min-width: 0; }
