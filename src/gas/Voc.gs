@@ -112,10 +112,12 @@ function submitVoc_(body) {
 }
 
 function getVoc_(p) {
+  p = p || {};
+  if (p.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
   var sh = vocSheet_();
   var items = rowsAsObjects_(sh);
-  if (p && p.status) {
+  if (p.status) {
     items = items.filter(function (r) { return String(r.status) === String(p.status); });
   }
-  return json_({ ok: true, items: items });
+  return json_({ ok: true, sheetUrl: sh.getParent().getUrl(), items: items });
 }
