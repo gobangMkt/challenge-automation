@@ -1,4 +1,4 @@
-import { apiGet, apiPost, submitVoc } from './api.js';
+import { apiGet, apiPost } from './api.js';
 import { pickTheme, DISPLAY_FONTS } from './themes.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -90,53 +90,7 @@ async function boot() {
   DATA = r;
   applyTheme();
   route();
-  mountVocFab();
   window.addEventListener('hashchange', route);
-}
-
-// 피드백(VoC) 수집 — 우하단 플로팅 버튼 → 모달 → submitVoc
-function mountVocFab() {
-  if (document.getElementById('voc-fab')) return;
-  const fab = document.createElement('button');
-  fab.id = 'voc-fab';
-  fab.className = 'voc-fab';
-  fab.type = 'button';
-  fab.setAttribute('aria-label', '피드백 보내기');
-  fab.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>피드백</span>`;
-  fab.addEventListener('click', openVocModal);
-  document.body.appendChild(fab);
-}
-
-function openVocModal() {
-  const back = document.createElement('div');
-  back.className = 'modal-backdrop';
-  back.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="voc-title">
-      <div class="modal__icon modal__icon--primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-      <h3 class="modal__title" id="voc-title">불편하거나 바라는 점</h3>
-      <p class="modal__msg">개선에 바로 반영합니다. 자유롭게 적어주세요.</p>
-      <textarea id="voc-msg" class="input" rows="4" placeholder="예: 신청 버튼이 눌리지 않아요 / 일정이 헷갈려요" style="margin-top:var(--space-4);resize:vertical"></textarea>
-      <input id="voc-phone" class="input" inputmode="numeric" placeholder="휴대폰(선택, 답변받기)" style="margin-top:8px">
-      <div class="modal__actions">
-        <button class="btn btn--secondary" id="voc-cancel" type="button">취소</button>
-        <button class="btn btn--primary" id="voc-send" type="button">보내기</button>
-      </div>
-    </div>`;
-  document.body.appendChild(back);
-  requestAnimationFrame(() => back.classList.add('is-show'));
-  const close = () => { back.classList.remove('is-show'); setTimeout(() => back.remove(), 200); };
-  back.addEventListener('click', (e) => { if (e.target === back) close(); });
-  $('#voc-cancel', back).addEventListener('click', close);
-  bindPhone($('#voc-phone', back));
-  $('#voc-send', back).addEventListener('click', async () => {
-    const message = $('#voc-msg', back).value.trim();
-    if (!message) { toast('내용을 입력해 주세요.', true); return; }
-    const btn = $('#voc-send', back); btn.disabled = true;
-    const r = await submitVoc({ project: 'blog-challenge', message, phone: $('#voc-phone', back).value.trim() })
-      .catch(() => ({ ok: false }));
-    if (r.ok) { close(); toast('소중한 의견 감사합니다!'); }
-    else { btn.disabled = false; toast('전송 실패. 잠시 후 다시 시도해 주세요.', true); }
-  });
 }
 
 function applyTheme() {

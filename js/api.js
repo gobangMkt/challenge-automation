@@ -21,8 +21,8 @@ export async function apiGet(params) {
   return res.json();
 }
 
-export async function submitVoc({ project, message, phone }) {
-  return apiPost({ action: 'submitVoc', project, message, phone });
+export async function submitVoc({ project, message, phone, channel }) {
+  return apiPost({ action: 'submitVoc', project, message, phone, channel });
 }
 
 export const isConfigured = configured;
