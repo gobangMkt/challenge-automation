@@ -9,7 +9,7 @@ VoC → 에이전트 자동 개선 파이프라인의 실행 절차. 설계: `do
 
 ## 실행 (Claude Code 세션에서 "VoC 처리" 지시 시)
 
-1. **수집**: 참가자가 앱 우하단 **피드백 버튼** → 시트 `VoC` 탭(`status=new`). (운영자가 시트에 직접 행 추가도 가능.)
+1. **수집**: 운영자가 admin 상단바 **신고하기**(로그아웃 옆, 상시) → 시트 `VoC` 탭(`status=new`, channel=operator). 운영자 대상 기능 — 참가자 landing엔 없음. (시트에 직접 행 추가도 가능.)
 2. **파악·배정**: `voc-router` 호출 → `getVoc(status=new)` read → 중복제거·분류·심각도 → registry로 담당 PO 배정.
 3. **개선안**: 배정된 `po-blog-challenge` 호출 → 스펙확인·브레인스토밍 → PRD·납품조건.
 4. **승인요청 푸시** ⛔게이트: `node scripts/telegram.mjs notify "<formatVocApproval 결과>"` — VoC 원문 + 개선안 전송.
