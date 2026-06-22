@@ -1,6 +1,11 @@
 /**
  * VoC 수집 어댑터. 순수 로직은 public/js/lib/voc.js 미러(ES import 불가라 인라인).
- * 시트 'VoC' 탭에 적재하고, voc-router 에이전트가 getVoc로 읽는다.
+ *
+ * 저장소: 이 서비스의 바운드 시트가 아니라 **전 서비스 공통 중앙 통합 시트**.
+ * Script Property `VOC_SHEET_ID`가 가리키며, 없으면 최초 1회 생성하고
+ * 옛 바운드 'VoC' 탭의 데이터를 이관한 뒤 바운드 탭을 제거한다.
+ * project 컬럼이 출처(서비스) 태그. voc-router가 getVoc로 전 서비스 VoC를 한곳에서 읽는다.
+ * 다른 서비스도 자신의 GAS Script Property VOC_SHEET_ID에 같은 시트 ID를 넣으면 한곳에 모인다.
  */
 
 // category는 맨 끝 — 기존 10컬럼 시트에 끝 컬럼만 추가하면 데이터 정렬이 안 깨진다.
@@ -57,13 +62,43 @@ function ensureVocHeader_(sh) {
   }
 }
 
+// 전 서비스 공통 중앙 VoC 시트(탭 'VoC'). VOC_SHEET_ID 없으면 최초 생성 + 바운드 이관.
+function vocSheet_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('VOC_SHEET_ID');
+  if (id) {
+    var ss = SpreadsheetApp.openById(id);
+    var sh = ss.getSheetByName('VoC') || ss.insertSheet('VoC');
+    ensureVocHeader_(sh);
+    return sh;
+  }
+  var created = SpreadsheetApp.create('VoC 통합 인박스 — 전 서비스');
+  props.setProperty('VOC_SHEET_ID', created.getId());
+  var dst = created.getSheets()[0];
+  dst.setName('VoC');
+  dst.getRange(1, 1, 1, VOC_HEADERS.length).setValues([VOC_HEADERS]);
+  migrateBoundVoc_(dst);
+  return dst;
+}
+
+// 옛 바운드 'VoC' 탭 → 중앙 시트로 1회 이관 후 바운드 탭 제거(청소).
+function migrateBoundVoc_(dst) {
+  try {
+    var bound = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VoC');
+    if (!bound || bound.getLastRow() < 2) { if (bound) bound.getParent().deleteSheet(bound); return; }
+    rowsAsObjects_(bound).forEach(function (r) {
+      dst.appendRow(VOC_HEADERS.map(function (h) { return r[h] != null ? r[h] : ''; }));
+    });
+    bound.getParent().deleteSheet(bound);
+  } catch (e) { /* 이관 실패해도 신규 수집은 계속 */ }
+}
+
 // ---------- 어댑터 ----------
 function submitVoc_(body) {
   var v = validateVoc_(body);
   if (!v.ok) return json_({ ok: false, error: 'invalid', errors: v.errors });
 
-  var sh = getSheet_('VoC', VOC_HEADERS);
-  ensureVocHeader_(sh);
+  var sh = vocSheet_();
   var rec = buildVocRecord_(body, new Date().getTime());
   var key = dedupKey_(rec);
 
@@ -77,8 +112,7 @@ function submitVoc_(body) {
 }
 
 function getVoc_(p) {
-  var sh = getSheet_('VoC', VOC_HEADERS);
-  ensureVocHeader_(sh);
+  var sh = vocSheet_();
   var items = rowsAsObjects_(sh);
   if (p && p.status) {
     items = items.filter(function (r) { return String(r.status) === String(p.status); });
