@@ -17,7 +17,7 @@
 
 ## VoC 자동 개선 파이프라인
 참가자 피드백을 모아 에이전트가 개선까지 끌고 가는 흐름. 실행은 Claude Code 세션이 오케스트레이터.
-- **수집**: 운영자 admin 상단바 **신고하기** 버튼(로그아웃 옆, 상시) → GAS `submitVoc`(channel=operator) → 시트 `VoC` 탭. (운영자 대상 기능 — 참가자 landing엔 없음.)
+- **수집**: 운영자 admin 상단바 **신고하기**(로그아웃 옆, 상시, 카테고리: 버그/기능추가/개선/기타) → GAS `submitVoc`(channel=operator, project 태그) → **전 서비스 공통 중앙 VoC 시트**(바운드 시트 아님, Script Property `VOC_SHEET_ID`). 운영자 대상 — 참가자 landing엔 없음. 읽기(`getVoc`)는 운영토큰 필요.
 - **에이전트**: `voc-router`(글로벌, 수집·분류·배정) → `po-blog-challenge`(PO, PRD·검수·사인오프) → `dev/design/qa-blog-challenge`(구현·디자인·검증).
 - **승인·알림**: 텔레그램 양방향(`scripts/telegram.mjs`) + 터미널. 사람 개입 2지점(개선안 승인 / 최종 커밋).
 - **절차 상세**: `docs/voc-runbook.md`. 설계: `docs/superpowers/specs/2026-06-22-voc-agent-pipeline-design.md`.
