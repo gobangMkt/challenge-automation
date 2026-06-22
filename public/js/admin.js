@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './api.js';
+import { apiGet, apiPost, submitVoc } from './api.js';
 import { thumbNode, posterNode, downloadNode } from './assets.js';
 
 /* ---------- 상태 ---------- */
@@ -83,6 +83,7 @@ const ICON = {
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
   refresh: SVG('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>'),
+  report: SVG('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'),
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
 const SECTIONS = {
@@ -196,11 +197,12 @@ function appbarHome() {
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
       <button class="btn btn--primary btn--sm" id="newBtn">+ 새 캠페인</button>
+      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고">${ICON.report} 신고하기</button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>`;
   el('home').addEventListener('click', goHome);
   el('newBtn').addEventListener('click', () => { location.hash = '#/new'; });
-  bindRefresh(); bindLogout();
+  bindRefresh(); bindReport(); bindLogout();
 }
 function appbarWorkspace(camp, tab) {
   el('appbar').innerHTML = `
@@ -213,6 +215,7 @@ function appbarWorkspace(camp, tab) {
       </nav>
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
+      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고">${ICON.report} 신고하기</button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>
     <div class="appbar__tabs">
@@ -222,7 +225,7 @@ function appbarWorkspace(camp, tab) {
   el('home').addEventListener('click', goHome);
   el('appbar').querySelectorAll('.appbar__tab').forEach((b) =>
     b.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(camp.challengeId)}/${b.dataset.tab}`; }));
-  bindRefresh(); bindLogout();
+  bindRefresh(); bindReport(); bindLogout();
 }
 function appbarBare() {
   el('appbar').innerHTML = `<div class="appbar__in">${brandHtml()}</div>`;
@@ -240,6 +243,40 @@ function bindRefresh() {
     state.loaded = false; state.cache = { detail: {}, board: {} }; // 캐시 비우고 현재 화면 새로 로드
     toast('새로고침');
     route();
+  });
+}
+function bindReport() {
+  const rb = el('report');
+  if (rb) rb.addEventListener('click', openReportModal);
+}
+/* 운영자 버그·개선 신고 → VoC 적재(channel=operator) */
+function openReportModal() {
+  const back = document.createElement('div');
+  back.className = 'modal-backdrop';
+  back.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rp-title">
+      <div class="modal__icon modal__icon--primary">${ICON.report}</div>
+      <h3 class="modal__title" id="rp-title">버그·개선 신고</h3>
+      <p class="modal__msg">불편하거나 고쳤으면 하는 점을 적어주세요. 개선 파이프라인으로 바로 접수됩니다.</p>
+      <textarea id="rp-msg" class="input" rows="4" placeholder="예: 명단에서 선발 토글이 가끔 안 먹어요 / 정산표에 합계가 있으면 좋겠어요" style="margin-top:16px;resize:vertical"></textarea>
+      <div class="modal__actions">
+        <button class="btn btn--secondary" data-act="cancel" type="button">취소</button>
+        <button class="btn btn--primary" data-act="ok" type="button">접수</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+  requestAnimationFrame(() => back.classList.add('is-show'));
+  el('rp-msg').focus();
+  const close = () => { back.classList.remove('is-show'); setTimeout(() => back.remove(), 200); };
+  back.addEventListener('click', (e) => { if (e.target === back) close(); });
+  back.querySelector('[data-act=cancel]').addEventListener('click', close);
+  back.querySelector('[data-act=ok]').addEventListener('click', async () => {
+    const message = el('rp-msg').value.trim();
+    if (!message) { toast('내용을 입력하세요.', true); return; }
+    const btn = back.querySelector('[data-act=ok]'); btn.disabled = true;
+    const r = await submitVoc({ project: 'blog-challenge', message, channel: 'operator' }).catch(() => ({ ok: false }));
+    if (r.ok) { close(); toast('신고가 접수되었습니다. 감사합니다!'); }
+    else { btn.disabled = false; toast('접수 실패. 잠시 후 다시 시도하세요.', true); }
   });
 }
 
