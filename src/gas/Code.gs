@@ -131,6 +131,7 @@ function dispatchPost_(body) {
     case 'saveMission': return saveMission_(body);      // Hub 단일 회차 미션 저장
     case 'saveCampaignMeta': return saveCampaignMeta_(body); // Hub 전역 교육자료·유의사항
     case 'reviewSubmission': return reviewSubmission_(body); // Hub 제출 검수
+    case 'submitVoc': return submitVoc_(body);          // VoC 수집(피드백 버튼)
     default: return json_({ ok: false, error: 'unknown_action' });
   }
 }
@@ -149,6 +150,7 @@ function doGet(e) {
     case 'blogInfo': return blogInfo_(p);               // 신청 블로그 URL 미리보기(공개)
     case 'missions': return cachedGet_(p, 60, function () { return missions_(p); }); // Hub 주차 미션
     case 'weekSubmissions': return cachedGet_(p, 20, function () { return weekSubmissions_(p); }); // Hub 그 주 제출
+    case 'getVoc': return getVoc_(p);                   // VoC 조회(voc-router 에이전트)
     default: return json_({ ok: false, error: 'unknown_action' });
   }
 }
