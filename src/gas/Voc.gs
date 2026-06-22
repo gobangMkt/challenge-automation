@@ -3,9 +3,10 @@
  * 시트 'VoC' 탭에 적재하고, voc-router 에이전트가 getVoc로 읽는다.
  */
 
+// category는 맨 끝 — 기존 10컬럼 시트에 끝 컬럼만 추가하면 데이터 정렬이 안 깨진다.
 var VOC_HEADERS = [
-  'id', 'ts', 'project', 'category', 'channel', 'phone', 'message',
-  'status', 'assignee', 'resolution', 'commit',
+  'id', 'ts', 'project', 'channel', 'phone', 'message',
+  'status', 'assignee', 'resolution', 'commit', 'category',
 ];
 
 // ---------- 순수 로직 (voc.js 미러) ----------
@@ -42,14 +43,16 @@ function buildVocRecord_(input, now) {
   };
 }
 
-// 기존 VoC 시트가 옛 헤더(category 없음)로 만들어졌을 수 있어 매번 헤더를 동기화.
-// 데이터 행이 없을 때만 안전하게 재작성한다.
+// 기존 VoC 시트가 옛 헤더(category 없음)로 만들어졌을 수 있어 헤더를 동기화.
+// 현재 헤더가 VOC_HEADERS 앞부분과 같으면(끝 컬럼만 빠짐) 데이터가 있어도 안전하게 확장.
+// 순서 자체가 다르면 손상 방지 위해 빈 시트일 때만 재작성.
 function ensureVocHeader_(sh) {
   var lastCol = sh.getLastColumn();
   var cur = lastCol > 0 ? sh.getRange(1, 1, 1, lastCol).getValues()[0] : [];
   if (cur.join('') === VOC_HEADERS.join('')) return;
-  if (sh.getLastRow() <= 1) {
-    if (lastCol > VOC_HEADERS.length) sh.getRange(1, 1, 1, lastCol).clearContent();
+  var isPrefix = cur.length <= VOC_HEADERS.length &&
+    cur.every(function (h, i) { return String(h) === VOC_HEADERS[i]; });
+  if (isPrefix || sh.getLastRow() <= 1) {
     sh.getRange(1, 1, 1, VOC_HEADERS.length).setValues([VOC_HEADERS]);
   }
 }
