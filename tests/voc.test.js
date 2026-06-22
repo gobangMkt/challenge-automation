@@ -30,3 +30,13 @@ test('메시지 앞뒤 공백은 트림된다', () => {
   const rec = buildVocRecord({ project: 'p', message: '  hi  ' }, 1);
   assert.equal(rec.message, 'hi');
 });
+
+test('category를 기록한다', () => {
+  const rec = buildVocRecord({ project: 'p', message: 'x', category: '버그' }, 1);
+  assert.equal(rec.category, '버그');
+});
+
+test('category 미지정 시 기타로 기본값', () => {
+  const rec = buildVocRecord({ project: 'p', message: 'x' }, 1);
+  assert.equal(rec.category, '기타');
+});

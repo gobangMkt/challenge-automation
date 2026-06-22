@@ -4,7 +4,7 @@
  */
 
 var VOC_HEADERS = [
-  'id', 'ts', 'project', 'channel', 'phone', 'message',
+  'id', 'ts', 'project', 'category', 'channel', 'phone', 'message',
   'status', 'assignee', 'resolution', 'commit',
 ];
 
@@ -34,11 +34,24 @@ function buildVocRecord_(input, now) {
     id: id,
     ts: new Date(now).toISOString(),
     project: input.project,
+    category: input.category || '기타',
     channel: input.channel || 'app',
     phone: input.phone || '',
     message: message,
     status: 'new', assignee: '', resolution: '', commit: '',
   };
+}
+
+// 기존 VoC 시트가 옛 헤더(category 없음)로 만들어졌을 수 있어 매번 헤더를 동기화.
+// 데이터 행이 없을 때만 안전하게 재작성한다.
+function ensureVocHeader_(sh) {
+  var lastCol = sh.getLastColumn();
+  var cur = lastCol > 0 ? sh.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  if (cur.join('') === VOC_HEADERS.join('')) return;
+  if (sh.getLastRow() <= 1) {
+    if (lastCol > VOC_HEADERS.length) sh.getRange(1, 1, 1, lastCol).clearContent();
+    sh.getRange(1, 1, 1, VOC_HEADERS.length).setValues([VOC_HEADERS]);
+  }
 }
 
 // ---------- 어댑터 ----------
@@ -47,6 +60,7 @@ function submitVoc_(body) {
   if (!v.ok) return json_({ ok: false, error: 'invalid', errors: v.errors });
 
   var sh = getSheet_('VoC', VOC_HEADERS);
+  ensureVocHeader_(sh);
   var rec = buildVocRecord_(body, new Date().getTime());
   var key = dedupKey_(rec);
 
@@ -61,6 +75,7 @@ function submitVoc_(body) {
 
 function getVoc_(p) {
   var sh = getSheet_('VoC', VOC_HEADERS);
+  ensureVocHeader_(sh);
   var items = rowsAsObjects_(sh);
   if (p && p.status) {
     items = items.filter(function (r) { return String(r.status) === String(p.status); });
