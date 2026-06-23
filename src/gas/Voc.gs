@@ -108,7 +108,28 @@ function submitVoc_(body) {
   if (existing) return json_({ ok: true, id: existing.id, deduped: true });
 
   sh.appendRow(VOC_HEADERS.map(function (h) { return rec[h]; }));
+  notifyTelegramVoc_(rec);
   return json_({ ok: true, id: rec.id });
+}
+
+function notifyTelegramVoc_(rec) {
+  var props = PropertiesService.getScriptProperties();
+  var botToken = props.getProperty('TELEGRAM_BOT_TOKEN');
+  var chatId = props.getProperty('TELEGRAM_CHAT_ID');
+  if (!botToken || !chatId) return;
+  var text = '🚨 새 VoC 접수\n──────────────\n' +
+    '카테고리: ' + (rec.category || '기타') + '\n' +
+    '내용: ' + rec.message + '\n' +
+    'ID: ' + rec.id + '\n──────────────\n' +
+    '처리하려면: "처리" 또는 "' + rec.id + ' 처리"';
+  try {
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + botToken + '/sendMessage', {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({ chat_id: chatId, text: text }),
+      muteHttpExceptions: true,
+    });
+  } catch (e) { /* 알림 실패해도 VoC 저장은 완료 */ }
 }
 
 function getVoc_(p) {

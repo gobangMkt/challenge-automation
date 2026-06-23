@@ -83,7 +83,7 @@ const ICON = {
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
   refresh: SVG('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>'),
-  report: SVG('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'),
+  report: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2 L19 18 H1 Z" fill="#EF4452"/><rect x="9" y="7.5" width="2" height="5" rx="1" fill="#FFFFFF"/><circle cx="10" cy="15" r="1.2" fill="#FFFFFF"/></svg>',
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
 const SECTIONS = {
@@ -337,6 +337,23 @@ function campProgress(x) {
   </div>`;
 }
 
+/* ---------- VoC 데몬 상태 ---------- */
+async function checkDaemon() {
+  const dot = el('daemonDot');
+  const label = el('daemonLabel');
+  if (!dot) return;
+  try {
+    const res = await fetch('http://127.0.0.1:3061/health', { signal: AbortSignal.timeout(1500) });
+    const data = await res.json();
+    dot.style.color = 'var(--color-success, #22c55e)';
+    const mins = Math.floor((data.uptime || 0) / 60);
+    label.textContent = `데몬 실행 중 (${mins}분)`;
+  } catch {
+    dot.style.color = 'var(--color-danger, #ef4444)';
+    label.textContent = '데몬 중지됨';
+  }
+}
+
 /* ---------- 홈 (허브) ---------- */
 async function renderHome() {
   appbarHome();
@@ -354,6 +371,9 @@ async function renderHome() {
       <div class="pill"><b class="tnum">${c.length}</b><span>캠페인</span></div>
       <div class="pill"><b class="tnum">${tApplied}</b><span>총 신청</span></div>
       <div class="pill"><b class="tnum">${tSel}</b><span>총 선발</span></div>
+      <div class="pill daemon-pill" id="daemonPill" title="VoC 데몬 상태">
+        <b id="daemonDot">⬤</b><span id="daemonLabel">데몬 확인 중…</span>
+      </div>
     </div>
     <div class="grid" id="grid">
       ${c.map((x) => `
@@ -375,6 +395,7 @@ async function renderHome() {
       <button class="camp-card camp-card--new" id="newCard">+ 새 캠페인 만들기</button>
     </div>`;
   el('newCard').addEventListener('click', () => { location.hash = '#/new'; });
+  checkDaemon();
   el('grid').querySelectorAll('.camp-card[data-id]').forEach((card) => {
     const id = card.dataset.id;
     card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
