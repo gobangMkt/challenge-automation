@@ -40,9 +40,9 @@ async function send(botToken, chatId, text) {
   await tgCall(botToken, 'sendMessage', { chat_id: chatId, text });
 }
 
-async function fetchNewVocs(gasEndpoint, operatorToken) {
+async function fetchVocs(vocEndpoint, operatorToken, status) {
   try {
-    const url = `${gasEndpoint}?action=getVoc&status=new&token=${operatorToken}`;
+    const url = `${vocEndpoint}?action=getVoc&status=${status}&token=${operatorToken}`;
     const res = await fetch(url);
     const data = await res.json();
     return data.ok ? (data.items || []) : [];
@@ -51,11 +51,23 @@ async function fetchNewVocs(gasEndpoint, operatorToken) {
   }
 }
 
+// updateVoc로 상태 전이(예: queued → in_progress). 재선택 방지.
+async function markStatus(vocEndpoint, operatorToken, id, status) {
+  try {
+    await fetch(vocEndpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'updateVoc', token: operatorToken, id, status }),
+    });
+  } catch { /* 전이 실패해도 파이프라인은 진행 */ }
+}
+
 function runPipeline(voc) {
+  const project = voc.project || 'blog-challenge';
   const prompt =
     `voc-router를 호출해서 다음 VoC를 처리해줘.\n` +
-    `ID: ${voc.id}\n내용: ${voc.message}\n카테고리: ${voc.category || '기타'}\nproject: blog-challenge\n\n` +
-    `voc-router 분류·배정 후 po-blog-challenge로 개선안 작성, 텔레그램 승인 요청까지 진행해.`;
+    `ID: ${voc.id}\n내용: ${voc.message}\n카테고리: ${voc.category || '기타'}\nproject: ${project}\n\n` +
+    `voc-router가 project로 담당 PO를 찾아 배정·개선안 작성, 텔레그램 승인 요청까지 진행해.`;
 
   return new Promise((resolve) => {
     console.log(`[voc-daemon] 파이프라인 시작: ${voc.id}`);
@@ -117,6 +129,8 @@ async function main() {
     process.exit(1);
   }
   const gasEndpoint = match[1];
+  // VoC 엔드포인트: 전용 VoC GAS(분리 후). 미지정 시 기존 blog-challenge GAS로 폴백.
+  const vocEndpoint = process.env.VOC_GAS_ENDPOINT || gasEndpoint;
 
   // 시작 시점 이전 업데이트 무시
   let offset = 0;
@@ -143,7 +157,7 @@ async function main() {
 
         // 특정 VoC ID 지정 여부 확인
         const idMatch = text.match(/(voc_\d+_\d+)/i);
-        const vocs = await fetchNewVocs(gasEndpoint, operatorToken);
+        const vocs = await fetchVocs(vocEndpoint, operatorToken, 'new');
 
         let target = null;
         if (idMatch) {
@@ -165,6 +179,17 @@ async function main() {
         // claude 실행 중엔 폴링 중단 → wait-approval과 충돌 방지
         await runPipeline(target);
 
+        await send(botToken, chatId, `✅ 파이프라인 종료: ${target.id}`);
+      }
+
+      // 대시보드 "처리" 버튼 → 시트 status=queued. 데몬이 감지해 자동 실행.
+      const queued = await fetchVocs(vocEndpoint, operatorToken, 'queued');
+      for (const target of queued) {
+        await markStatus(vocEndpoint, operatorToken, target.id, 'in_progress');
+        await send(botToken, chatId,
+          `⚙️ 대시보드 처리 시작\nID: ${target.id}\n서비스: ${target.project || '-'}\n내용: ${target.message}`,
+        );
+        await runPipeline(target);
         await send(botToken, chatId, `✅ 파이프라인 종료: ${target.id}`);
       }
     } catch (e) {
