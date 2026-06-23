@@ -8,6 +8,12 @@ VoC → 에이전트 자동 개선 파이프라인의 실행 절차. 설계: `do
 - 각 서비스 GAS는 Script Property `VOC_SHEET_ID`로 이 시트를 가리킨다(없으면 최초 1회 자동 생성). **새 서비스는 자신의 VOC_SHEET_ID에 같은 ID를 넣어** 한곳에 모은다.
 - 출처 구분 = `project` 컬럼 태그. 컬럼: `id·ts·project·channel·phone·message·status·assignee·resolution·commit·category`.
 
+## 관제 대시보드 (VoC관제센터)
+전 서비스 VoC 조회·상태변경·통계·처리 트리거를 한 화면에서: `for_Release/VoC관제센터`(독립 repo). 운영자 전용, operatorToken 게이트.
+- **전용 VoC GAS 분리(목표)**: `submitVoc`/`getVoc`는 원래 이 블로그-챌린지 GAS에 종속(데이터=중앙 시트는 이미 독립). VoC관제센터의 `src/gas`가 전용 VoC GAS로 분리해 `submitVoc·getVoc·updateVoc·enqueueVoc·vocStats` 제공. **미배포** — 배포 시 각 서비스 신고하기를 그 URL로 재지정.
+- **처리 트리거**: 대시보드 "처리" = `enqueueVoc`(status=queued). `voc-daemon`이 시트 `queued` 폴링→`in_progress` 전이→`claude -p` 파이프라인 실행. 데몬 기동 시 `VOC_GAS_ENDPOINT=<전용 GAS URL>` 지정(미지정 시 이 GAS로 폴백).
+- 상태 수명주기: `new → queued → in_progress → committed`(어느 상태든 `new` 반려).
+
 ## 사전 준비 (1회)
 - **텔레그램**: `~/.claude/.telegram`(JSON `{"botToken":"","chatId":""}`) 생성. 값 채움. git·시트에 값 금지.
 - **GAS 재배포**: `submitVoc`(익명)/`getVoc`(운영토큰 필요) 반영 위해 Apps Script Web App 새 버전 배포. 중앙 시트는 최초 `getVoc`/`submitVoc` 호출 시 자동 생성.
