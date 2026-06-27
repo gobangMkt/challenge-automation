@@ -1,4 +1,5 @@
-import { apiGet, apiPost, submitVoc } from './api.js';
+import { apiGet, apiPost } from './api.js';
+import { openVocModal } from './voc-widget.js';
 import { thumbNode, posterNode, downloadNode } from './assets.js';
 
 /* ---------- 상태 ---------- */
@@ -247,46 +248,7 @@ function bindRefresh() {
 }
 function bindReport() {
   const rb = el('report');
-  if (rb) rb.addEventListener('click', openReportModal);
-}
-/* 운영자 버그·개선 신고 → VoC 적재(channel=operator) */
-function openReportModal() {
-  const back = document.createElement('div');
-  back.className = 'modal-backdrop';
-  back.innerHTML = `
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rp-title">
-      <div class="modal__icon modal__icon--primary">${ICON.report}</div>
-      <h3 class="modal__title" id="rp-title">버그·개선 신고</h3>
-      <p class="modal__msg">불편하거나 고쳤으면 하는 점을 적어주세요. 개선 파이프라인으로 바로 접수됩니다.</p>
-      <div class="rp-cats" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-        ${['버그', '기능추가', '개선', '기타'].map((c, i) =>
-          `<button type="button" class="rp-cat${i === 0 ? ' is-active' : ''}" data-cat="${c}">${c}</button>`).join('')}
-      </div>
-      <textarea id="rp-msg" class="input" rows="4" placeholder="예: 명단에서 선발 토글이 가끔 안 먹어요 / 정산표에 합계가 있으면 좋겠어요" style="margin-top:10px;resize:vertical"></textarea>
-      <div class="modal__actions">
-        <button class="btn btn--secondary" data-act="cancel" type="button">취소</button>
-        <button class="btn btn--primary" data-act="ok" type="button">접수</button>
-      </div>
-    </div>`;
-  document.body.appendChild(back);
-  requestAnimationFrame(() => back.classList.add('is-show'));
-  el('rp-msg').focus();
-  let category = '버그';
-  back.querySelectorAll('.rp-cat').forEach((b) => b.addEventListener('click', () => {
-    category = b.dataset.cat;
-    back.querySelectorAll('.rp-cat').forEach((x) => x.classList.toggle('is-active', x === b));
-  }));
-  const close = () => { back.classList.remove('is-show'); setTimeout(() => back.remove(), 200); };
-  back.addEventListener('click', (e) => { if (e.target === back) close(); });
-  back.querySelector('[data-act=cancel]').addEventListener('click', close);
-  back.querySelector('[data-act=ok]').addEventListener('click', async () => {
-    const message = el('rp-msg').value.trim();
-    if (!message) { toast('내용을 입력하세요.', true); return; }
-    const btn = back.querySelector('[data-act=ok]'); btn.disabled = true;
-    const r = await submitVoc({ project: 'blog-challenge', message, channel: 'operator', category }).catch(() => ({ ok: false }));
-    if (r.ok) { close(); toast('신고가 접수되었습니다. 감사합니다!'); }
-    else { btn.disabled = false; toast('접수 실패. 잠시 후 다시 시도하세요.', true); }
-  });
+  if (rb) rb.addEventListener('click', () => openVocModal({ toast, icon: ICON.report, channel: 'operator' }));
 }
 
 /* ---------- 토큰 게이트 ---------- */
