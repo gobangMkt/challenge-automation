@@ -21,15 +21,4 @@ export async function apiGet(params) {
   return res.json();
 }
 
-const VOC_GAS = 'https://script.google.com/macros/s/AKfycbxu24IH7mD_DE4S5tB_Aebhtz-psa-qUlHmAtRVKlfh9tpprwSGE8Z1KFTL_XuC2sonLA/exec';
-
-export async function submitVoc({ project, message, phone, channel, category }) {
-  const res = await fetch(VOC_GAS, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'submitVoc', project, message, phone: phone || '', channel: channel || 'app', category: category || '기타' }),
-  });
-  return res.json();
-}
-
 export const isConfigured = configured;
