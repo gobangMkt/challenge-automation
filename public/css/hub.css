@@ -144,6 +144,8 @@
 .statbar .pill { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 10px 16px; box-shadow: var(--shadow-card); }
 .statbar .pill b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .statbar .pill span { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); display: block; }
+.statbar__act { margin-left: auto; align-self: center; }
+.statbar__act svg { width: 15px; height: 15px; }
 
 /* 접이식 전역 설정 카드 */
 .foldcard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-bottom: 24px; overflow: hidden; }
