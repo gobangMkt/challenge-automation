@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from './api.js';
 import { openVocModal } from './voc-widget.js';
 import { thumbNode, posterNode, downloadNode } from './assets.js';
+import { rosterCsv, payoutCsv, csvFileName } from './lib/csv.js';
 
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
@@ -75,6 +76,16 @@ function genProgress(btn, label) {
   };
 }
 
+/* CSV 내려받기 — 엑셀 한글 깨짐 방지용 BOM 선행 */
+function downloadCsv(filename, csv) {
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast(`${filename} 내려받음`);
+}
+
 /* ---------- 아이콘 (SVG, stroke 2) ---------- */
 const SVG = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const ICON = {
@@ -84,6 +95,7 @@ const ICON = {
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
   refresh: SVG('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>'),
+  download: SVG('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>'),
   report: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2 L19 18 H1 Z" fill="#EF4452"/><rect x="9" y="7.5" width="2" height="5" rx="1" fill="#FFFFFF"/><circle cx="10" cy="15" r="1.2" fill="#FFFFFF"/></svg>',
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
@@ -742,6 +754,7 @@ async function drawManage(camp) {
       <div class="pill"><b class="tnum">${rows.length}</b><span>신청</span></div>
       <div class="pill"><b class="tnum" id="selCount">${selN}</b><span>선발</span></div>
       ${(dupP || dupB) ? `<div class="pill" style="border-color:var(--color-danger)"><b class="tnum" style="color:var(--color-danger)">${dupP + dupB}</b><span>중복 ${dupP ? '번호' : ''}${dupP && dupB ? '·' : ''}${dupB ? '블로그' : ''}</span></div>` : ''}
+      <button class="btn btn--secondary btn--sm statbar__act" id="csvRoster"${rows.length ? '' : ' disabled'}>${ICON.download} CSV 내보내기</button>
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>선발/탈락</th><th>우수활동자</th><th>예상 리워드</th><th>삭제</th></tr></thead><tbody>
@@ -768,6 +781,7 @@ async function drawManage(camp) {
       </tbody></table>
     </div>
     <p class="muted" style="margin-top:10px;font-size:12px">제출수=실제 제출 건수 · 예상 리워드=${pol.type === 'grade' ? '제출갯수 티어' : '제출수×단가'} 기준, 우수활동자 ×${pol.mult}. <b>우수활동자는 운영 탭의 주차별 제출 검수에서 지정</b>하며 여기서는 표시만 됩니다. 확정 정산은 <b>리워드</b> 탭 참고.</p>`;
+  el('csvRoster')?.addEventListener('click', () => downloadCsv(csvFileName(camp.name, '명단', new Date()), rosterCsv(rows)));
   const refreshRow = (tr) => {
     const cnt = Number(tr.dataset.count) || 0;
     const selNow = tr.querySelector('.js-sel')?.classList.contains('is-on');
@@ -852,9 +866,11 @@ async function drawReward(camp) {
       <div class="pill"><b class="tnum">${people.length}</b><span>정산 대상</span></div>
       <div class="pill"><b class="tnum">${won(grand)}</b><span>총 지급액</span></div>
       <div class="pill"><b class="tnum">${pol.type === 'grade' ? '갯수 티어' : won(pol.perPost) + '/건'}</b><span>단가 · 우수 ×${pol.mult}</span></div>
+      <button class="btn btn--secondary btn--sm statbar__act" id="csvPayout"${people.length ? '' : ' disabled'}>${ICON.download} CSV 내보내기</button>
     </div>
     ${people.length ? groupsHtml : '<div class="card center muted">정산 대상(선발자)이 없습니다.</div>'}
     <p class="muted" style="margin-top:12px;font-size:12px">금액별 그룹 · 제출 실건수 기준 · 우수활동자 ★는 ×${pol.mult}. excellentMultiplier 미설정 시 기본 2배 적용.</p>`;
+  el('csvPayout')?.addEventListener('click', () => downloadCsv(csvFileName(camp.name, '정산', new Date()), payoutCsv(people)));
 }
 
 /* ---------- 탭: 운영 (주차) ---------- */

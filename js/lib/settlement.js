@@ -1,3 +1,5 @@
+import { csvCell } from './csv.js';
+
 function phoneKey(raw) {
   if (raw == null) return '';
   return String(raw).replace(/\D/g, '');
@@ -35,12 +37,6 @@ export function calcSettlement(participants = [], submissions = [], wrapups = []
 }
 
 const CSV_HEADER = ['휴대폰', '성함', '제출수', '우수활동자', '활동비'];
-
-function csvCell(v) {
-  const s = v == null ? '' : String(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
 
 export function toCsv(rows = []) {
   const lines = [CSV_HEADER.join(',')];
