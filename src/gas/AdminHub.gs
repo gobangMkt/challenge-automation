@@ -214,12 +214,12 @@ function campaignDetail_(p) {
   });
 }
 
+// 날짜 부분만(시각 무시). rowsAsObjects_가 이미 텍스트로 정규화하므로 텍스트에도 멱등해야 한다.
 function fmtDate_(v) {
   if (!v) return '';
-  if (v instanceof Date) {
-    return v.getFullYear() + '-' + ('0' + (v.getMonth() + 1)).slice(-2) + '-' + ('0' + v.getDate()).slice(-2);
-  }
-  return String(v);
+  var s = String(sheetDateToText_(v));
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : s;
 }
 
 // ---------- 액션: 우수선정자 토글 ----------

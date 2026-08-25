@@ -49,13 +49,25 @@ function getSheet_(name, headers) {
   return sh;
 }
 
+// src/lib/sheet-date.js 미러 — 시트 Date 셀을 스크립트 타임존(Asia/Seoul) 텍스트로.
+// WHY: raw Date를 JSON에 실으면 UTC ISO가 되어 KST 자정이 전날 15:00Z로 밀린다.
+// 소비자(프론트 toDateInput/fmtMD/dday, schedule 로직)는 'YYYY-MM-DD' 앞자리만 쓰므로 날짜가 하루 밀린다.
+function sheetDateToText_(v) {
+  if (!(v instanceof Date)) return v;
+  if (isNaN(v.getTime())) return '';
+  var p2 = function (n) { return ('0' + n).slice(-2); };
+  var ymd = v.getFullYear() + '-' + p2(v.getMonth() + 1) + '-' + p2(v.getDate());
+  var hasTime = v.getHours() || v.getMinutes() || v.getSeconds() || v.getMilliseconds();
+  return hasTime ? ymd + ' ' + p2(v.getHours()) + ':' + p2(v.getMinutes()) + ':' + p2(v.getSeconds()) : ymd;
+}
+
 function rowsAsObjects_(sh) {
   var values = sh.getDataRange().getValues();
   if (values.length < 2) return [];
   var headers = values[0];
   return values.slice(1).map(function (row) {
     var obj = {};
-    headers.forEach(function (h, i) { obj[h] = row[i]; });
+    headers.forEach(function (h, i) { obj[h] = sheetDateToText_(row[i]); });
     return obj;
   });
 }
