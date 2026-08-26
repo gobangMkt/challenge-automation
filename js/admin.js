@@ -2,7 +2,7 @@ import { apiGet, apiPost } from './api.js';
 import { openVocModal } from './voc-widget.js';
 import { thumbNode, posterNode, downloadNode, ensureHtml2Canvas } from './assets.js';
 import { rosterCsv, payoutCsv, csvFileName } from './lib/csv.js';
-import { normalizeStatus, tabNotice } from './lib/status.js';
+import { STATUS, normalizeStatus, tabNotice } from './lib/status.js';
 import { normalizeBlogUrl } from './lib/blog-url.js';
 import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stageActions, stageTransitionFailed, validateCampaignForm, recruitEndNotice } from './lib/statusui.js';
 
@@ -101,6 +101,8 @@ const ICON = {
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
   refresh: SVG('<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>'),
   download: SVG('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>'),
+  edit: SVG('<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>'),
+  trash: SVG('<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/>'),
   report: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2 L19 18 H1 Z" fill="#EF4452"/><rect x="9" y="7.5" width="2" height="5" rx="1" fill="#FFFFFF"/><circle cx="10" cy="15" r="1.2" fill="#FFFFFF"/></svg>',
 };
 /* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스.
@@ -208,7 +210,7 @@ function rewardFor_(count, excellent, pol) {
 }
 
 /* ---------- 앱바 ---------- */
-function brandHtml() { return `<button class="brand" id="home">${ICON.star} 챌린지 허브</button>`; }
+function brandHtml() { return `<button class="brand" id="home" aria-label="챌린지 허브 홈">${ICON.star}<span class="brand__t">챌린지 허브</span></button>`; }
 function appbarHome() {
   el('appbar').innerHTML = `
     <div class="appbar__in">
@@ -216,7 +218,7 @@ function appbarHome() {
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
       <button class="btn btn--primary btn--sm" id="newBtn">+ 새 캠페인</button>
-      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고">${ICON.report} 신고하기</button>
+      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고" aria-label="버그·개선 신고">${ICON.report}<span class="btn__t">신고하기</span></button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>`;
   el('home').addEventListener('click', goHome);
@@ -234,7 +236,7 @@ function appbarWorkspace(camp, tab) {
       </nav>
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
-      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고">${ICON.report} 신고하기</button>
+      <button class="btn btn--ghost btn--sm" id="report" title="버그·개선 신고" aria-label="버그·개선 신고">${ICON.report}<span class="btn__t">신고하기</span></button>
       <button class="btn btn--ghost btn--sm" id="logout">로그아웃</button>
     </div>
     <div class="appbar__tabs">
@@ -281,7 +283,7 @@ function statusBadge(status) {
 function noticeBox(message, go) {
   return `<div class="notice" role="status">${ICON.info}
       <p class="notice__msg">${esc(message)}</p>
-      ${go ? `<a class="notice__go" href="${esc(go.href)}">${esc(go.label)}${ICON.arrowRight}</a>` : ''}
+      ${go ? `<a class="golink notice__go" href="${esc(go.href)}">${esc(go.label)}${ICON.arrowRight}</a>` : ''}
     </div>`;
 }
 
@@ -401,16 +403,103 @@ function campProgress(x) {
   </div>`;
 }
 
+/* ---------- 홈 카드 표시 로직 (진행기간 · 정렬 · 만료 분리) ----------
+   WHY: 화면 표시 전용이라 lib으로 빼지 않았다 — status.js·statusui.js는 GAS Status.gs와 1:1
+   미러라 표시 규칙이 섞이면 미러 테스트가 같이 흔들린다. 상태 '판정'은 전부 status.js의
+   STATUS 상수를 경유하고(직접 문자열 비교 없음), 여기서는 그 결과를 문구·순서로 옮기기만 한다. */
+const SORT_KEY = 'challenge.home.sort';
+const DONE_OPEN_KEY = 'challenge.home.doneOpen';
+
+const ymdOf = (v) => { const m = String(v == null ? '' : v).match(/\d{4}-\d{2}-\d{2}/); return m ? m[0] : ''; };
+const mdOf = (v) => { const y = ymdOf(v); return y ? `${+y.slice(5, 7)}.${+y.slice(8, 10)}` : ''; };
+const nextDayMd = (v) => {
+  const y = ymdOf(v);
+  if (!y) return '';
+  const d = new Date(Date.UTC(+y.slice(0, 4), +y.slice(5, 7) - 1, +y.slice(8, 10) + 1));
+  return `${d.getUTCMonth() + 1}.${d.getUTCDate()}`;
+};
+
+const inRecruitPhase = (status) => {
+  const s = normalizeStatus(status);
+  return s === STATUS.READY || s === STATUS.RECRUITING;
+};
+const isDoneCamp = (x) => normalizeStatus(x && x.status) === STATUS.DONE;
+
+/* 카드 진행기간 — campaigns 응답이 주는 날짜는 '모집마감'과 lastDueDate 둘뿐이다
+   (모집시작·시작일은 campaignDetail 응답에만 있다). 그래서 '모집기간'은 만들 수 없고,
+   지금 의미 있는 구간 하나만 보여준다: 모집 단계는 모집 마감까지, 운영 단계는 운영 구간.
+   운영 시작 = 모집마감 다음날 — deriveStatus가 모집중→운영중을 가르는 바로 그 경계다. */
+function campPeriod(x) {
+  const recruitEnd = mdOf(x['모집마감']);
+  const due = mdOf(x.lastDueDate);
+  if (inRecruitPhase(x.status) || !due) return recruitEnd ? `모집 ~ ${recruitEnd}` : '';
+  const opStart = nextDayMd(x['모집마감']);
+  return opStart ? `운영 ${opStart} ~ ${due}` : `운영 ~ ${due}`;
+}
+
+/* 현재 단계의 마감일 — 모집 단계는 모집마감, 운영 단계는 마지막 회차 마감일. */
+function campDueKey(x) {
+  return ymdOf(inRecruitPhase(x.status) ? x['모집마감'] : (x.lastDueDate || x['모집마감']));
+}
+
+/* 정렬 — campaigns 응답에 실제로 있는 필드만 쓴다.
+   생성일·updatedAt이 응답에 없어 '최근 활동순'은 만들지 않는다(없는 필드를 지어내지 않는다). */
+const SORTS = {
+  reg: { label: '등록순', cmp: null },
+  applied: { label: '신청 많은 순', cmp: (a, b) => (b.applied || 0) - (a.applied || 0) },
+  subs: { label: '제출 많은 순', cmp: (a, b) => (b.submissions || 0) - (a.submissions || 0) },
+  due: { label: '마감 임박순', cmp: (a, b) => (campDueKey(a) || '9999-99-99').localeCompare(campDueKey(b) || '9999-99-99') },
+};
+const sortKeyOf = (raw) => (Object.prototype.hasOwnProperty.call(SORTS, String(raw)) ? String(raw) : 'reg');
+function sortCampaigns(list, key) {
+  const s = SORTS[sortKeyOf(key)];
+  return s.cmp ? list.slice().sort(s.cmp) : list.slice();
+}
+
+/* 캠페인 카드 1장 — 활성/완료 그룹이 같은 마크업을 쓴다(회색 처리는 .grid--done이 소유). */
+function campCard(x) {
+  const name = esc(x.name);
+  const period = campPeriod(x);
+  return `
+    <div class="camp-card" data-id="${esc(x.challengeId)}" role="button" tabindex="0">
+      <div class="camp-card__top">
+        <span class="camp-card__name" title="${name}">${name}</span>
+        <span class="camp-card__actions">
+          <button class="btn btn--ghost btn--sm btn--icon js-edit" title="수정" aria-label="${name} 캠페인 수정">${ICON.edit}</button>
+          <button class="btn btn--ghost btn--sm btn--icon camp-card__del js-del" data-name="${name}" title="삭제" aria-label="${name} 캠페인 삭제">${ICON.trash}</button>
+        </span>
+      </div>
+      <div class="camp-card__meta">${statusBadge(x.status)}
+        <span class="camp-card__period">${period ? esc(period) : '일정 미정'}</span></div>
+      <div class="camp-card__stats">
+        <div><span class="stat__n tnum">${x.applied || 0}</span><span class="stat__l">신청</span></div>
+        <div><span class="stat__n tnum">${x.selected || 0}</span><span class="stat__l">선발</span></div>
+        <div><span class="stat__n tnum">${x.submissions || 0}</span><span class="stat__l">제출</span></div>
+        <div><span class="stat__n tnum">${x.totalRounds || '-'}</span><span class="stat__l">회차</span></div>
+      </div>
+      ${campProgress(x)}
+    </div>`;
+}
+
 /* ---------- 홈 (허브) ---------- */
 async function renderHome() {
   appbarHome();
   el('content').innerHTML = loading();
-  const c = await loadCampaigns(true); // 홈은 항상 최신
+  paintHome(await loadCampaigns(true)); // 홈은 항상 최신
+}
+
+/* 정렬 변경은 다시 그리기만 한다 — 재조회 없이 state.campaigns를 재사용. */
+function paintHome(c) {
   const tApplied = c.reduce((s, x) => s + (x.applied || 0), 0);
   const tSel = c.reduce((s, x) => s + (x.selected || 0), 0);
+  const sortKey = sortKeyOf(localStorage.getItem(SORT_KEY));
+  const sorted = sortCampaigns(c, sortKey);
+  const live = sorted.filter((x) => !isDoneCamp(x));
+  const done = sorted.filter((x) => isDoneCamp(x));
+  const doneOpen = localStorage.getItem(DONE_OPEN_KEY) === '1';
   el('content').innerHTML = `
     <div class="page-head page-head__row"><div>
-      <h1 class="page-head__title">캠페인 허브</h1>
+      <h1 class="page-head__title">챌린지 허브</h1>
       <p class="page-head__desc">캠페인을 누르면 준비·관리·운영을 한 곳에서 처리합니다.</p></div>
       ${state.dbUrl ? `<a class="btn btn--secondary btn--sm" href="${esc(state.dbUrl)}" target="_blank" rel="noopener">🗄 DB 시트 열기 ↗</a>` : ''}
     </div>
@@ -418,36 +507,35 @@ async function renderHome() {
       <div class="pill"><b class="tnum">${c.length}</b><span>캠페인</span></div>
       <div class="pill"><b class="tnum">${tApplied}</b><span>총 신청</span></div>
       <div class="pill"><b class="tnum">${tSel}</b><span>총 선발</span></div>
+      <label class="sortsel statbar__act"><span class="sortsel__l">정렬</span>
+        <select class="select select--inline" id="campSort" aria-label="캠페인 정렬 기준">
+          ${Object.keys(SORTS).map((k) => `<option value="${k}"${k === sortKey ? ' selected' : ''}>${SORTS[k].label}</option>`).join('')}
+        </select></label>
     </div>
     ${recruitEndNoticeHtml(c)}
     <div class="grid" id="grid">
-      ${c.map((x) => `
-        <div class="camp-card" data-id="${esc(x.challengeId)}" role="button" tabindex="0">
-          <div class="camp-card__top"><span class="camp-card__name">${esc(x.name)}</span>
-            <span class="camp-card__actions">
-              ${statusBadge(x.status)}
-              <button class="btn btn--ghost btn--sm js-edit" style="padding:2px 8px;color:var(--color-primary)">수정</button>
-              <button class="btn btn--ghost btn--sm js-del" data-name="${esc(x.name)}" style="padding:2px 8px;color:var(--color-danger)">삭제</button>
-            </span></div>
-          <div class="camp-card__stats">
-            <div><span class="stat__n tnum">${x.applied || 0}</span><span class="stat__l">신청</span></div>
-            <div><span class="stat__n tnum">${x.selected || 0}</span><span class="stat__l">선발</span></div>
-            <div><span class="stat__n tnum">${x.submissions || 0}</span><span class="stat__l">제출</span></div>
-            <div><span class="stat__n tnum">${x.totalRounds || '-'}</span><span class="stat__l">회차</span></div>
-          </div>
-          ${campProgress(x)}
-        </div>`).join('')}
+      ${live.map(campCard).join('')}
       <button class="camp-card camp-card--new" id="newCard">+ 새 캠페인 만들기</button>
-    </div>`;
+    </div>
+    ${done.length ? `
+    <details class="donegroup" id="doneGroup"${doneOpen ? ' open' : ''}>
+      <summary class="donegroup__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
+        <span class="donegroup__t">완료된 캠페인</span><b class="donegroup__n tnum">${done.length}</b></summary>
+      <div class="grid grid--done">${done.map(campCard).join('')}</div>
+    </details>` : ''}`;
   el('newCard').addEventListener('click', () => { location.hash = '#/new'; });
-  el('grid').querySelectorAll('.camp-card[data-id]').forEach((card) => {
+  const sel = el('campSort');
+  sel.addEventListener('change', () => { localStorage.setItem(SORT_KEY, sortKeyOf(sel.value)); paintHome(state.campaigns); });
+  const dg = el('doneGroup');
+  if (dg) dg.addEventListener('toggle', () => localStorage.setItem(DONE_OPEN_KEY, dg.open ? '1' : '0'));
+  el('content').querySelectorAll('.camp-card[data-id]').forEach((card) => {
     const id = card.dataset.id;
     card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
     card.querySelector('.js-edit')?.addEventListener('click', (e) => { e.stopPropagation(); location.hash = `#/edit/${encodeURIComponent(id)}`; });
     card.querySelector('.js-del')?.addEventListener('click', async (e) => {
       e.stopPropagation();
       const ok = await confirmModal({
-        title: `'${e.target.dataset.name}' 캠페인을 삭제할까요?`,
+        title: `'${e.currentTarget.dataset.name}' 캠페인을 삭제할까요?`,
         message: '신청·제출 등 관련 데이터가 모두 삭제됩니다.\n이 작업은 되돌릴 수 없어요.',
         confirmLabel: '삭제',
         danger: true,
@@ -677,38 +765,56 @@ async function drawMarketing(camp) {
     </li>`).join('');
   el('content').innerHTML = `
     ${sechead('mkt')}
+    <div id="stageBox" class="stagelead"></div>
     <div class="card"><div class="card__title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <span>신청 상세페이지 배포</span>
       <button class="btn btn--ghost btn--sm" id="editCamp" title="상세 내용 수정" aria-label="상세 내용 수정" style="padding:7px 9px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13.1 2.5a1.5 1.5 0 0 1 2.1 0l2.3 2.3a1.5 1.5 0 0 1 0 2.1l-8.6 8.6-4.5 1.2 1.2-4.5z" fill="currentColor"/></svg></button></div>
-      <p class="muted" style="margin-bottom:10px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
-      <div class="linkrow">
-        <div class="linkrow__cell">
-          <div class="linkrow__label">참가 신청 페이지</div>
-          <div class="linkrow__btns">
-            <button class="btn btn--secondary btn--sm" id="copy">링크 복사</button>
-            <a class="btn btn--primary btn--sm" href="${esc(link)}" target="_blank">열기</a></div>
+      <p class="muted" style="margin-bottom:14px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
+      <div class="deploy">
+        <div class="deploy__prev">
+          <div class="deploy__prevhead">
+            <span class="deploy__prevlabel">미리보기</span>
+            <a class="golink" href="${esc(link)}" target="_blank" rel="noopener">새 탭으로 열기${ICON.arrowRight}</a>
+          </div>
+          <div class="deploy__frame" id="prevFrameBox">
+            <div class="deploy__skel">신청 페이지 불러오는 중…</div>
+            <iframe class="deploy__iframe" id="prevLanding" src="${esc(link)}" title="참가 신청 페이지 미리보기" loading="lazy"></iframe>
+          </div>
         </div>
-        <div class="linkrow__cell">
-          <div class="linkrow__label">주차 제출 페이지</div>
-          <div class="linkrow__btns">
-            <button class="btn btn--secondary btn--sm" id="copySubmit">링크 복사</button>
-            <a class="btn btn--primary btn--sm" href="${esc(link)}#submit" target="_blank">열기</a></div>
+        <div class="linkrow">
+          <div class="linkrow__cell">
+            <div class="linkrow__label">참가 신청 페이지</div>
+            <p class="linkrow__desc">참가자가 블로그를 등록하는 신청 화면입니다.</p>
+            <div class="linkrow__btns">
+              <button class="btn btn--secondary btn--sm" id="copy">링크 복사</button>
+              <a class="golink" href="${esc(link)}" target="_blank" rel="noopener">열기${ICON.arrowRight}</a></div>
+          </div>
+          <div class="linkrow__cell">
+            <div class="linkrow__label">주차 제출 페이지</div>
+            <p class="linkrow__desc">매주 작성한 게시물 URL을 제출하는 화면입니다.</p>
+            <div class="linkrow__btns">
+              <button class="btn btn--secondary btn--sm" id="copySubmit">링크 복사</button>
+              <a class="golink" href="${esc(link)}#submit" target="_blank" rel="noopener">열기${ICON.arrowRight}</a></div>
+          </div>
+          <div class="linkrow__cell">
+            <div class="linkrow__label">마무리 · 리워드 신청 폼</div>
+            <p class="linkrow__desc">활동을 마친 참가자가 리워드를 신청하는 폼입니다.</p>
+            <div class="linkrow__btns">
+              <button class="btn btn--secondary btn--sm" id="copyWrapupMkt">링크 복사</button>
+              <a class="golink" href="${esc(link)}#wrapup" target="_blank" rel="noopener">열기${ICON.arrowRight}</a></div>
+          </div>
+          <div class="linkrow__cell">
+            <div class="linkrow__label">썸네일 · 포스터 <span class="linkrow__hint">캠페인 BI로 자동 생성</span></div>
+            <div class="assets assets--mini">
+              <div class="asset">
+                <div class="asset__prev asset__prev--mini asset__prev--thumb" id="prevThumb"><span class="muted" style="font-size:12px">생성 중…</span></div>
+                <button class="btn btn--secondary btn--sm" id="dlThumb">썸네일 1:1</button></div>
+              <div class="asset">
+                <div class="asset__prev asset__prev--mini" id="prevPoster"><span class="muted" style="font-size:12px">생성 중…</span></div>
+                <button class="btn btn--secondary btn--sm" id="dlPoster">포스터</button></div>
+            </div>
+          </div>
         </div>
-        <div class="linkrow__cell">
-          <div class="linkrow__label">마무리 · 리워드 신청 폼</div>
-          <div class="linkrow__btns">
-            <button class="btn btn--secondary btn--sm" id="copyWrapupMkt">링크 복사</button>
-            <a class="btn btn--primary btn--sm" href="${esc(link)}#wrapup" target="_blank">열기</a></div>
-        </div>
-      </div>
-    </div>
-    <div class="card"><div class="card__title">썸네일 · 포스터 <span class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500">자동 생성</span></div>
-      <p class="muted" style="margin-bottom:16px">캠페인 BI로 자동 합성됩니다. 다운로드해 업로드 사이트에 첨부하세요.</p>
-      <div class="assets">
-        <div class="asset"><div class="asset__prev" id="prevThumb"><span class="muted" style="font-size:13px">생성 중…</span></div>
-          <button class="btn btn--secondary btn--sm" id="dlThumb">썸네일 다운로드 (1:1)</button></div>
-        <div class="asset"><div class="asset__prev asset__prev--poster" id="prevPoster"><span class="muted" style="font-size:13px">생성 중…</span></div>
-          <button class="btn btn--secondary btn--sm" id="dlPoster">포스터 다운로드</button></div>
       </div>
     </div>
     <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
@@ -720,9 +826,10 @@ async function drawMarketing(camp) {
         <input class="input" id="us-id" placeholder="로그인 ID (선택)" />
         <button class="btn btn--secondary btn--sm" id="us-add">+ 사이트 추가</button>
       </div>
-    </div>
-    <div id="stageBox"></div>`;
+    </div>`;
   renderStageBox(camp, el('stageBox'), 'mkt');
+  // GAS 응답이 느려 로드 전엔 자리만 잡아둔다
+  el('prevLanding')?.addEventListener('load', () => el('prevFrameBox')?.classList.add('is-ready'));
   el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
   el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
   el('copyWrapupMkt')?.addEventListener('click', () => { navigator.clipboard.writeText(`${link}#wrapup`); toast('마무리 폼 링크 복사됨'); });
@@ -740,9 +847,9 @@ async function drawMarketing(camp) {
         if (document.fonts) await document.fonts.ready;
         stage.appendChild(node); document.body.appendChild(stage);
         const canvas = await window.html2canvas(node, { scale: 0.5, backgroundColor: null, useCORS: true, logging: false });
-        box.innerHTML = ''; box.style.height = 'auto';
+        box.innerHTML = '';
         const img = new Image(); img.src = canvas.toDataURL('image/png');
-        img.style.cssText = `width:${dispW}px;height:auto;display:block;border-radius:8px`;
+        img.style.maxWidth = `${dispW}px`;
         box.appendChild(img);
       } catch (e) { box.innerHTML = '<span class="muted" style="font-size:12px">미리보기 생성 실패 (다운로드는 가능)</span>'; }
       finally { stage.remove(); }

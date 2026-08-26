@@ -362,7 +362,6 @@ function renderSubmit() {
       <div class="field__hint" style="margin-top:8px">신청 때 등록한 휴대폰·블로그로 본인 확인해요. 이 기기에 저장됩니다.</div>
     </div>
     <div id="s-status"></div>
-    <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">챌린지 상세 보기 →</a></p>
   </div>`;
   bindPhone($('#s-phone'));
   $('#s-check').addEventListener('click', () => loadStatus());
@@ -431,6 +430,7 @@ function weekCard(w, d, excellent) {
   const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
   const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
   const form = isOpen ? `<div class="wk-submitbox">
+      <p class="wk-warn">제출 전 <b>작성가이드</b>를 꼭 확인하세요. 지키지 않은 글은 반려될 수 있어요.</p>
       <div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
       <div class="wk-submit">
         <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}"${w.submitted ? ' disabled' : ''} />
@@ -491,7 +491,7 @@ function renderDashboard(r, phone) {
 
   const learnSection = `<section class="ssec">
     <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
-    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
     <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
   </section>`;
 
@@ -619,7 +619,6 @@ function renderWrapup() {
         <label class="checkrow"><input type="checkbox" id="w-agree" /><span>개인정보 수집·이용에 동의합니다.</span></label>
         <button class="btn btn--primary btn--block" id="w-do" style="margin-top:12px">리워드 신청 제출</button>
       </section>
-      <p class="center muted" style="margin-top:18px;font-size:13px"><a href="#">챌린지 상세 보기 →</a></p>
     </div>`;
   bindPhone($('#w-phone'));
   $('#w-do').addEventListener('click', async (e) => {

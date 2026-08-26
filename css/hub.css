@@ -5,7 +5,7 @@
 /* 상단 앱바 */
 .appbar { background: var(--color-surface); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 30; }
 .appbar__in { display: flex; align-items: center; gap: 14px; padding: 14px 28px; max-width: 1400px; margin: 0 auto; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; background: transparent; border: 0; font-family: inherit; color: var(--color-ink); cursor: pointer; padding: 0; }
+.brand { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex: none; font-weight: 800; font-size: 18px; background: transparent; border: 0; font-family: inherit; color: var(--color-ink); cursor: pointer; padding: 0; }
 .brand:hover { color: var(--color-primary); }
 /* 미니멀 로고 마크 (★ 글리프 숨기고 블루 라운드 스퀘어) */
 .brandstar { font-size: 0; width: 24px; height: 24px; flex: none; display: inline-flex; }
@@ -145,12 +145,16 @@
 }
 .camp-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
 .camp-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.camp-card__name { font-size: 17px; font-weight: 700; }
+.camp-card__name { font-size: 17px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 상태 배지 + 진행기간 — 카드 상단은 제목·액션만 두고 상태/일정은 이 줄이 맡는다 */
+.camp-card__meta { display: flex; align-items: center; gap: 8px; margin-top: -4px; min-width: 0; }
+.camp-card__period { font-family: var(--font-mono); font-size: 12px; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .camp-card__stats { display: flex; gap: 20px; }
 .stat__n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; display: block; }
 .stat__l { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); }
 .camp-card--new { border-style: dashed; align-items: center; justify-content: center; color: var(--color-primary); font-weight: 700; min-height: 160px; font-size: 16px; }
-.camp-card__actions { display: flex; gap: 4px; align-items: center; flex: none; }
+.camp-card__actions { display: flex; gap: 2px; align-items: center; flex: none; }
+.camp-card__del:hover { color: var(--color-danger); }
 
 /* 홈 카드 진행률 */
 .camp-prog { margin-top: 4px; }
@@ -159,6 +163,22 @@
 .camp-prog__track { height: 7px; border-radius: var(--radius-pill); background: var(--color-surface-2); overflow: hidden; }
 .camp-prog__track i { display: block; height: 100%; background: var(--color-primary); border-radius: var(--radius-pill); transition: width .3s var(--ease-out); }
 
+/* 완료(만료) 캠페인 그룹 — 구분선 아래로 내리고 기본 접힘. 0건이면 마크업 자체가 없다. */
+.donegroup { margin-top: 28px; padding-top: 4px; border-top: 1px solid var(--color-border); }
+.donegroup__sum { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px 2px; }
+.donegroup__sum::-webkit-details-marker { display: none; }
+.donegroup__sum:hover .donegroup__t { color: var(--color-ink); }
+.donegroup__t { font-size: 14px; font-weight: 700; color: var(--color-ink-muted); }
+.donegroup__n { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--color-ink-faint); }
+.donegroup[open] .foldcard__chev { transform: rotate(90deg); }
+.grid--done { padding-bottom: 8px; }
+.grid--done .camp-card { background: var(--color-surface-2); box-shadow: none; }
+.grid--done .camp-card:hover { box-shadow: var(--shadow-card); }
+.grid--done .camp-card__name, .grid--done .stat__n { color: var(--color-ink-muted); }
+.grid--done .camp-prog__head b { color: var(--color-ink-muted); }
+.grid--done .camp-prog__track { background: var(--color-border); }
+.grid--done .camp-prog__track i { background: var(--color-ink-faint); }
+
 /* 통계 띠 */
 .statbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .statbar .pill { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 10px 16px; box-shadow: var(--shadow-card); }
@@ -166,6 +186,10 @@
 .statbar .pill span { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); display: block; }
 .statbar__act { margin-left: auto; align-self: center; }
 .statbar__act svg { width: 15px; height: 15px; }
+/* 조회 조건 드롭다운 — 폼용 .select의 인라인 축소판(폼 필드가 아니라 목록 위 컨트롤) */
+.sortsel { display: inline-flex; align-items: center; gap: 8px; }
+.sortsel__l { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); font-weight: 500; }
+.select--inline { width: auto; min-height: 38px; padding: 0 32px 0 12px; font-size: 14px; border-width: 1px; border-radius: var(--radius-sm); background: var(--color-surface); cursor: pointer; }
 
 /* 접이식 전역 설정 카드 */
 .foldcard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); margin-bottom: 24px; overflow: hidden; }
@@ -214,6 +238,8 @@
 .stagebox__act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .stagebox__due { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-ink-muted); }
 .stagebox__due .input { width: auto; min-height: 40px; padding: 8px 12px; font-size: 14px; }
+/* 준비 탭 — 단계 전이가 화면 첫 요소다(맨 위) */
+.stagelead .stagebox { margin-top: 0; margin-bottom: var(--space-4); }
 
 /* 안내 배너 (notice) — 잠금이 아니라 안내다. 탭은 전부 열려 있다. */
 .notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
@@ -221,12 +247,13 @@
 .notice svg { width: 18px; height: 18px; flex: none; color: var(--color-ink-faint); }
 /* 아이콘과 같은 줄에서 내부 줄바꿈 — flex 기준폭이 없으면 긴 문구가 통째로 다음 줄로 밀린다 */
 .notice__msg { flex: 1 1 260px; font-size: 13.5px; color: var(--color-ink-muted); min-width: 0; }
-/* 어휘 ④ 다른 화면으로 간다 = 텍스트 + 화살표, 테두리 금지 */
-.notice__go { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+/* 어휘 ④ 다른 화면으로 간다 = 텍스트 + 화살표, 테두리 금지 (정본) */
+.golink { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
   font-size: 13.5px; font-weight: 700; color: var(--color-primary); text-decoration: none; }
-.notice__go svg { width: 15px; height: 15px; color: currentColor; transition: transform .15s var(--ease-out); }
-.notice__go:hover { color: var(--color-primary-hover); }
-.notice__go:hover svg { transform: translateX(2px); }
+.golink svg { width: 15px; height: 15px; color: currentColor; transition: transform .15s var(--ease-out); }
+.golink:hover { color: var(--color-primary-hover); }
+.golink:hover svg { transform: translateX(2px); }
+.notice__go { margin-left: auto; }
 
 /* 상태 토글(대기/오픈/마감) */
 .seg--status .seg__btn.is-on { background: var(--color-success); }
@@ -251,11 +278,28 @@
 .empty { text-align: center; color: var(--color-ink-faint); padding: 40px; }
 .copybox { display: flex; gap: 8px; align-items: center; }
 .copybox input { font-size: 14px; }
-.linkrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.linkrow__cell { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 16px; background: var(--color-surface-2); }
-.linkrow__label { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--color-ink); }
-.linkrow__btns { display: flex; gap: 8px; flex-wrap: wrap; }
-@media (max-width: 600px) { .linkrow { grid-template-columns: 1fr; } }
+/* 배포 4칸 — 1fr 행으로 두 줄 높이를 맞춘다 */
+.linkrow { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 12px; }
+.linkrow__cell { display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 16px; background: var(--color-surface-2); }
+.linkrow__label { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--color-ink); }
+.linkrow__hint { font-size: 12px; font-weight: 500; color: var(--color-ink-faint); }
+.linkrow__desc { font-size: 12.5px; line-height: 1.5; color: var(--color-ink-muted); margin-bottom: 12px; }
+/* 액션을 셀 바닥에 붙여 4칸의 하단선을 맞춘다 */
+.linkrow__btns { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+
+/* 배포 카드 — 좌: 신청 페이지 상시 미리보기 / 우: 4칸 배포 그리드 */
+.deploy { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.deploy__prev { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.deploy__prevhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.deploy__prevlabel { font-size: 12px; font-weight: 700; color: var(--color-ink-faint); }
+/* 높이를 먼저 잡아 로드 전후 레이아웃이 튀지 않게 한다 */
+.deploy__frame { position: relative; flex: 1; min-height: 320px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-2); }
+.deploy__iframe { display: block; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .2s var(--ease-out); }
+.deploy__frame.is-ready .deploy__iframe { opacity: 1; }
+.deploy__skel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--color-ink-faint); }
+.deploy__frame.is-ready .deploy__skel { display: none; }
+@media (max-width: 1100px) { .deploy { grid-template-columns: 1fr; } .deploy__frame { min-height: 420px; } }
+@media (max-width: 600px) { .linkrow { grid-template-columns: 1fr; grid-auto-rows: auto; } }
 /* 우수활동자 강조 — 지정 시 또렷하게 */
 .js-ex.is-ex { background: #FFF4D6; color: #B26A00; border: 1px solid #FFD56B; font-weight: 800; }
 .exstar { font-size: 17px; vertical-align: -1px; }
@@ -264,8 +308,16 @@ tr.is-excellent { background: #FFFCF2; }
 /* 썸네일·포스터 자산 */
 .assets { display: flex; gap: 18px; flex-wrap: wrap; }
 .asset { display: flex; flex-direction: column; gap: 10px; }
-.asset__prev { width: 240px; min-height: 120px; border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-surface-2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.asset__prev img { max-width: 100%; }
+.asset__prev { width: 240px; min-height: 120px; border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-surface); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.asset__prev img { display: block; max-width: 100%; border-radius: 8px; }
+/* 배포 4번째 칸용 축소형 — 세로가 긴 포스터는 상단만 보이게 자른다 */
+.assets--mini { gap: 10px; flex-wrap: nowrap; }
+.assets--mini .asset { flex: 1 1 0; min-width: 0; gap: 8px; }
+/* 1:1 썸네일은 정사각으로, 남는 폭은 포스터가 가져간다 */
+.assets--mini .asset:first-child { flex: 0 0 110px; }
+.asset__prev--mini { width: auto; height: 110px; min-height: 0; align-items: flex-start; }
+.asset__prev--mini img { width: 100%; border-radius: 0; }
+.asset__prev--thumb img { width: auto; height: 100%; }
 
 /* 업로드 사이트 체크리스트 */
 .usites { list-style: none; display: flex; flex-direction: column; gap: 0; }
@@ -310,5 +362,22 @@ tr.is-excellent { background: #FFFCF2; }
   .appbar__in, .appbar__tabs, .content { padding-left: 16px; padding-right: 16px; }
   .row2 { grid-template-columns: 1fr; }
   .appbar__tab { padding: 12px 12px; }
+  /* 앱바는 좁아도 1줄 — 브랜드가 세로로 쪼개지지 않게 nowrap을 두고 대신 컨트롤을 줄인다 */
+  .appbar__in { gap: 8px; }
+  .appbar__in .brand { font-size: 16px; }
+  .appbar__in .btn--sm { font-size: 13px; min-height: 36px; padding: 0 10px; }
+  .appbar__in .btn--sm.btn--icon { padding: 0 8px; }
+  .appbar__in .btn--sm svg { width: 16px; height: 16px; }
+  .appbar__in .btn__t { display: none; } /* 라벨은 title·aria-label로 남는다(어휘 ③) */
+  /* 작업공간 브레드크럼은 좁은 화면에서 로고 마크만 남기고 캠페인명에 폭을 준다 */
+  .crumbs .brand__t { display: none; }
+  .crumbs__cur { font-size: 14px; max-width: none; }
+}
+@media (max-width: 480px) {
+  .appbar__in { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .appbar__in .brand { font-size: 15px; gap: 6px; }
+  .appbar__in .brandstar, .appbar__in .brandstar::before { width: 20px; height: 20px; }
+  .appbar__in .btn--sm { padding: 0 8px; }
+  .sortsel { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .grid .camp-card { animation: none; } }
