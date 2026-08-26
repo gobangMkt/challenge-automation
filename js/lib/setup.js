@@ -1,6 +1,7 @@
-// S2 챌린지 생성·설정 순수 로직 (의존성 0, GAS Setup.gs와 미러)
+// S2 챌린지 생성·설정 순수 로직 (GAS Setup.gs와 미러)
 
-const STATUS_VALUES = ['모집중', '선발중', '진행중', '종료'];
+import { STORED_STATUS_VALUES, isKnownStatus, normalizeStatus } from './status.js';
+
 const DEFAULT_ROUNDS = 10;
 
 export function slugify(raw, suffix) {
@@ -72,11 +73,28 @@ export function validateSettings(input = {}) {
     if (!Number.isFinite(mult) || mult < 1) errors.excellentMultiplier = '우수 배수는 1 이상이어야 합니다.';
   }
 
-  if (input.status != null && String(input.status) !== '' && !STATUS_VALUES.includes(String(input.status))) {
+  // 해석 가능한 상태(레거시 별칭 포함)면 통과. 저장 대상 3종으로 좁히는 일은
+  // resolveSavedStatus가 쓰기 직전에 한다 — 파생값 '운영중'을 받아도 설정 저장을 막지 않는다.
+  const status = input.status == null ? '' : String(input.status).trim();
+  if (status !== '' && !isKnownStatus(status)) {
     errors.status = '상태 값이 올바르지 않습니다.';
   }
 
   return { ok: Object.keys(errors).length === 0, errors };
 }
 
-export const SETUP_STATUS_VALUES = STATUS_VALUES;
+function isStorableStatus(raw) {
+  return isKnownStatus(raw) && STORED_STATUS_VALUES.includes(normalizeStatus(raw));
+}
+
+// 시트에 쓸 status 결정.
+// WHY: updateChallengeRow_가 17열을 통째로 덮어쓴다. status를 안 보낸 수정 저장이
+// 기본값을 대입하면 모집중→준비로 역행하므로, 미지정이면 기존 행 값을 그대로 보존한다.
+// 신규 생성은 기존 값이 없으니 자연히 '준비'가 된다.
+export function resolveSavedStatus(inputStatus, prevStatus) {
+  const raw = String(inputStatus == null ? '' : inputStatus).trim();
+  if (raw && isStorableStatus(raw)) return normalizeStatus(raw);
+  return normalizeStatus(prevStatus);
+}
+
+export const SETUP_STATUS_VALUES = STORED_STATUS_VALUES;

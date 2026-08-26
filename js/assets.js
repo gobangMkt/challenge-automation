@@ -143,9 +143,30 @@ export function posterNode(c, d) {
   return el;
 }
 
-/* 노드 → PNG 다운로드 (html2canvas 전역 필요) */
+/* html2canvas(197KB)는 준비 탭에서만 쓰이므로 최초 사용 시점에 1회만 내려받는다 */
+const H2C_SRC = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+let h2cLoad = null;
+export function ensureHtml2Canvas() {
+  if (typeof window.html2canvas === 'function') return Promise.resolve(window.html2canvas);
+  if (h2cLoad) return h2cLoad;
+  h2cLoad = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = H2C_SRC;
+    s.async = true;
+    s.onload = () => {
+      if (typeof window.html2canvas === 'function') resolve(window.html2canvas);
+      else reject(new Error('html2canvas 로드 실패'));
+    };
+    s.onerror = () => { s.remove(); reject(new Error('html2canvas 로드 실패')); };
+    document.head.appendChild(s);
+  });
+  h2cLoad.catch(() => { h2cLoad = null; }); // 실패해도 다음 시도에서 재로드 가능하게
+  return h2cLoad;
+}
+
+/* 노드 → PNG 다운로드 (html2canvas 필요 — 없으면 이 시점에 로드) */
 export async function downloadNode(node, filename, scale = 1) {
-  if (typeof window.html2canvas !== 'function') throw new Error('html2canvas 로드 안 됨');
+  await ensureHtml2Canvas();
   document.fonts && document.fonts.ready && (await document.fonts.ready);
   const stage = document.createElement('div');
   stage.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1';
