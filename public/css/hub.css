@@ -31,9 +31,29 @@
 .appbar__tab svg { width: 18px; height: 18px; }
 .appbar__tab:hover { color: var(--color-ink); }
 .appbar__tab.sec-mkt.is-active { color: var(--color-primary-hover); border-bottom-color: var(--color-primary); }
-.appbar__tab.sec-manage.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
+.appbar__tab.sec-manage.is-active { color: var(--color-success-on); border-bottom-color: var(--color-success); }
 .appbar__tab.sec-operate.is-active { color: #B54708; border-bottom-color: var(--color-warning); }
-.appbar__tab.sec-reward.is-active { color: #0E8F53; border-bottom-color: var(--color-success); }
+.appbar__tab.sec-reward.is-active { color: var(--color-success-on); border-bottom-color: var(--color-success); }
+
+/* ---------- 챌린지 상태 배지 (준비 → 모집중 → 운영중 → 완료) ---------- */
+/* 형태는 4상태 동일 — .badge 기본형(24px, radius-sm) + soft 배경 + 헤어라인.
+   채움(solid) 금지: 채움은 primary CTA의 어휘이고 상태는 읽는 것이지 누르는 것이 아니다. */
+.badge--ready {
+  background: var(--color-surface-2); color: var(--color-ink-muted);
+  border-color: var(--color-border);
+}
+.badge--recruiting {
+  background: var(--color-primary-soft); color: var(--color-primary-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+.badge--running {
+  background: var(--color-warning-soft); color: var(--color-warning-on);
+  border-color: color-mix(in srgb, var(--color-warning) 24%, transparent);
+}
+.badge--done {
+  background: var(--color-success-soft); color: var(--color-success-on);
+  border-color: color-mix(in srgb, var(--color-success) 24%, transparent);
+}
 
 /* 관리 — 중복 행 강조 */
 .table tr.is-dup { background: color-mix(in srgb, var(--color-danger) 7%, transparent); }
@@ -167,9 +187,12 @@
 .weekchip:hover { transform: translateY(-1px); }
 .weekchip__n { font-size: 17px; font-weight: 800; color: var(--color-ink); }
 .weekchip__st { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--color-surface-2); color: var(--color-ink-faint); }
-.weekchip.s-open .weekchip__st { background: var(--color-success-soft); color: #0E8F53; }
-.weekchip.s-done .weekchip__st { background: var(--color-surface-2); color: var(--color-ink-faint); }
-.weekchip.s-wait .weekchip__st { background: #FEF0DC; color: #B54708; }
+/* 회차 상태 색 — 배지(.badge)와 칩(.weekchip__st)이 같은 규칙을 공유한다.
+   강도 순서: 오픈(진행 중) > 종료(끝남) > 대기(아무 일 없음). 대기가 가장 약하다. */
+.badge.s-open, .weekchip.s-open .weekchip__st { background: var(--color-success-soft); color: var(--color-success-on); }
+.badge.s-done, .weekchip.s-done .weekchip__st { background: var(--color-surface-2); color: var(--color-ink-muted); }
+.badge.s-wait, .weekchip.s-wait .weekchip__st { background: transparent; color: var(--color-ink-faint); }
+.badge.s-open, .badge.s-done, .badge.s-wait { border-color: var(--color-border); }
 .weekchip.is-active { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .weekchip.is-active .weekchip__n { color: var(--color-primary-hover); }
 .weekchip { position: relative; }
@@ -180,13 +203,30 @@
 .weekchip--reward .weekchip__st { background: rgba(255,255,255,.28); color: #fff; }
 .weekchip--reward:hover { background: color-mix(in srgb, var(--color-primary) 72%, #fff); }
 
-/* 챌린지 종료/재개 박스 */
-.endbox { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-  padding: 16px 18px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
-.endbox.is-ended { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 5%, transparent); }
-.endbox__info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.endbox__t { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-.endbox__d { font-size: 12.5px; color: var(--color-ink-muted); }
+/* 단계 전이 박스 (stagebox) — 정보 좌측(제목+상태배지+설명) / 액션 우측.
+   준비 탭의 '모집 시작하기'와 운영 탭의 종료·재개가 같은 컴포넌트다. */
+.stagebox { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: 22px; padding: 16px 18px; border: 1px solid var(--color-border);
+  border-radius: var(--radius); background: var(--color-surface); }
+.stagebox__info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.stagebox__t { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.stagebox__d { font-size: 12.5px; color: var(--color-ink-muted); }
+.stagebox__act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stagebox__due { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-ink-muted); }
+.stagebox__due .input { width: auto; min-height: 40px; padding: 8px 12px; font-size: 14px; }
+
+/* 안내 배너 (notice) — 잠금이 아니라 안내다. 탭은 전부 열려 있다. */
+.notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+  padding: 13px 16px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-2); }
+.notice svg { width: 18px; height: 18px; flex: none; color: var(--color-ink-faint); }
+/* 아이콘과 같은 줄에서 내부 줄바꿈 — flex 기준폭이 없으면 긴 문구가 통째로 다음 줄로 밀린다 */
+.notice__msg { flex: 1 1 260px; font-size: 13.5px; color: var(--color-ink-muted); min-width: 0; }
+/* 어휘 ④ 다른 화면으로 간다 = 텍스트 + 화살표, 테두리 금지 */
+.notice__go { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 13.5px; font-weight: 700; color: var(--color-primary); text-decoration: none; }
+.notice__go svg { width: 15px; height: 15px; color: currentColor; transition: transform .15s var(--ease-out); }
+.notice__go:hover { color: var(--color-primary-hover); }
+.notice__go:hover svg { transform: translateX(2px); }
 
 /* 상태 토글(대기/오픈/마감) */
 .seg--status .seg__btn.is-on { background: var(--color-success); }

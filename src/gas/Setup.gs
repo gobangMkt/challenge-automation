@@ -3,7 +3,7 @@
  * action: createChallenge / saveSettings / saveMissions
  * doPost/doGet 분기는 Code.gs(메인)에서 배선. 헬퍼(getSheet_/rowsAsObjects_/json_/
  * operatorToken_)는 Code.gs 전역 재사용 — 여기서 재정의 금지.
- * 순수 로직은 public/js/lib/setup.js 미러.
+ * 순수 로직은 public/js/lib/setup.js 미러. 상태 판정은 Status.gs(= lib/status.js 미러) 재사용.
  */
 
 var CHALLENGE_HEADERS = [
@@ -17,7 +17,6 @@ var WEEKMISSION_HEADERS = [
   'challengeId', '회차', '미션제목', '미션본문',
   'articleName', 'articleUrl', '오픈일', '마감일', '상태',
 ];
-var SETUP_STATUS_VALUES_GAS = ['모집중', '선발중', '진행중', '종료'];
 var SETUP_DEFAULT_ROUNDS = 10;
 // SHEETS(Code.gs)에 weekMissions 키가 없을 수 있어 슬라이스 로컬로 시트명 고정.
 var WEEKMISSIONS_SHEET = 'WeekMissions';
@@ -33,6 +32,19 @@ function setupSlugify_(raw, suffix) {
     .replace(/^-|-$/g, '');
   var core = base || ('challenge-' + Date.now().toString(36));
   return suffix ? (core + '-' + suffix) : core;
+}
+
+// 저장 대상은 STORED_STATUS_VALUES 3종뿐. 파생값 '운영중'은 시트에 쓰지 않는다.
+// WHY 함수 안에서 참조: Status.gs 전역은 파일 로드 순서에 따라 최상위 초기화 시점엔 비어있을 수 있다.
+function setupIsStorableStatus_(raw) {
+  return isKnownStatus(raw) && STORED_STATUS_VALUES.indexOf(normalizeStatus(raw)) !== -1;
+}
+
+// lib/setup.js resolveSavedStatus 미러 — 미지정이면 기존 행 값 보존(신규는 준비).
+function setupResolveStatus_(inputStatus, prevStatus) {
+  var raw = String(inputStatus == null ? '' : inputStatus).trim();
+  if (raw && setupIsStorableStatus_(raw)) return normalizeStatus(raw);
+  return normalizeStatus(prevStatus);
 }
 
 function setupToRounds_(n) {
@@ -54,8 +66,8 @@ function setupValidateSettings_(input) {
     var mult = Number(input.excellentMultiplier);
     if (!isFinite(mult) || mult < 1) errors.excellentMultiplier = '우수 배수는 1 이상이어야 합니다.';
   }
-  if (input.status != null && String(input.status) !== '' &&
-      SETUP_STATUS_VALUES_GAS.indexOf(String(input.status)) === -1) {
+  var status = input.status == null ? '' : String(input.status).trim();
+  if (status !== '' && !isKnownStatus(status)) {
     errors.status = '상태 값이 올바르지 않습니다.';
   }
   var ok = true;
@@ -111,12 +123,12 @@ function createChallenge_(body) {
   return json_({ ok: true, challengeId: challengeId, totalRounds: totalRounds });
 }
 
-function challengeRecord_(challengeId, body, totalRounds) {
+// prevStatus: 기존 행의 status(수정 저장 시 필수). 신규 생성이면 넘기지 않는다.
+function challengeRecord_(challengeId, body, totalRounds, prevStatus) {
   return [
     challengeId,
     String(body.name).trim(),
-    body.status && SETUP_STATUS_VALUES_GAS.indexOf(String(body.status)) !== -1
-      ? String(body.status) : '모집중',
+    setupResolveStatus_(body.status, prevStatus),
     body.모집시작 || body.recruitStart || '',
     body.모집마감 || body.recruitEnd || '',
     body.발표일 || body.announceDate || '',
@@ -146,7 +158,9 @@ function saveSettings_(body) {
   if (rowIdx < 0) return json_({ ok: false, error: 'not_found' });
 
   var totalRounds = setupToRounds_(body.totalRounds);
-  var record = challengeRecord_(body.challengeId, body, totalRounds);
+  var stC = CHALLENGE_HEADERS.indexOf('status');
+  var prevStatus = sh.getRange(rowIdx, stC + 1).getValue();
+  var record = challengeRecord_(body.challengeId, body, totalRounds, prevStatus);
   sh.getRange(rowIdx, 1, 1, CHALLENGE_HEADERS.length).setValues([record]);
   return json_({ ok: true, challengeId: body.challengeId, totalRounds: totalRounds });
 }
@@ -178,6 +192,7 @@ function saveMissions_(body) {
   }
 
   var appended = [];
+  var updates = [];
   for (var round = 1; round <= totalRounds; round++) {
     var src = byRound[round] || {};
     var title = src.title != null ? String(src.title) : '';
@@ -185,12 +200,18 @@ function saveMissions_(body) {
     var articleName = src.articleName != null ? String(src.articleName) : '';
     var articleUrl = src.articleUrl != null ? String(src.articleUrl) : '';
     var existRow = rowByRound[round];
-    if (existRow) {
-      // 미션 4필드만 갱신, 오픈일/마감일/상태는 보존
-      wm.getRange(existRow, 3, 1, 4).setValues([[title, bodyText, articleName, articleUrl]]);
-    } else {
-      appended.push([body.challengeId, round, title, bodyText, articleName, articleUrl, '', '', '대기']);
-    }
+    if (existRow) updates.push([existRow, [title, bodyText, articleName, articleUrl]]);
+    else appended.push([body.challengeId, round, title, bodyText, articleName, articleUrl, '', '', '대기']);
+  }
+  // 미션 4필드(3~6열)만 갱신, 오픈일/마감일/상태는 보존. 연속 행은 setValues 1회로 묶는다
+  updates.sort(function (a, b) { return a[0] - b[0]; });
+  for (var u = 0; u < updates.length;) {
+    var v = u;
+    while (v + 1 < updates.length && updates[v + 1][0] === updates[v][0] + 1) v++;
+    var block = [];
+    for (var k = u; k <= v; k++) block.push(updates[k][1]);
+    wm.getRange(updates[u][0], 3, block.length, 4).setValues(block);
+    u = v + 1;
   }
   if (appended.length) {
     wm.getRange(wm.getLastRow() + 1, 1, appended.length, WEEKMISSION_HEADERS.length).setValues(appended);

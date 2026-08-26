@@ -61,15 +61,18 @@ function sheetDateToText_(v) {
   return hasTime ? ymd + ' ' + p2(v.getHours()) + ':' + p2(v.getMinutes()) + ':' + p2(v.getSeconds()) : ymd;
 }
 
+// 헤더 배열 + 한 행 → 객체. getDataRange 결과를 이미 손에 쥔 호출부가 시트를 다시 읽지 않게 한다.
+function rowObject_(headers, row) {
+  var obj = {};
+  headers.forEach(function (h, i) { obj[h] = sheetDateToText_(row[i]); });
+  return obj;
+}
+
 function rowsAsObjects_(sh) {
   var values = sh.getDataRange().getValues();
   if (values.length < 2) return [];
   var headers = values[0];
-  return values.slice(1).map(function (row) {
-    var obj = {};
-    headers.forEach(function (h, i) { obj[h] = sheetDateToText_(row[i]); });
-    return obj;
-  });
+  return values.slice(1).map(function (row) { return rowObject_(headers, row); });
 }
 
 function json_(obj) {
@@ -244,25 +247,32 @@ function findRowIndexByPhone_(sh, challengeId, phone) {
   return -1;
 }
 
+// 블로그 아이디 자리에 올 수 있는 네이버 시스템 경로. 아이디로 오인하면 남남이 같은 키가 된다.
+var NAVER_RESERVED_PATH_ = ['prologue', 'postlist', 'postview', 'bloghome', 'guestbook'];
+
 // 블로그 URL 정규화(중복 비교용). 네이버 변형(m./PostList?blogId=)은 blogId로 통일.
 function normBlog_(u) {
   var s = String(u == null ? '' : u).trim().toLowerCase();
   if (!s) return '';
   var mid = s.match(/blogid=([a-z0-9_-]+)/);
   if (mid) return 'naver:' + mid[1];
-  var mp = s.match(/(?:m\.)?blog\.naver\.com\/([a-z0-9_-]+)/);
-  if (mp && mp[1] !== 'postlist.naver') return 'naver:' + mp[1];
+  // 캡처에 점을 포함해야 PostList.naver 같은 시스템 경로가 통째로 잡힌다.
+  // 점 없이 잡으면 'postlist'만 캡처돼 아래 가드를 못 넘고, 서로 다른 사람이 같은 키를 갖는다.
+  var mp = s.match(/(?:m\.)?blog\.naver\.com\/([a-z0-9_.-]+)/);
+  if (mp && mp[1].indexOf('.') === -1 && NAVER_RESERVED_PATH_.indexOf(mp[1]) === -1) return 'naver:' + mp[1];
   return s.replace(/[?#].*$/, '').replace(/\/+$/, '');
 }
 
+// 신청 가능 여부 = 파생 상태가 '모집중'일 때만. 준비/운영중/완료는 모두 차단이다.
+// Challenges 시트나 행이 없으면(초기 상태) 기존대로 허용.
 function isRecruiting_(challengeId) {
-  // Challenges 시트가 없으면 기본 모집중(true). S2에서 일정 기반으로 확장.
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SHEETS.challenges);
   if (!sh) return true;
   var all = rowsAsObjects_(sh);
   var c = all.filter(function (r) { return String(r.challengeId) === String(challengeId); })[0];
   if (!c) return true;
-  if (c.status && String(c.status) !== '모집중') return false;
-  return true;
+  // 운영종료일은 Schedule.gs의 statusInput_이 단일 소스 — 여기서 시트 마감일만 쓰면
+  // 허브 화면·자동화와 판정이 갈린다.
+  return deriveStatus(statusInput_(c, weekMissionsFor_(challengeId)), statusTodayYmd_()) === '모집중';
 }

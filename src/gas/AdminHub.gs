@@ -5,6 +5,10 @@
  * uniqueChallengeId_/challengeIdExists_/challengeRecord_/setupValidateSettings_/
  * setupToRounds_/saveMissions_/weekMissionsFor_/WEEKMISSIONS_SHEET) 는 기존 파일 재사용.
  * 라우터 배선은 Code.gs doPost/doGet에 추가.
+ * 상태 판정(normalizeStatus/deriveStatus/canTransition/lastDueDate/toYmd/statusTodayYmd_)은
+ * Status.gs(= public/js/lib/status.js 미러) 재사용 — 여기서 재구현 금지.
+ * 운영종료일·deriveStatus 입력(statusInput_)은 Schedule.gs 재사용 — 화면과 자동화가 같은 답을
+ * 내야 한다. 여기서 lastDueDate(시트 마감일 최대값)만으로 입력을 만들면 판정이 갈린다.
  */
 
 var CAMPAIGN_HEADERS = ['challengeId', 'detailJson', 'updatedAt'];
@@ -18,17 +22,40 @@ function challengeById_(challengeId) {
   })[0] || null;
 }
 
+// 17열 통째 덮어쓰기라 기존 status를 함께 넘겨야 한다 — 안 그러면 수정 저장 한 번에 상태가 역행한다.
 function updateChallengeRow_(challengeId, body, totalRounds) {
   var sh = getSheet_(SHEETS.challenges, CHALLENGE_HEADERS);
   var values = sh.getDataRange().getValues();
+  var stC = values.length ? values[0].indexOf('status') : -1;
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]) === String(challengeId)) {
+      var prevStatus = stC >= 0 ? values[i][stC] : '';
       sh.getRange(i + 1, 1, 1, CHALLENGE_HEADERS.length)
-        .setValues([challengeRecord_(challengeId, body, totalRounds)]);
+        .setValues([challengeRecord_(challengeId, body, totalRounds, prevStatus)]);
       return true;
     }
   }
   return false;
+}
+
+// ---------- 운영종료일 ----------
+// 마지막 회차(최대 회차 번호) 행의 마감일을 덮어쓴다. 재개 시 운영종료일 연장용.
+function setLastDueDate_(challengeId, ymd) {
+  var sh = getSheet_(WEEKMISSIONS_SHEET, WEEKMISSION_HEADERS);
+  var values = sh.getDataRange().getValues();
+  if (values.length < 2) return false;
+  var idC = values[0].indexOf('challengeId'), rC = values[0].indexOf('회차'), duC = values[0].indexOf('마감일');
+  if (idC < 0 || rC < 0 || duC < 0) return false;
+  var bestRow = -1, bestRound = -1;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][idC]) !== String(challengeId)) continue;
+    var r = parseInt(values[i][rC], 10);
+    if (isNaN(r)) r = 0;
+    if (r >= bestRound) { bestRound = r; bestRow = i + 1; }
+  }
+  if (bestRow < 0) return false;
+  sh.getRange(bestRow, duC + 1).setValue(ymd);
+  return true;
 }
 
 // ---------- 캠페인 상세(랜딩 JSON) ----------
@@ -91,24 +118,53 @@ function saveCampaign_(body) {
   return json_({ ok: true, challengeId: challengeId, totalRounds: totalRounds });
 }
 
-// ---------- 액션: 캠페인 상태 변경 (종료/재개) ----------
+// ---------- 액션: 캠페인 상태 수동 전이 ----------
+// 요청: { token, challengeId, status, lastDueDate? }
+//   status      목표 상태. 레거시 별칭(종료/진행중/선발중) 허용 — 저장 전 normalizeStatus로 정규화.
+//               허용 여부는 canTransition(현재 파생상태, status)이 판정한다(운영중은 목적지 불가).
+//   lastDueDate 선택. 'YYYY-MM-DD'. 마지막 회차의 마감일을 이 값으로 덮어쓴다.
+//     WHY: 완료→모집중 재개는 저장값만 바꿔선 되돌아온다. 마지막 회차 마감일이 이미 지나 있으면
+//     deriveStatus가 곧바로 완료로 판정하기 때문. 재개 = 저장값 변경 + 마감일 연장이 한 쌍이다.
+// 응답: { ok, status(저장값), effectiveStatus(파생), lastDueDate, from }
 function setCampaignStatus_(body) {
   if (body.token !== operatorToken_()) return json_({ ok: false, error: 'forbidden' });
   var cid = body.challengeId;
   if (!cid) return json_({ ok: false, error: 'challenge_required' });
-  var status = String(body.status || '');
-  if (['종료', '모집중', '진행중'].indexOf(status) === -1) return json_({ ok: false, error: 'bad_status' });
+
   var sh = getSheet_(SHEETS.challenges, CHALLENGE_HEADERS);
   var values = sh.getDataRange().getValues();
-  var stC = values[0].indexOf('status');
+  var stC = values.length ? values[0].indexOf('status') : -1;
   if (stC < 0) return json_({ ok: false, error: 'no_status_col' });
+
+  var rowIdx = -1;
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(cid)) {
-      sh.getRange(i + 1, stC + 1).setValue(status);
-      return json_({ ok: true, status: status });
-    }
+    if (String(values[i][0]) === String(cid)) { rowIdx = i; break; }
   }
-  return json_({ ok: false, error: 'not_found' });
+  if (rowIdx < 0) return json_({ ok: false, error: 'not_found' });
+
+  var row = rowObject_(values[0], values[rowIdx]); // 시트를 다시 읽지 않고 판정 입력을 만든다
+  var missions = weekMissionsFor_(cid);
+  var today = statusTodayYmd_();
+  var from = deriveStatus(statusInput_(row, missions), today);
+
+  var next = body.status == null ? '' : String(body.status);
+  if (!canTransition(from, next)) return json_({ ok: false, error: 'bad_transition', from: from });
+  var stored = normalizeStatus(next);
+
+  if (body.lastDueDate != null && String(body.lastDueDate) !== '') {
+    var extended = toYmd(body.lastDueDate);
+    if (!extended) return json_({ ok: false, error: 'bad_date' });
+    if (!setLastDueDate_(cid, extended)) return json_({ ok: false, error: 'no_rounds' });
+    missions = weekMissionsFor_(cid); // 연장한 마감일을 운영종료일에 반영
+  }
+
+  sh.getRange(rowIdx + 1, stC + 1).setValue(stored);
+  row.status = stored;
+  var input = statusInput_(row, missions);
+  return json_({
+    ok: true, from: from, status: stored,
+    effectiveStatus: deriveStatus(input, today), lastDueDate: input.lastDueDate,
+  });
 }
 
 // ---------- 액션: 캠페인 삭제 (관련 전 시트 행 제거) ----------
@@ -123,9 +179,14 @@ function deleteCampaign_(body) {
     var sh = ss.getSheetByName(nm);
     if (!sh) return;
     var values = sh.getDataRange().getValues();
+    // 아래에서 위로 훑되 연속 구간을 묶어 deleteRows 1회씩 — 행별 deleteRow N회 방지
+    var end = -1;
     for (var i = values.length - 1; i >= 1; i--) {
-      if (String(values[i][0]) === String(cid)) { sh.deleteRow(i + 1); removed += 1; }
+      var hit = String(values[i][0]) === String(cid);
+      if (hit && end < 0) end = i;
+      if (!hit && end >= 0) { sh.deleteRows(i + 2, end - i); removed += end - i; end = -1; }
     }
+    if (end >= 0) { sh.deleteRows(2, end); removed += end; }
   });
   return json_({ ok: true, removed: removed });
 }
@@ -160,8 +221,12 @@ function boardData_(p) {
   });
   var d = campaignDetailObj_(cid) || {};
   var ch = challengeById_(cid) || {};
+  var input = statusInput_(ch, weekMissionsFor_(cid));
   return json_({
     ok: true, totalWeeks: totalW, rows: rows,
+    status: deriveStatus(input, statusTodayYmd_()),
+    storedStatus: normalizeStatus(ch.status),
+    lastDueDate: input.lastDueDate,
     policy: {
       rewardType: d.rewardType || '', rewardTiers: d.rewardTiers || null,
       rewardAmount: d.rewardAmount || '', rewardPerPost: ch.rewardPerPost || '',
@@ -176,6 +241,8 @@ function campaigns_(p) {
   var chs = rowsAsObjects_(getSheet_(SHEETS.challenges, CHALLENGE_HEADERS));
   var parts = rowsAsObjects_(getSheet_(SHEETS.participants, PARTICIPANT_HEADERS));
   var subs = rowsAsObjects_(getSheet_('Submissions', SUBMISSION_HEADERS));
+  var missionsById = missionsByChallenge_();
+  var today = statusTodayYmd_();
   var list = chs.map(function (c) {
     var cid = String(c.challengeId);
     var applied = 0, selected = 0;
@@ -185,8 +252,12 @@ function campaigns_(p) {
       if (String(r.status) === 'selected' || String(r.status) === '선발') selected += 1;
     });
     var subCount = subs.filter(function (s) { return String(s.challengeId) === cid; }).length;
+    var input = statusInput_(c, missionsById[cid] || []);
     return {
-      challengeId: c.challengeId, name: c.name, status: c.status,
+      challengeId: c.challengeId, name: c.name,
+      status: deriveStatus(input, today),
+      storedStatus: normalizeStatus(c.status), lastDueDate: input.lastDueDate,
+      모집마감: fmtDate_(c['모집마감']), // 비면 파생 전이가 멈춘다 — 허브가 안내 배너로 알린다
       totalRounds: c['총회차'], rewardPerPost: c.rewardPerPost, openchatUrl: c.openchatUrl,
       applied: applied, selected: selected, submissions: subCount,
     };
@@ -202,10 +273,13 @@ function campaignDetail_(p) {
   if (!challengeId) return json_({ ok: false, error: 'challenge_required' });
   var ch = challengeById_(challengeId);
   if (!ch) return json_({ ok: false, error: 'not_found' });
+  var input = statusInput_(ch, weekMissionsFor_(challengeId));
   return json_({
     ok: true,
     challenge: {
-      challengeId: ch.challengeId, name: ch.name, status: ch.status,
+      challengeId: ch.challengeId, name: ch.name,
+      status: deriveStatus(input, statusTodayYmd_()),
+      storedStatus: normalizeStatus(ch.status), lastDueDate: input.lastDueDate,
       totalRounds: ch['총회차'], rewardPerPost: ch.rewardPerPost, openchatUrl: ch.openchatUrl,
       모집시작: fmtDate_(ch['모집시작']), 모집마감: fmtDate_(ch['모집마감']),
       발표일: fmtDate_(ch['발표일']), 시작일: fmtDate_(ch['시작일']),
@@ -330,22 +404,40 @@ function saveMission_(body) {
     opC = h.indexOf('오픈일'), duC = h.indexOf('마감일');
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][idC]) === String(body.challengeId) && parseInt(values[i][rC], 10) === round) {
-      if (body.title != null) sh.getRange(i + 1, tC + 1).setValue(String(body.title));
-      if (body.body != null) sh.getRange(i + 1, bC + 1).setValue(String(body.body));
-      if (body.openDate != null && opC >= 0) sh.getRange(i + 1, opC + 1).setValue(String(body.openDate).trim());
-      if (body.dueDate != null && duC >= 0) sh.getRange(i + 1, duC + 1).setValue(String(body.dueDate).trim());
+      var writes = {};
+      if (body.title != null) writes[tC + 1] = String(body.title);
+      if (body.body != null) writes[bC + 1] = String(body.body);
+      if (body.openDate != null && opC >= 0) writes[opC + 1] = String(body.openDate).trim();
+      if (body.dueDate != null && duC >= 0) writes[duC + 1] = String(body.dueDate).trim();
       var articleName = null;
       if (body.articleUrl != null) {
         var url = String(body.articleUrl).trim();
-        sh.getRange(i + 1, auC + 1).setValue(url);
+        writes[auC + 1] = url;
         // 아티클명은 URL에서 자동 추출 (og:title > <title>)
         articleName = url ? fetchPageTitle_(url) : '';
-        if (articleName) sh.getRange(i + 1, anC + 1).setValue(articleName);
+        if (articleName) writes[anC + 1] = articleName;
       }
+      writeRowCells_(sh, i + 1, writes);
       return json_({ ok: true, round: round, articleName: articleName || '' });
     }
   }
   return json_({ ok: false, error: 'not_found' });
+}
+
+// 한 행의 흩어진 셀 쓰기를 연속 열 구간별 setValues 1회로 묶는다 (개별 setValue N회 방지).
+// writes = { 1-based열번호: 값 }
+function writeRowCells_(sh, row, writes) {
+  var cols = Object.keys(writes).map(Number).filter(function (c) { return c > 0; })
+    .sort(function (a, b) { return a - b; });
+  var i = 0;
+  while (i < cols.length) {
+    var j = i;
+    while (j + 1 < cols.length && cols[j + 1] === cols[j] + 1) j++;
+    var vals = [];
+    for (var k = i; k <= j; k++) vals.push(writes[cols[k]]);
+    sh.getRange(row, cols[i], 1, vals.length).setValues([vals]);
+    i = j + 1;
+  }
 }
 
 // ---------- 액션: 캠페인 전역 보조필드 저장 (운영 — 교육자료·유의사항) ----------

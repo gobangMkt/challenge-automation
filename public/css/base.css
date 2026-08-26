@@ -20,11 +20,18 @@
   --color-ink-faint: #9AA0AA;
   --color-border: #ECEDEF;
   --color-border-strong: #DDDFE3;
+  /* 시맨틱 3종 — base(면·아이콘) / soft(배경) / on(soft·흰 배경 위 텍스트, 대비 ≥4.5:1) */
   --color-success: #12B76A;
   --color-success-soft: #E6F7EF;
+  --color-success-on: #0B7A45;
   --color-warning: #F79009;
+  --color-warning-soft: #FEF0DC;
+  --color-warning-on: #B54708;
   --color-danger: #F04438;
   --color-danger-soft: #FEECEB;
+  --color-danger-on: #D3261D;
+  /* 블루 채움 위 텍스트 (5.19:1) */
+  --color-on-primary: #FFFFFF;
 
   /* 모던 = 절제된 라운딩 */
   --radius-sm: 8px;
@@ -133,7 +140,7 @@ a { color: var(--color-primary); text-underline-offset: 3px; }
 }
 .badge--primary { background: var(--color-primary-soft); color: var(--color-primary-hover); border-color: transparent; }
 .badge--accent { background: var(--color-primary-soft); color: var(--color-primary-hover); border-color: transparent; }
-.badge--success { background: var(--color-success-soft); color: #0E8F53; border-color: transparent; }
+.badge--success { background: var(--color-success-soft); color: var(--color-success-on); border-color: transparent; }
 .badge--danger { background: var(--color-danger-soft); color: #D3261D; border-color: transparent; }
 .badge--star::before { content: '★'; }
 

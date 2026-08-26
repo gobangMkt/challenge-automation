@@ -51,6 +51,20 @@ function weekMissionsFor_(challengeId) {
   });
 }
 
+// 캠페인별 회차 목록 맵. 캠페인 루프 안에서 WeekMissions를 매번 풀리드하면 N+1이라
+// 1회 읽고 메모리에서 나눈다. 허브 목록(AdminHub)·일일 자동화(Automation) 공용.
+function missionsByChallenge_() {
+  var rows = rowsAsObjects_(getSheet_('WeekMissions', WEEKMISSION_HEADERS));
+  var byId = {};
+  for (var i = 0; i < rows.length; i++) {
+    var cid = String(rows[i].challengeId == null ? '' : rows[i].challengeId);
+    if (!cid) continue;
+    if (!byId[cid]) byId[cid] = [];
+    byId[cid].push(rows[i]);
+  }
+  return byId;
+}
+
 function selectedParticipant_(challengeId, phone) {
   var sh = getSheet_(SHEETS.participants, PARTICIPANT_HEADERS);
   var rows = rowsAsObjects_(sh);
@@ -140,8 +154,10 @@ function myStatus_(challengeId, phone, blogUrl) {
   var p = selectedParticipant_(challengeId, norm);
   if (!p) return json_({ ok: false, error: 'not_found' });
   if (blogUrl) {
-    var nb = String(blogUrl).trim().replace(/\/+$/, '').toLowerCase();
-    var pb = String(p.blogUrl || '').trim().replace(/\/+$/, '').toLowerCase();
+    // 신청 때 중복판정에 쓰는 normBlog_와 같은 함수로 비교한다.
+    // 직접 소문자·슬래시만 다듬으면 m.blog.naver.com과 blog.naver.com이 갈려 본인확인이 실패한다.
+    var nb = normBlog_(blogUrl);
+    var pb = normBlog_(p.blogUrl || '');
     if (nb && pb && nb !== pb) return json_({ ok: false, error: 'blog_mismatch' });
   }
   var selected = String(p.status) === 'selected' || String(p.status) === '선발';

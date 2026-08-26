@@ -83,10 +83,28 @@ S1 신청 ──> S2 챌린지설정 ──> S3 선발 ──┐
   - 전역 중복 제거(WEEKMISSION_HEADERS·NOTIFYLOG_HEADERS·findChallengeRow_)
   - 알림톡 제출링크를 `?c=...#/submit`(쿼리 우선)로 수정
 
+---
+## 상태 프로세스 개편 (2026-08-25 · 플랜 `docs/plan-status-rework.md`)
+- [x] S0 perf S · S1 `lib/status.js`+테스트 · S1b 디자인 토큰 3종
+- [x] S2 GAS 미러 `Status.gs` + 파생 status 응답 + `challengeRecord_` status 보존
+- [x] S3 허브 UI(탭 개명·stagebox·안내 배너·배지 4상태·하드코딩 제거)
+- [x] S4 랜딩 게이팅 · S5 자동화 진입조건 운영중(파생)
+- [x] S6 `migrateStatus()` 1회성 함수 (Init.gs, 기본 dry-run)
+- [x] 허브 UI ↔ 자동화 운영종료일 통일 — 순수 스케줄 로직을 `src/gas/Schedule.gs`로 분리하고
+      `statusInput_` 하나로 모음(`tests/status-consistency.test.js`가 고정)
+- [x] `모집마감` 필수 입력 + 빈 캠페인 허브 안내 배너(`validateCampaignForm`/`recruitEndNotice`)
+- [ ] S7 perf M(낙관적 UI·bumpRev_ 범위축소·알림톡 fetchAll·스켈레톤·`.btn.is-busy`)
+- [ ] S8 어휘/토큰 정리(raw hex·웜톤·죽은 CSS·인라인 style)
+- [ ] S9 QA(Playwright: 상태별 배너·신청 차단·전이 버튼)
+
+**배포 순서 고정: GAS 먼저 → Pages.** `isRecruiting_`·랜딩이 새 값을 모르면 운영 중 캠페인 신청이 즉시 차단된다.
+**GAS 파일 11개**(`Schedule.gs` 신규) — 붙여넣기 누락 시 자동화·허브 상태 판정이 전부 죽는다.
+
+---
 ## 남은 일 (사용자 작업 — 코드 아님)
-1. 구글 스프레드시트 생성 → Apps Script에 `src/gas/*.gs` 7개 붙여넣고 **Web App 배포**(액세스=모든 사용자)
+1. 구글 스프레드시트 생성 → Apps Script에 `src/gas/*.gs` **11개** 붙여넣고 **Web App 배포**(액세스=모든 사용자)
 2. Script Properties 설정: `OPERATOR_TOKEN`, `APP_BASE_URL`(Pages URL), `NOTION_TOKEN`, `SOLAPI_KEY/SECRET/SENDER/PFID`, `SOLAPI_TPL_OPEN/REMIND/SELECT/DONE`
 3. `public/js/config.js`의 `GAS_ENDPOINT` 교체
-4. `dailyTrigger` 시간트리거 매일 1회 등록
+4. `dailyTrigger` 시간트리거 매일 1회 등록 — 등록 전 `dryRunDaily()`로 발송 대상 확인 필수
 5. SOLAPI 채널·알림톡 템플릿 4종 승인 / Notion Integration에 「작성기록」 DB 공유
 → 그 후 전체 E2E(신청→선발→제출→대시보드→자동알림→마무리→정산) 검증

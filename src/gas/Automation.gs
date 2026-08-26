@@ -1,7 +1,11 @@
 /**
  * S6 — 스케줄 자동화 + SOLAPI 알림톡 + 노션 아티클 read.
- * 순수로직 planDailyRun은 public/js/lib/schedule.js 미러(아래 인라인).
- * 공유 헬퍼(getSheet_/rowsAsObjects_/json_/operatorToken_/normalizePhone)는 Code.gs 재사용.
+ * 순수로직(planDailyRun_/weekWindow_/operationEndDate_/scheduleChallengeInput_)은 Schedule.gs
+ * (= public/js/lib/schedule.js 미러) 재사용 — 여기서 재구현 금지.
+ * 공유 헬퍼(getSheet_/rowsAsObjects_/json_/operatorToken_/normalizePhone/missionsByChallenge_)는
+ * Code.gs·Submit.gs 재사용.
+ * 상태 판정(deriveStatus/normalizeStatus/lastDueDate/toYmd/statusTodayYmd_)은 Status.gs 재사용 —
+ * 여기서 재구현 금지. 자동화 진입조건은 시트 저장값이 아니라 파생 상태 '운영중'이다.
  *
  * 시트 헤더(표준=한글, spec.md / 소유 슬라이스 기준):
  *  WeekMissions: challengeId, 회차, 미션제목, 미션본문, articleName, articleUrl, 오픈일, 마감일, 상태
@@ -24,67 +28,6 @@ var TPL_PROP = {
   done: 'SOLAPI_TPL_DONE',
 };
 
-// ---------- 순수 로직 (lib/schedule.js 미러) ----------
-var DOW_ = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
-var DAY_MS_ = 86400000;
-
-function ymd_(d) {
-  var y = d.getUTCFullYear();
-  var m = ('0' + (d.getUTCMonth() + 1)).slice(-2);
-  var day = ('0' + d.getUTCDate()).slice(-2);
-  return y + '-' + m + '-' + day;
-}
-function toUtcMs_(ymd) {
-  var p = String(ymd).slice(0, 10).split('-');
-  return Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-}
-function addDaysYmd_(ymd, n) {
-  return ymd_(new Date(toUtcMs_(ymd) + n * DAY_MS_));
-}
-function firstOpen_(challenge) {
-  var start = String(challenge.startDate).slice(0, 10);
-  var want = DOW_[challenge.openDow];
-  if (want == null) return start;
-  var cur = new Date(toUtcMs_(start)).getUTCDay();
-  return addDaysYmd_(start, (want - cur + 7) % 7);
-}
-function weekWindow_(challenge, week) {
-  var open = addDaysYmd_(firstOpen_(challenge), (week - 1) * 7);
-  var close;
-  if (challenge.closeDow && DOW_[challenge.closeDow] != null) {
-    var openDay = new Date(toUtcMs_(open)).getUTCDay();
-    var delta = (DOW_[challenge.closeDow] - openDay + 7) % 7;
-    close = addDaysYmd_(open, delta === 0 ? 7 : delta);
-  } else {
-    var off = Number(challenge.closeOffset);
-    close = addDaysYmd_(open, isFinite(off) ? off : 6);
-  }
-  return { open: open, close: close };
-}
-function missionStatus_(weekMissions, week) {
-  for (var i = 0; i < weekMissions.length; i++) {
-    if (Number(weekMissions[i]['회차']) === Number(week)) return String(weekMissions[i]['상태'] || '');
-  }
-  return '대기';
-}
-function planDailyRun_(challenge, weekMissions, today) {
-  var result = { openWeek: null, remindWeek: null, closeWeek: null };
-  if (!challenge || String(challenge.status) !== '진행중') return result;
-  var total = Number(challenge.totalWeeks) || 10;
-  var t = toUtcMs_(today);
-  for (var w = 1; w <= total; w++) {
-    var win = weekWindow_(challenge, w);
-    var openMs = toUtcMs_(win.open);
-    var closeMs = toUtcMs_(win.close);
-    var st = missionStatus_(weekMissions, w);
-    if (t === openMs && st !== '오픈' && st !== '마감' && result.openWeek == null) result.openWeek = w;
-    if (st === '오픈') {
-      if (t >= closeMs && result.closeWeek == null) result.closeWeek = w;
-      else if (t === closeMs - DAY_MS_ && result.remindWeek == null) result.remindWeek = w;
-    }
-  }
-  return result;
-}
 
 // ---------- 시트 접근 보조 ----------
 function challengesRows_() {
@@ -175,17 +118,33 @@ function assignFallbackArticles_(challengeId) {
   var used = {};
   rows.forEach(function (r) { if (r.articleUrl) used[String(r.articleUrl)] = true; });
   var pool = articles.filter(function (a) { return a.url && !used[String(a.url)]; });
+  // 회차→행번호 인덱스를 루프 밖에서 1회만 만든다 (기존: 회차마다 시트 풀리드 = N+1)
+  var values = sh.getDataRange().getValues();
+  var rowByRound = {};
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) !== String(challengeId)) continue;
+    var w = Number(values[i][1]);
+    if (!isNaN(w) && rowByRound[w] == null) rowByRound[w] = i + 1; // 첫 매칭 행 = findWeekMissionRow_ 동작
+  }
+  var pending = {}; // 행번호 → [articleName, articleUrl]
   var pi = 0, filled = 0;
   rows.sort(function (a, b) { return Number(a['회차']) - Number(b['회차']); }).forEach(function (r) {
     if (r.articleUrl || pi >= pool.length) return;
     var a = pool[pi++];
-    var rowIdx = findWeekMissionRow_(sh, challengeId, r['회차']);
-    if (rowIdx > 0) {
-      sh.getRange(rowIdx, 5).setValue(a.name); // articleName
-      sh.getRange(rowIdx, 6).setValue(a.url);  // articleUrl
-      filled++;
-    }
+    var rw = Number(r['회차']);
+    var rowIdx = isNaN(rw) ? -1 : (rowByRound[rw] || -1);
+    if (rowIdx > 0) { pending[rowIdx] = [a.name, a.url]; filled++; }
   });
+  // articleName·articleUrl(5~6열) — 연속 행은 setValues 1회로 묶는다
+  var targets = Object.keys(pending).map(Number).sort(function (x, y) { return x - y; });
+  for (var t = 0; t < targets.length;) {
+    var e = t;
+    while (e + 1 < targets.length && targets[e + 1] === targets[e] + 1) e++;
+    var block = [];
+    for (var k = t; k <= e; k++) block.push(pending[targets[k]]);
+    sh.getRange(targets[t], 5, block.length, 2).setValues(block);
+    t = e + 1;
+  }
   return filled;
 }
 
@@ -235,30 +194,73 @@ function logNotify_(challengeId, week, type, phone, result) {
 
 // ---------- 시간트리거 핸들러 ----------
 function dailyTrigger() {
-  var today = ymd_(new Date());
+  var today = statusTodayYmd_();
+  var missionsById = missionsByChallenge_();
   challengesRows_().forEach(function (c) {
-    if (String(c.status) !== '진행중') return;
-    var ch = {
-      status: c.status, startDate: c.startDate || c['시작일'], openDow: c.openDow || c['오픈요일'],
-      closeDow: c.closeDow || c['마감요일'], closeOffset: c.closeOffset || c['마감오프셋'],
-      totalWeeks: c.totalWeeks || c['총회차'],
-    };
-    var missions = weekMissionRows_(c.challengeId);
-    var plan = planDailyRun_(ch, missions, today);
+    var missions = missionsById[String(c.challengeId)] || [];
+    var plan = planDailyRun_(scheduleChallengeInput_(c), missions, today);
     if (plan.openWeek) openWeek_(c, plan.openWeek);
     if (plan.remindWeek) remindWeek_(c, plan.remindWeek);
     if (plan.closeWeek) closeWeek_(c, plan.closeWeek);
   });
 }
 
+// ---------- 드라이런 (발송·시트쓰기 없음) ----------
+// "오늘(또는 지정일) 트리거가 돌면 누구에게 무엇이 나가는가"를 계산만 해서 보여준다.
+// Apps Script 편집기에서 dryRunDaily() 또는 dryRunDaily('2026-09-01') 실행 → 실행로그 확인.
+// 배포 직후 자동화를 되살리기 전에 반드시 한 번 돌려볼 것.
+function dryRunDaily(todayYmd) {
+  var today = toYmd(todayYmd) || statusTodayYmd_();
+  var missionsById = missionsByChallenge_();
+  var out = [];
+  challengesRows_().forEach(function (c) {
+    var missions = missionsById[String(c.challengeId)] || [];
+    var ch = scheduleChallengeInput_(c);
+    var plan = planDailyRun_(ch, missions, today);
+    var total = Number(ch.totalWeeks) || 10;
+    var acts = [];
+    if (plan.openWeek || plan.remindWeek || plan.closeWeek) {
+      var selected = selectedParticipants_(c.challengeId).length;
+      if (plan.openWeek) acts.push('오픈 ' + plan.openWeek + '회차 → open 알림톡 ' + selected + '명');
+      if (plan.remindWeek) {
+        var done = submittedPhones_(c.challengeId, plan.remindWeek);
+        var left = selectedParticipants_(c.challengeId).filter(function (p) {
+          return !done[normalizePhone(p.phone) || String(p.phone)];
+        }).length;
+        acts.push('리마인드 ' + plan.remindWeek + '회차 → remind 알림톡 ' + left + '명(미제출)');
+      }
+      if (plan.closeWeek) {
+        acts.push('마감 ' + plan.closeWeek + '회차' +
+          (Number(plan.closeWeek) >= total ? ' → done 알림톡 ' + selected + '명(최종회차)' : ' → 발송없음'));
+      }
+    }
+    out.push({
+      challengeId: c.challengeId,
+      name: c.name || '',
+      storedStatus: normalizeStatus(c.status),
+      status: deriveStatus(scheduleStatusInput_(ch, missions), today),
+      recruitEnd: toYmd(ch['모집마감']),
+      operationEnd: operationEndDate_(ch, missions),
+      actions: acts,
+    });
+  });
+  Logger.log('[dryRunDaily] 기준일 ' + today + ' / 캠페인 ' + out.length + '건');
+  out.forEach(function (r) {
+    Logger.log([
+      r.challengeId, r.name || '(무명)',
+      '저장:' + r.storedStatus + ' → 파생:' + r.status,
+      '모집마감 ' + (r.recruitEnd || '-'), '운영종료 ' + (r.operationEnd || '-'),
+      r.actions.length ? r.actions.join(' / ') : '할 일 없음',
+    ].join(' | '));
+  });
+  return out;
+}
+
 function openWeek_(c, week) {
   assignFallbackArticles_(c.challengeId);
   var sh = getSheet_(AUTO_SHEETS.weekMissions, WEEKMISSION_HEADERS);
   var rowIdx = findWeekMissionRow_(sh, c.challengeId, week);
-  var win = weekWindow_({
-    startDate: c.startDate || c['시작일'], openDow: c.openDow || c['오픈요일'],
-    closeDow: c.closeDow || c['마감요일'], closeOffset: c.closeOffset || c['마감오프셋'],
-  }, week);
+  var win = weekWindow_(scheduleChallengeInput_(c), week);
   var mission = weekMissionRows_(c.challengeId).filter(function (m) { return Number(m['회차']) === Number(week); })[0] || {};
   if (rowIdx > 0) {
     sh.getRange(rowIdx, 7).setValue(win.open);
@@ -293,23 +295,15 @@ function closeWeek_(c, week) {
   var rowIdx = findWeekMissionRow_(sh, c.challengeId, week);
   if (rowIdx > 0) sh.getRange(rowIdx, 9).setValue('마감');
   var total = Number(c.totalWeeks || c['총회차']) || 10;
+  // WHY: 완료는 deriveStatus가 마지막 회차 마감일로 파생한다. 여기서 시트 status에 쓰면
+  // 파생 규칙과 어긋나고(저장 불가값), 운영자가 재개해도 다음 마감에 다시 덮인다.
   if (Number(week) >= total) {
-    var csh = getSheet_(AUTO_SHEETS.challenges, ['challengeId']);
-    var cidx = findChallengeRow_(csh, c.challengeId);
-    var statusCol = headerCol_(csh, 'status');
-    if (cidx > 0 && statusCol > 0) csh.getRange(cidx, statusCol).setValue('종료');
     selectedParticipants_(c.challengeId).forEach(function (p) {
       sendAlimtalk_('done', p.phone, { '#{name}': p.name || '' }, { challengeId: c.challengeId, week: week });
     });
   }
 }
 
-// findChallengeRow_ 는 Setup.gs의 공유 전역 사용(중복 선언 제거).
-function headerCol_(sh, name) {
-  var headers = sh.getDataRange().getValues()[0] || [];
-  for (var i = 0; i < headers.length; i++) if (String(headers[i]) === name) return i + 1;
-  return -1;
-}
 function submitLink_(c) {
   var base = PropertiesService.getScriptProperties().getProperty('APP_BASE_URL') || '';
   // 쿼리(?c=)는 해시 앞에 와야 location.search에서 잡힌다.

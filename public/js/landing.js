@@ -1,5 +1,7 @@
 import { apiGet, apiPost } from './api.js';
 import { pickTheme, DISPLAY_FONTS } from './themes.js';
+import { VIEW, landingView, canApply, upcomingOpenDate } from './lib/landing-view.js';
+import { toYmd } from './lib/status.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const app = document.getElementById('app');
@@ -148,26 +150,57 @@ function cautionsSection(d) {
   return `<section class="sec"><h2 class="sec__title">꼭 확인하세요</h2>${cautionsList(d)}</section>`;
 }
 
+const challengeStatus = () => (DATA && DATA.challenge ? DATA.challenge.status : '');
+
 function route() {
-  const h = location.hash.replace(/^#\/?/, ''); // '#submit'·'#/submit' 모두 'submit'
-  const ended = !!(DATA && DATA.challenge && String(DATA.challenge.status || '') === '종료');
-  if (h === 'wrapup') return renderWrapup();      // 리워드 신청은 종료 후에도 가능
-  if (ended) return renderClosed();               // 신청·주차 제출은 종료 안내
-  if (h === 'submit') return renderSubmit();
-  return renderLanding();
+  const v = landingView(challengeStatus(), location.hash);
+  if (v === VIEW.WRAPUP) return renderWrapup();
+  if (v === VIEW.SUBMIT) return renderSubmit();
+  if (v === VIEW.LANDING) return renderLanding();
+  return renderGate(v);
 }
 
-// 종료된 챌린지 — 신청/주차 제출 진입 시 안내
-function renderClosed() {
+// 상태 때문에 막힌 진입의 안내 화면. 껍데기는 하나, 문구만 분기한다.
+// WHY: '아직 안 열림'과 '이미 끝남'은 참가자에게 정반대 정보라 같은 문구를 쓸 수 없다.
+function gateCopy(view, c) {
+  if (view === VIEW.PREPARING) {
+    const openAt = upcomingOpenDate(c['모집시작'], toYmd(new Date()));
+    return {
+      title: '준비 중인 챌린지',
+      sub: openAt ? `${fmtMD(openAt)}부터 모집이 열립니다.` : '아직 모집이 시작되지 않았습니다.',
+      body: '지금은 신청을 받고 있지 않아요.<br>모집이 열리면 이 페이지에서 바로 신청하실 수 있습니다.',
+      action: c.openchatUrl
+        ? `<a class="btn btn--secondary btn--sm" href="${esc(c.openchatUrl)}" target="_blank" rel="noopener" style="margin-top:16px">오픈카톡 문의</a>`
+        : '',
+    };
+  }
+  if (view === VIEW.WRAPUP_LOCKED) {
+    return {
+      title: '진행 중인 챌린지',
+      sub: '마무리 리워드 신청은 아직 열리지 않았습니다.',
+      body: '모든 회차가 끝난 뒤에 이 페이지에서 리워드를 신청하실 수 있어요.',
+      action: '<p class="center muted" style="margin-top:14px;font-size:13px"><a href="#submit">주차 제출하러 가기 →</a></p>',
+    };
+  }
+  return {
+    title: '종료된 챌린지',
+    sub: '이 챌린지는 종료되었습니다.',
+    body: '함께해 주셔서 감사합니다.<br>신청과 주차 제출은 마감되었습니다.',
+    action: '<a class="btn btn--primary btn--block" href="#wrapup" style="margin-top:16px">리워드 신청하기</a>',
+  };
+}
+
+function renderGate(view) {
   const c = DATA.challenge || {};
+  const t = gateCopy(view, c);
   app.innerHTML = `
     <header class="hero"><div class="hero__panel"><span class="hero__eyebrow">${esc(c.name)}</span>
-      <h1 class="hero__title" style="font-size:clamp(26px,7vw,38px)">종료된 챌린지</h1></div>
-      <p class="hero__sub">이 챌린지는 종료되었습니다.</p></header>
+      <h1 class="hero__title" style="font-size:clamp(26px,7vw,38px)">${esc(t.title)}</h1></div>
+      <p class="hero__sub">${esc(t.sub)}</p></header>
     <div class="wrap" style="padding-top:28px">
       <div class="card center">
-        <p class="muted" style="line-height:1.75;margin-bottom:4px">함께해 주셔서 감사합니다.<br>신청과 주차 제출은 마감되었습니다.</p>
-        <a class="btn btn--primary btn--block" href="#wrapup" style="margin-top:16px">리워드 신청하기</a>
+        <p class="muted" style="line-height:1.75;margin-bottom:4px">${t.body}</p>
+        ${t.action}
       </div>
     </div>`;
 }
@@ -196,7 +229,7 @@ function rewardSection(d, c) {
 /* ---------- 랜딩 + 신청 ---------- */
 function renderLanding() {
   const c = DATA.challenge, d = DATA.detail || {};
-  const closed = c.status && c.status !== '모집중';
+  const closed = !canApply(c.status);
   const benefits = Array.isArray(d.benefits) ? d.benefits : [];
   const reward = d.rewardAmount || c.rewardPerPost;
   const rounds = c.totalRounds || 10;
@@ -230,7 +263,7 @@ function renderLanding() {
 
       <section class="sec apply-card" id="apply">
         <h2 class="sec__title">참가 신청</h2>
-        ${closed ? `<div class="card center muted">현재 모집 기간이 아닙니다.</div>` : `
+        ${closed ? `<div class="card center muted">모집이 마감되었습니다.</div>` : `
         <div class="card">
           <div class="field"><label class="field__label">성함 <span class="req">*</span></label>
             <input class="input" id="a-name" placeholder="예) 김고방" /><div class="field__hint">띄어쓰기 없이 입력해 주세요.</div></div>
@@ -247,7 +280,6 @@ function renderLanding() {
         </div>`}
       </section>
       ${c.openchatUrl ? `<p class="center" style="margin-top:24px"><a class="btn btn--secondary btn--sm" href="${esc(c.openchatUrl)}" target="_blank">오픈카톡 문의</a></p>` : ''}
-      <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#submit">이미 참가자라면 · 주차 제출하기 →</a></p>
     </div>`;
 
   if (closed) return;
@@ -330,7 +362,7 @@ function renderSubmit() {
       <div class="field__hint" style="margin-top:8px">신청 때 등록한 휴대폰·블로그로 본인 확인해요. 이 기기에 저장됩니다.</div>
     </div>
     <div id="s-status"></div>
-    <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#wrapup">마무리 제출</a></p>
+    <p class="center muted" style="margin-top:20px;font-size:13px"><a href="#">챌린지 상세 보기 →</a></p>
   </div>`;
   bindPhone($('#s-phone'));
   $('#s-check').addEventListener('click', () => loadStatus());
@@ -448,12 +480,8 @@ function renderDashboard(r, phone) {
   // 학습 자료 — 운영팀이 작성한 안내(작성가이드·유의사항)와 외부 교재 링크
   const ICO_BOOK = '<svg class="ssec__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
   const ICO_TASK = '<svg class="ssec__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 13 2 2 4-4"/></svg>';
-  const learnSection = `<section class="ssec">
-    <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
-    ${d.eduUrl ? `<a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a>` : ''}
-    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
-    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
-  </section>`;
+  // 교재는 머리글 없이 단독 버튼으로 맨 위 — 핵심 행동(제출)을 위로 올리려 학습 자료에서 분리했다
+  const eduSection = d.eduUrl ? `<section class="ssec"><a class="resbtn" href="${esc(d.eduUrl)}" target="_blank" rel="noopener"><svg class="resbtn__ic" width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 4.8C4.6 4.2 7 4.6 9 5.8V16.2C7 15 4.6 14.6 2 15.2Z" fill="#fff"/><path d="M18 4.8C15.4 4.2 13 4.6 11 5.8V16.2C13 15 15.4 14.6 18 15.2Z" fill="#fff"/></svg>교육자료(교재) 바로가기<span class="resbtn__go">↗</span></a></section>` : '';
 
   const weekSection = `<section class="ssec ssec--mission">
     <h2 class="ssec__h">${ICO_TASK}이번 주 미션</h2>
@@ -461,7 +489,13 @@ function renderDashboard(r, phone) {
     <div id="wkdetail"></div>
   </section>`;
 
-  box.innerHTML = learnSection + weekSection;
+  const learnSection = `<section class="ssec">
+    <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
+    ${d.guide ? `<details class="wkguide" open><summary>작성가이드 <span class="wkguide__badge">필독</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
+  </section>`;
+
+  box.innerHTML = eduSection + weekSection + learnSection;
   setupCommon();
 
   const select = (wk) => {
@@ -585,7 +619,7 @@ function renderWrapup() {
         <label class="checkrow"><input type="checkbox" id="w-agree" /><span>개인정보 수집·이용에 동의합니다.</span></label>
         <button class="btn btn--primary btn--block" id="w-do" style="margin-top:12px">리워드 신청 제출</button>
       </section>
-      <p class="center muted" style="margin-top:18px;font-size:13px"><a href="#">← 신청 페이지로</a> · <a href="#submit">주차 제출</a></p>
+      <p class="center muted" style="margin-top:18px;font-size:13px"><a href="#">챌린지 상세 보기 →</a></p>
     </div>`;
   bindPhone($('#w-phone'));
   $('#w-do').addEventListener('click', async (e) => {

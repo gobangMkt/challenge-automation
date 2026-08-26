@@ -1,5 +1,7 @@
 // 스케줄 순수로직 — Date.now 직접 호출 금지(테스트 위해 today를 주입받는다).
 // 날짜는 'YYYY-MM-DD' 문자열로 다룬다(UTC 자정 기준, 타임존 흔들림 차단).
+// 상태 판정은 status.js 재사용 — 여기서 재구현 금지(미러 드리프트의 시작이다).
+import { deriveStatus, lastDueDate, toYmd } from './status.js';
 
 const DOW = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
 
@@ -53,10 +55,34 @@ function missionStatus(weekMissions, week) {
   return m ? String(m.status || '') : '대기';
 }
 
-// 오늘 할 일 판정. status가 진행중이 아니면 아무 것도 안 함.
+// 자동화가 볼 운영종료일 = 시트 마감일 최대값과 '일정상' 마지막 회차 마감일 중 늦은 쪽.
+// WHY: WeekMissions의 마감일은 회차가 열릴 때 비로소 채워진다. 시트값만 쓰면 1회차가
+// 닫히는 순간 운영종료일=1회차 마감이 되어 deriveStatus가 완료로 판정하고,
+// 2회차가 영영 안 열린다. 운영자가 마감일을 뒤로 늘린 경우(재개)는 시트값이 이긴다.
+export function operationEndDate(challenge, weekMissions) {
+  if (!challenge) return '';
+  const total = Number(challenge.totalWeeks) || 10;
+  const scheduled = toYmd(weekWindow(challenge, total).close);
+  const filled = lastDueDate(weekMissions);
+  return filled > scheduled ? filled : scheduled;
+}
+
+// deriveStatus 입력. 운영종료일만 자동화 기준으로 바꿔 끼운다.
+function statusInput(challenge, weekMissions) {
+  return {
+    status: challenge.status,
+    모집마감: challenge['모집마감'],
+    recruitEnd: challenge.recruitEnd,
+    lastDueDate: operationEndDate(challenge, weekMissions),
+  };
+}
+
+// 오늘 할 일 판정. 파생 상태가 운영중이 아니면 아무 것도 안 함
+// (준비·모집중은 아직, 완료는 이미 끝난 캠페인 — 알림톡이 나가면 사고다).
 export function planDailyRun(challenge, weekMissions, today) {
   const result = { openWeek: null, remindWeek: null, closeWeek: null };
-  if (!challenge || String(challenge.status) !== '진행중') return result;
+  if (!challenge) return result;
+  if (deriveStatus(statusInput(challenge, weekMissions), today) !== '운영중') return result;
 
   const total = Number(challenge.totalWeeks) || 10;
   const t = toUTC(today);

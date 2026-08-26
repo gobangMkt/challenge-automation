@@ -55,4 +55,13 @@ design-system/ MASTER.md (테마: 갓생 코랄)
 - 풀 E2E 11단계 통과: 캠페인생성→랜딩→신청→선발→우수→주차오픈→제출→검수→집계.
 - ⚠️ 함수명 충돌 주의: Automation.gs의 `openWeek_(c,week)`와 분리 위해 hub용은 `hubOpenWeek_`.
 
-**남은 2차 작업**: SOLAPI 알림톡 템플릿 승인·시크릿, Notion 토큰·DB공유, `dailyTrigger` 시간트리거 등록. 상세 `docs/TODO.md`.
+**상태 프로세스 개편 완료** (2026-08-25) — 상태 4종 **준비 · 모집중 · 운영중 · 완료**.
+- 시트에는 준비/모집중/완료만 저장하고 `운영중`은 날짜로 파생한다(모집마감 경과 → 운영중, 운영종료일 경과 → 완료).
+- **운영종료일 = max(회차 마감일 최대값, 일정상 마지막 회차 마감일)**. 허브 화면·신청 게이팅·일일 자동화가
+  `Schedule.gs`의 `statusInput_` 하나를 통과한다 — 화면과 자동화가 갈리지 않는다.
+- 캠페인 폼에서 **모집 마감일 필수**(비면 파생 전이가 멈춰 자동화가 시작되지 않음). 이미 빈 캠페인은 허브 상단 배너로 안내.
+- 순수로직↔GAS 미러: `lib/status.js`↔`Status.gs`, `lib/schedule.js`↔`Schedule.gs` (미러 테스트가 드리프트 감시).
+- 1회성 정리: Apps Script 편집기에서 `migrateStatus()`(dry-run 로그만) → 확인 후 `migrateStatus(true)`.
+- 상세 규칙은 `docs/spec.md` §4-1.
+
+**남은 2차 작업**: SOLAPI 알림톡 템플릿 승인·시크릿, Notion 토큰·DB공유, `dailyTrigger` 시간트리거 등록(등록 전 `dryRunDaily()` 확인). 상세 `docs/TODO.md`.

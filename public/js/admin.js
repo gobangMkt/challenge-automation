@@ -1,7 +1,10 @@
 import { apiGet, apiPost } from './api.js';
 import { openVocModal } from './voc-widget.js';
-import { thumbNode, posterNode, downloadNode } from './assets.js';
+import { thumbNode, posterNode, downloadNode, ensureHtml2Canvas } from './assets.js';
 import { rosterCsv, payoutCsv, csvFileName } from './lib/csv.js';
+import { normalizeStatus, tabNotice } from './lib/status.js';
+import { normalizeBlogUrl } from './lib/blog-url.js';
+import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stageActions, stageTransitionFailed, validateCampaignForm, recruitEndNotice } from './lib/statusui.js';
 
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
@@ -90,7 +93,9 @@ function downloadCsv(filename, csv) {
 const SVG = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const ICON = {
   star: '<span class="brandstar">★</span>',
-  mkt: SVG('<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'),
+  prep: SVG('<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>'),
+  info: SVG('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'),
+  arrowRight: SVG('<path d="M5 12h14M12 5l7 7-7 7"/>'),
   manage: SVG('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
   operate: SVG('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
   reward: SVG('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6 12h.01M18 12h.01"/>'),
@@ -98,9 +103,10 @@ const ICON = {
   download: SVG('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>'),
   report: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2 L19 18 H1 Z" fill="#EF4452"/><rect x="9" y="7.5" width="2" height="5" rx="1" fill="#FFFFFF"/><circle cx="10" cy="15" r="1.2" fill="#FFFFFF"/></svg>',
 };
-/* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스 */
+/* 탭 메타 — 아이콘·라벨·설명·섹션색 클래스.
+   라우트 키 mkt·CSS 클래스 sec-mkt는 기존 URL 호환 위해 유지(라벨만 '준비'로 개명). */
 const SECTIONS = {
-  mkt: { label: '마케팅', icon: ICON.mkt, desc: '신청 상세페이지를 배포합니다', cls: 'sec-mkt' },
+  mkt: { label: '준비', icon: ICON.prep, desc: '상세페이지·홍보물을 준비하고 모집을 시작합니다', cls: 'sec-mkt' },
   manage: { label: '관리', icon: ICON.manage, desc: '신청자 명단·선발·우수활동자를 관리합니다', cls: 'sec-manage' },
   operate: { label: '운영', icon: ICON.operate, desc: '주차별 미션 발송과 제출 검수를 진행합니다', cls: 'sec-operate' },
   reward: { label: '리워드', icon: ICON.reward, desc: '지급 금액별로 정산을 정리합니다', cls: 'sec-reward' },
@@ -224,7 +230,7 @@ function appbarWorkspace(camp, tab) {
         ${brandHtml()}
         <span class="crumbs__sep">›</span>
         <span class="crumbs__cur">${esc(camp.name)}</span>
-        <span class="badge ${camp.status === '모집중' ? 'badge--primary' : ''}">${esc(camp.status)}</span>
+        ${statusBadge(camp.status)}
       </nav>
       <div class="appbar__spacer"></div>
       <button class="btn btn--ghost btn--sm btn--icon" id="refresh" title="새로고침" aria-label="새로고침">${ICON.refresh}</button>
@@ -263,6 +269,90 @@ function bindReport() {
   if (rb) rb.addEventListener('click', () => openVocModal({ toast, icon: ICON.report, channel: 'operator' }));
 }
 
+/* ---------- 챌린지 상태 표현 (배지 · 안내 배너 · 단계 전이 박스) ---------- */
+/* 상태 문자열은 서버 파생값을 쓰되 표시 직전 한 번 정규화한다 — GAS가 먼저 배포되지 않은 순간에도
+   레거시 값(종료/진행중)이 배지 클래스와 어긋나지 않게. 폴백 하드코딩('모집중')은 두지 않는다. */
+function statusBadge(status) {
+  const s = normalizeStatus(status);
+  return `<span class="badge ${statusBadgeClass(s)}">${esc(s)}</span>`;
+}
+
+/* .notice 마크업은 여기 한 곳. 안내는 전부 이 그릇을 쓴다 — 새 컴포넌트를 만들지 않는다. */
+function noticeBox(message, go) {
+  return `<div class="notice" role="status">${ICON.info}
+      <p class="notice__msg">${esc(message)}</p>
+      ${go ? `<a class="notice__go" href="${esc(go.href)}">${esc(go.label)}${ICON.arrowRight}</a>` : ''}
+    </div>`;
+}
+
+/* 준비 단계 안내 배너 — 잠금이 아니다. 탭은 전부 열려 있고 미리 설정할 수 있다.
+   문구는 status.js의 tabNotice가 단일 소스. */
+function noticeHtml(camp, tab) {
+  const n = tabNotice(camp.status);
+  if (!n.show || noticeRouteTabs(camp.status).indexOf(tab) === -1) return '';
+  return noticeBox(n.message, { href: `#/c/${encodeURIComponent(camp.challengeId)}/mkt`, label: '준비 탭으로 이동' });
+}
+
+/* 모집마감이 빈 캠페인 안내 — 비어 있으면 파생 전이가 멈춰 자동화가 영영 시작되지 않는다.
+   문구는 statusui.js의 recruitEndNotice가 단일 소스. */
+function recruitEndNoticeHtml(list) {
+  const n = recruitEndNotice(list);
+  if (!n.show) return '';
+  return noticeBox(n.message, n.goId ? { href: `#/edit/${encodeURIComponent(n.goId)}`, label: '모집 마감일 입력하기' } : null);
+}
+
+/* 단계 전이 박스 — 준비 탭의 '모집 시작하기'와 운영 탭의 종료·재개가 같은 컴포넌트다. */
+function renderStageBox(camp, mount, tab) {
+  if (!mount) return;
+  const st = normalizeStatus(camp.status);
+  const a = stageActions(st);
+  const entries = [];
+  if (a.secondary) entries.push({ act: a.secondary, cls: 'btn--secondary' });
+  if (a.primary) entries.push({ act: a.primary, cls: a.primary.danger ? 'btn--danger' : 'btn--primary' });
+  const needDue = entries.some((e) => e.act.needsDueDate);
+  mount.innerHTML = `
+    <div class="stagebox">
+      <div class="stagebox__info">
+        <div class="stagebox__t">챌린지 상태 ${statusBadge(st)}</div>
+        <div class="stagebox__d">${esc(a.desc)}</div>
+      </div>
+      <div class="stagebox__act">
+        ${needDue ? `<label class="stagebox__due">마지막 회차 마감일
+          <input class="input" type="date" id="stageDue" value="${esc(toDateInput(camp.lastDueDate))}" /></label>` : ''}
+        ${entries.map((e, i) => `<button class="btn ${e.cls}" data-i="${i}">${esc(e.act.label)}</button>`).join('')}
+      </div>
+    </div>`;
+  mount.querySelectorAll('.stagebox__act .btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const x = entries[Number(btn.dataset.i)].act;
+      const ok = await confirmModal({
+        title: x.confirmTitle, message: x.confirmMessage,
+        confirmLabel: x.confirmLabel, danger: x.danger,
+      });
+      if (!ok) return;
+      const body = { action: 'setCampaignStatus', challengeId: camp.challengeId, status: x.to };
+      if (x.needsDueDate) {
+        const due = el('stageDue') ? el('stageDue').value : '';
+        if (!due) return toast('마지막 회차 마감일을 입력하세요.', true);
+        body.lastDueDate = due;
+      }
+      btn.disabled = true;
+      const r = await apiPost(op(body)).catch(() => ({ ok: false }));
+      btn.disabled = false;
+      if (!r.ok) return toast('상태 변경 실패: ' + (r.error || ''), true);
+      camp.status = r.effectiveStatus; camp.lastDueDate = r.lastDueDate;
+      state.loaded = false; state.cache.board[camp.challengeId] = null; state.cache.detail[camp.challengeId] = null;
+      // 재개는 저장값만 바꿔선 파생 규칙이 곧바로 완료로 되돌린다 — 마감일 연장이 한 쌍이다.
+      if (stageTransitionFailed(x, r)) {
+        toast(`재개하지 못했습니다 — 지금은 '${r.effectiveStatus}'입니다. 마감일도 연장해야 합니다.`, true);
+      } else {
+        toast(`'${r.effectiveStatus}' 상태가 됐어요`);
+      }
+      renderWorkspace(camp.challengeId, tab);
+    });
+  });
+}
+
 /* ---------- 토큰 게이트 ---------- */
 function renderGate() {
   appbarBare();
@@ -298,34 +388,17 @@ async function route() {
   } catch (e) { el('content').innerHTML = `<div class="card">오류: ${esc(e.message)}</div>`; }
 }
 
-/* 홈 카드 진행률 — 제출 진행(제출 ÷ 선발×회차). 선발 전이면 모집 단계 */
+/* 홈 카드 진행률 — 제출 진행(제출 ÷ 선발×회차). 제출 시작 전이면 현재 단계 */
 function campProgress(x) {
   const sel = x.selected || 0, rounds = x.totalRounds || 0, subs = x.submissions || 0;
   const exp = sel * rounds;
   const started = sel > 0 && exp > 0;
   const pct = started ? Math.min(100, Math.round((subs / exp) * 100)) : 0;
-  const label = started ? `제출 진행 ${subs}/${exp}` : '모집 단계';
+  const label = started ? `제출 진행 ${subs}/${exp}` : campaignPhaseLabel(x.status);
   return `<div class="camp-prog">
     <div class="camp-prog__head"><span>${label}</span><b class="tnum">${started ? pct + '%' : '–'}</b></div>
     <div class="camp-prog__track"><i style="width:${pct}%"></i></div>
   </div>`;
-}
-
-/* ---------- VoC 데몬 상태 ---------- */
-async function checkDaemon() {
-  const dot = el('daemonDot');
-  const label = el('daemonLabel');
-  if (!dot) return;
-  try {
-    const res = await fetch('http://127.0.0.1:3061/health', { signal: AbortSignal.timeout(1500) });
-    const data = await res.json();
-    dot.style.color = 'var(--color-success, #22c55e)';
-    const mins = Math.floor((data.uptime || 0) / 60);
-    label.textContent = `데몬 실행 중 (${mins}분)`;
-  } catch {
-    dot.style.color = 'var(--color-danger, #ef4444)';
-    label.textContent = '데몬 중지됨';
-  }
 }
 
 /* ---------- 홈 (허브) ---------- */
@@ -338,23 +411,21 @@ async function renderHome() {
   el('content').innerHTML = `
     <div class="page-head page-head__row"><div>
       <h1 class="page-head__title">캠페인 허브</h1>
-      <p class="page-head__desc">캠페인을 누르면 마케팅·관리·운영을 한 곳에서 처리합니다.</p></div>
+      <p class="page-head__desc">캠페인을 누르면 준비·관리·운영을 한 곳에서 처리합니다.</p></div>
       ${state.dbUrl ? `<a class="btn btn--secondary btn--sm" href="${esc(state.dbUrl)}" target="_blank" rel="noopener">🗄 DB 시트 열기 ↗</a>` : ''}
     </div>
     <div class="statbar">
       <div class="pill"><b class="tnum">${c.length}</b><span>캠페인</span></div>
       <div class="pill"><b class="tnum">${tApplied}</b><span>총 신청</span></div>
       <div class="pill"><b class="tnum">${tSel}</b><span>총 선발</span></div>
-      <div class="pill daemon-pill" id="daemonPill" title="VoC 데몬 상태">
-        <b id="daemonDot">⬤</b><span id="daemonLabel">데몬 확인 중…</span>
-      </div>
     </div>
+    ${recruitEndNoticeHtml(c)}
     <div class="grid" id="grid">
       ${c.map((x) => `
         <div class="camp-card" data-id="${esc(x.challengeId)}" role="button" tabindex="0">
           <div class="camp-card__top"><span class="camp-card__name">${esc(x.name)}</span>
             <span class="camp-card__actions">
-              <span class="badge ${x.status === '모집중' ? 'badge--primary' : ''}">${esc(x.status)}</span>
+              ${statusBadge(x.status)}
               <button class="btn btn--ghost btn--sm js-edit" style="padding:2px 8px;color:var(--color-primary)">수정</button>
               <button class="btn btn--ghost btn--sm js-del" data-name="${esc(x.name)}" style="padding:2px 8px;color:var(--color-danger)">삭제</button>
             </span></div>
@@ -369,7 +440,6 @@ async function renderHome() {
       <button class="camp-card camp-card--new" id="newCard">+ 새 캠페인 만들기</button>
     </div>`;
   el('newCard').addEventListener('click', () => { location.hash = '#/new'; });
-  checkDaemon();
   el('grid').querySelectorAll('.camp-card[data-id]').forEach((card) => {
     const id = card.dataset.id;
     card.addEventListener('click', () => { location.hash = `#/c/${encodeURIComponent(id)}/mkt`; });
@@ -409,14 +479,16 @@ async function renderCreate(editId) {
 
     <div class="card"><div class="card__title">① 기본 정보</div>
       <div class="row2">
-        <div class="field"><label class="field__label">캠페인명 <span style="color:var(--color-primary)">*</span></label>
+        <div class="field"><label class="field__label">캠페인명 <span class="req">*</span></label>
           <input class="input" id="f-name" placeholder="취준 블로그 마스터즈" /></div>
         <div class="field"><label class="field__label">총 회차</label>
           <input class="input tnum" id="f-rounds" type="number" value="10" min="1" /></div>
       </div>
       <div class="row2">
         <div class="field"><label class="field__label">모집 시작</label><input class="input" id="f-rs" type="date" /></div>
-        <div class="field"><label class="field__label">모집 마감</label><input class="input" id="f-re" type="date" /></div>
+        <div class="field"><label class="field__label">모집 마감 <span class="req">*</span></label>
+          <input class="input" id="f-re" type="date" />
+          <div class="field__hint">이 날짜가 지나면 자동으로 운영중이 됩니다. 비우면 회차 자동 오픈·알림톡이 시작되지 않습니다.</div></div>
       </div>
       <div class="row2">
         <div class="field"><label class="field__label">발표일</label><input class="input" id="f-ann" type="date" /></div>
@@ -473,14 +545,12 @@ async function renderCreate(editId) {
   el('tier-add').addEventListener('click', () => tierRow({ min: 0, amount: 0 }));
 
   // 수정 모드: 기존 값 불러와 채우기
-  let editStatus = '모집중';
   if (editing) {
     el('content').style.opacity = '.5';
     const r = await apiGet({ action: 'campaignDetail', token: state.token, challengeId: editId }).catch(() => ({ ok: false }));
     el('content').style.opacity = '';
     if (!r.ok) { toast('캠페인을 불러오지 못했습니다.', true); location.hash = '#/'; return; }
     const ch = r.challenge || {}, d = r.detail || {};
-    editStatus = ch.status || '모집중';
     const setv = (id, v) => { if (el(id) != null) el(id).value = v == null ? '' : v; };
     setv('f-name', ch.name); setv('f-rounds', ch.totalRounds || 10);
     setv('f-rs', ch['모집시작']); setv('f-re', ch['모집마감']); setv('f-ann', ch['발표일']); setv('f-start', ch['시작일']);
@@ -513,20 +583,27 @@ async function renderCreate(editId) {
   el('cancel2').addEventListener('click', () => { location.hash = backHash; });
   el('save').addEventListener('click', async (e) => {
     const name = el('f-name').value.trim();
-    if (!name) return toast('캠페인명을 입력하세요.', true);
+    const recruitEnd = el('f-re').value;
+    const v = validateCampaignForm({ name, 모집마감: recruitEnd });
+    if (!v.ok) {
+      const bad = v.errors.name ? 'f-name' : 'f-re';
+      if (el(bad)) el(bad).focus();
+      return toast(v.errors.name || v.errors['모집마감'], true);
+    }
     const tiers = [...tbody.querySelectorAll('tr')].map((tr) => ({
       min: Number(tr.querySelector('.t-min').value) || 0,
       amount: Number(tr.querySelector('.t-amt').value) || 0,
     })).sort((a, b) => a.min - b.min);
     const rewardAmount = tiers.reduce((m, t) => Math.max(m, t.amount), 0);
+    // status는 보내지 않는다 — 서버 resolveSavedStatus가 미지정 시 기존값을 보존하고 신규는 '준비'로 만든다.
     const payload = op({
       action: 'saveCampaign', name,
       challengeId: editing ? editId : undefined,
       totalRounds: Number(el('f-rounds').value) || 10,
       rewardPerPost: rewardAmount, excellentMultiplier: 2,
-      모집시작: el('f-rs').value, 모집마감: el('f-re').value,
+      모집시작: el('f-rs').value, 모집마감: recruitEnd,
       발표일: el('f-ann').value, 시작일: el('f-start').value,
-      openchatUrl: el('f-chat').value.trim(), status: editing ? editStatus : '모집중',
+      openchatUrl: el('f-chat').value.trim(),
       detail: {
         tagline: el('d-tag').value.trim(), concept: el('d-concept').value.trim(),
         benefits: el('d-benefits').value.split('\n').map((s) => s.trim()).filter(Boolean),
@@ -578,7 +655,7 @@ const CUSTOM_SITES_KEY = 'challenge.usites.custom';
 const getCustomSites = () => { try { return JSON.parse(localStorage.getItem(CUSTOM_SITES_KEY) || '[]'); } catch (e) { return []; } };
 const setCustomSites = (arr) => localStorage.setItem(CUSTOM_SITES_KEY, JSON.stringify(arr));
 
-/* ---------- 탭: 마케팅 ---------- */
+/* ---------- 탭: 준비 (라우트 키는 mkt 유지) ---------- */
 async function drawMarketing(camp) {
   const id = camp.challengeId;
   const link = landingUrl(id);
@@ -643,33 +720,39 @@ async function drawMarketing(camp) {
         <input class="input" id="us-id" placeholder="로그인 ID (선택)" />
         <button class="btn btn--secondary btn--sm" id="us-add">+ 사이트 추가</button>
       </div>
-    </div>`;
+    </div>
+    <div id="stageBox"></div>`;
+  renderStageBox(camp, el('stageBox'), 'mkt');
   el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
   el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
   el('copyWrapupMkt')?.addEventListener('click', () => { navigator.clipboard.writeText(`${link}#wrapup`); toast('마무리 폼 링크 복사됨'); });
   el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 
-  // 썸네일·포스터 (상세 fetch 후 html2canvas로 미리보기 이미지 + 다운로드)
+  // 썸네일·포스터 (상세 캐시 + html2canvas로 미리보기 이미지 + 다운로드)
   (async () => {
-    const det = await apiGet({ action: 'campaignDetail', challengeId: id }).catch(() => ({}));
+    const det = await loadDetail(id);
     const cc = det.challenge || camp; const dd = det.detail || {};
     async function renderInto(boxId, node, dispW) {
       const box = el(boxId); if (!box) return;
+      const stage = document.createElement('div'); stage.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1';
       try {
         if (typeof window.html2canvas !== 'function') throw new Error('lib');
         if (document.fonts) await document.fonts.ready;
-        const stage = document.createElement('div'); stage.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1';
         stage.appendChild(node); document.body.appendChild(stage);
         const canvas = await window.html2canvas(node, { scale: 0.5, backgroundColor: null, useCORS: true, logging: false });
-        stage.remove();
         box.innerHTML = ''; box.style.height = 'auto';
         const img = new Image(); img.src = canvas.toDataURL('image/png');
         img.style.cssText = `width:${dispW}px;height:auto;display:block;border-radius:8px`;
         box.appendChild(img);
       } catch (e) { box.innerHTML = '<span class="muted" style="font-size:12px">미리보기 생성 실패 (다운로드는 가능)</span>'; }
+      finally { stage.remove(); }
     }
-    await renderInto('prevThumb', thumbNode(cc, dd), 240);
-    await renderInto('prevPoster', posterNode(cc, dd), 240);
+    try { await ensureHtml2Canvas(); }
+    catch (e) { toast('이미지 생성 라이브러리를 불러오지 못했습니다. 네트워크 확인 후 새로고침해 주세요.', true); }
+    await Promise.all([
+      renderInto('prevThumb', thumbNode(cc, dd), 240),
+      renderInto('prevPoster', posterNode(cc, dd), 240),
+    ]);
     const dl = (btnId, makeNode, suffix) => el(btnId)?.addEventListener('click', async (e) => {
       const b = e.currentTarget, old = b.textContent; b.disabled = true; b.textContent = '생성 중…';
       try { await downloadNode(makeNode(), `${cc.name}_${suffix}.png`, 1); }
@@ -734,15 +817,9 @@ async function drawManage(camp) {
   const pol = rewardPolicy_(b.policy, b.policy);
   const cntOf = (p) => Number(p.submitted) || 0;
   // 중복 탐지: 휴대폰(숫자만)·블로그(정규화)
-  const normBlog = (u) => {
-    const s = String(u == null ? '' : u).trim().toLowerCase();
-    if (!s) return '';
-    const mid = s.match(/blogid=([a-z0-9_-]+)/);
-    if (mid) return 'naver:' + mid[1];
-    const mp = s.match(/(?:m\.)?blog\.naver\.com\/([a-z0-9_-]+)/);
-    if (mp && mp[1] !== 'postlist.naver') return 'naver:' + mp[1];
-    return s.replace(/[?#].*$/, '').replace(/\/+$/, '');
-  };
+  // 정규화는 반드시 정본을 쓴다 — 사본을 두면 서버는 남남으로 보는데 화면만 '중복'이라 표시해
+  // 운영자가 무고한 참가자를 탈락시킨다.
+  const normBlog = normalizeBlogUrl;
   const phoneCnt = {}, blogCnt = {};
   rows.forEach((p) => { const k = digits_(p.phone); if (k) phoneCnt[k] = (phoneCnt[k] || 0) + 1; const bk = normBlog(p.blogUrl); if (bk) blogCnt[bk] = (blogCnt[bk] || 0) + 1; });
   const dupP = Object.values(phoneCnt).filter((n) => n > 1).length;
@@ -750,6 +827,7 @@ async function drawManage(camp) {
   const DUP = '<span class="badge badge--danger" style="margin-left:6px;font-size:10px;padding:1px 6px">중복</span>';
   el('content').innerHTML = `
     ${sechead('manage')}
+    ${noticeHtml(camp, 'manage')}
     <div class="statbar">
       <div class="pill"><b class="tnum">${rows.length}</b><span>신청</span></div>
       <div class="pill"><b class="tnum" id="selCount">${selN}</b><span>선발</span></div>
@@ -862,6 +940,7 @@ async function drawReward(camp) {
 
   el('content').innerHTML = `
     ${sechead('reward')}
+    ${noticeHtml(camp, 'reward')}
     <div class="statbar">
       <div class="pill"><b class="tnum">${people.length}</b><span>정산 대상</span></div>
       <div class="pill"><b class="tnum">${won(grand)}</b><span>총 지급액</span></div>
@@ -877,7 +956,7 @@ async function drawReward(camp) {
 async function drawOperate(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
-  el('content').innerHTML = `${sechead('operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div><div id="opStatus" style="margin-top:22px"></div>`;
+  el('content').innerHTML = `${sechead('operate')}${noticeHtml(camp, 'operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div><div id="opStatus"></div>`;
   const [r, det] = await Promise.all([
     apiGet({ action: 'missions', token: state.token, challengeId: id }),
     loadDetail(id),
@@ -904,42 +983,13 @@ async function drawOperate(camp) {
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
     if (rr.ok) { state.cache.detail[id] = null; toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
-  // 챌린지 종료/재개 — 종료 시 신청·주차제출 페이지가 종료 안내로 전환(리워드 신청은 계속 가능)
-  const renderEndBox = () => {
-    const ended = String(camp.status || '') === '종료';
-    el('opStatus').innerHTML = `
-      <div class="endbox ${ended ? 'is-ended' : ''}">
-        <div class="endbox__info">
-          <div class="endbox__t">챌린지 상태 <span class="badge ${ended ? '' : 'badge--primary'}">${esc(camp.status || '모집중')}</span></div>
-          <div class="endbox__d">${ended ? '신청·주차 제출이 마감 상태입니다. 리워드 신청(마무리 폼)은 계속 열려 있어요.' : '종료하면 신청·주차 제출 페이지가 모두 “종료” 안내로 바뀝니다. (리워드 신청 폼은 계속 가능)'}</div>
-        </div>
-        <button class="btn ${ended ? 'btn--secondary' : 'btn--danger'} btn--sm" id="endBtn">${ended ? '챌린지 재개' : '챌린지 종료하기'}</button>
-      </div>`;
-    el('endBtn').addEventListener('click', async () => {
-      const isEnded = String(camp.status || '') === '종료';
-      const ok = await confirmModal({
-        title: isEnded ? '챌린지를 재개할까요?' : '챌린지를 종료할까요?',
-        message: isEnded ? '신청·주차 제출 페이지가 다시 열립니다.' : '신청·주차 제출 페이지가 모두 “종료되었습니다” 안내로 바뀝니다. 리워드 신청 폼은 계속 열려 있습니다.',
-        confirmLabel: isEnded ? '재개' : '종료', danger: !isEnded,
-      });
-      if (!ok) return;
-      const next = isEnded ? '진행중' : '종료';
-      const rr2 = await apiPost(op({ action: 'setCampaignStatus', challengeId: id, status: next })).catch(() => ({ ok: false }));
-      if (rr2.ok) {
-        camp.status = rr2.status; state.loaded = false; state.cache.board[id] = null; state.cache.detail[id] = null;
-        toast(next === '종료' ? '챌린지를 종료했어요' : '챌린지를 재개했어요');
-        renderWorkspace(id, 'operate');
-      } else toast('실패: ' + (rr2.error || ''), true);
-    });
-  };
-  renderEndBox();
+  renderStageBox(camp, el('opStatus'), 'operate');
   const weeks = r.ok ? r.rows : [];
   const wrap = el('weeks');
   if (!weeks.length) { wrap.innerHTML = '<p class="empty">회차가 없습니다.</p>'; return; }
   wrap.innerHTML = `<div class="op-sectit">회차 선택</div><div class="weekchips">${weeks.map((w) => {
-    const st = w['상태'] || '대기';
-    const cls = st === '오픈' ? 's-open' : st === '마감' ? 's-done' : 's-wait';
-    return `<button class="weekchip ${cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(st === '마감' ? '종료' : st)}</span></button>`;
+    const ws = weekState(w['상태']);
+    return `<button class="weekchip ${ws.cls}" data-r="${esc(w['회차'])}"><span class="weekchip__n">${esc(w['회차'])}주</span><span class="weekchip__st">${esc(ws.label)}</span></button>`;
   }).join('')}<button class="weekchip weekchip--reward" id="notifyReward" title="선발자 전원에게 마무리 폼(리워드 신청) 안내 발송"><span class="weekchip__n">리워드</span><span class="weekchip__st">신청 알림</span></button></div>`;
   wrap.querySelectorAll('.weekchip[data-r]').forEach((b) =>
     b.addEventListener('click', () => { wrap.querySelectorAll('.weekchip').forEach((x) => x.classList.remove('is-active')); b.classList.add('is-active'); drawWeek(camp, Number(b.dataset.r), weeks); }));
@@ -956,23 +1006,23 @@ async function drawWeek(camp, round, weeks) {
   const id = camp.challengeId;
   const pane = el('weekPane'); pane.innerHTML = loading();
   const wm = weeks.find((w) => Number(w['회차']) === round) || {};
-  const status = wm['상태'] || '대기';
+  const ws = weekState(wm['상태']);
+  const waiting = ws.cls === 's-wait';
   const r = await apiGet({ action: 'weekSubmissions', token: state.token, challengeId: id, round });
   const submitted = r.ok ? r.submitted : [];
   const missing = r.ok ? r.missing : [];
-  const locked = status === '오픈' || status === '마감';
-  const stLabel = status === '마감' ? '종료' : status; // 종료=마감
+  const locked = !waiting;
   const dis = locked ? ' disabled' : '';
   pane.innerHTML = `
     <div class="card">
       <div class="page-head__row">
         <div class="card__title" style="margin:0;display:flex;align-items:center;gap:10px">${round}주차
-          <span class="badge ${status === '오픈' ? 'badge--success' : status === '마감' ? '' : 'badge--primary'}">${esc(stLabel)}</span></div>
+          <span class="badge ${ws.cls}">${esc(ws.label)}</span></div>
         <div style="display:flex;gap:10px;align-items:center">
-          <label class="switch${status === '대기' ? ' is-disabled' : ''}" title="${status === '대기' ? '저장하면 오픈됩니다' : '오픈/종료 전환'}">
-            <input type="checkbox" id="wk-onoff" ${status === '오픈' ? 'checked' : ''}${status === '대기' ? ' disabled' : ''} />
+          <label class="switch${waiting ? ' is-disabled' : ''}" title="${waiting ? '저장하면 오픈됩니다' : '오픈/종료 전환'}">
+            <input type="checkbox" id="wk-onoff" ${ws.cls === 's-open' ? 'checked' : ''}${waiting ? ' disabled' : ''} />
             <span class="switch__track"><span class="switch__thumb"></span></span>
-            <span class="switch__txt">${status === '오픈' ? '오픈' : '종료'}</span>
+            <span class="switch__txt">${ws.cls === 's-open' ? '오픈' : '종료'}</span>
           </label>
           <button class="btn ${locked ? 'btn--ghost' : 'btn--primary'} btn--sm" id="wk-save" data-mode="${locked ? 'edit' : 'save'}">${locked ? '수정' : '저장'}</button>
           <button class="btn btn--ghost btn--sm" id="wk-refresh">↻</button>
@@ -993,10 +1043,10 @@ async function drawWeek(camp, round, weeks) {
           <input class="input" id="m-keyword" value="${esc(wm['미션본문'] || '')}" placeholder="예: #고시원준비물 (여러 개면 쉼표)"${dis} /></div>
       </div>
       <div class="notifybar">
-        <button class="btn btn--kakao" id="wk-notify"${status === '대기' ? ' disabled' : ''}>
+        <button class="btn btn--kakao" id="wk-notify"${waiting ? ' disabled' : ''}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.6.1 1.3.1 2 .1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
           알림톡 발송</button>
-        <span class="muted" style="font-size:13px">${status === '대기' ? '저장(오픈) 후 발송할 수 있어요.' : '선발자 전원에게 이번 주 안내를 보냅니다.'}</span>
+        <span class="muted" style="font-size:13px">${waiting ? '저장(오픈) 후 발송할 수 있어요.' : '선발자 전원에게 이번 주 안내를 보냅니다.'}</span>
       </div>
     </div>
     <div class="card">
@@ -1051,7 +1101,7 @@ async function drawWeek(camp, round, weeks) {
   el('wk-onoff')?.addEventListener('change', async (e) => {
     const next = e.target.checked ? '오픈' : '마감';
     const rr = await apiPost(op({ action: 'openWeek', challengeId: id, round, status: next })).catch(() => ({ ok: false }));
-    if (rr.ok) { wm['상태'] = next; state.cache.board[id] = null; toast(`${round}주차 ${next === '오픈' ? '오픈' : '종료'}`); drawWeek(camp, round, weeks); }
+    if (rr.ok) { wm['상태'] = next; state.cache.board[id] = null; toast(`${round}주차 ${weekState(next).label}`); drawWeek(camp, round, weeks); }
     else { e.target.checked = !e.target.checked; toast('상태 변경 실패', true); }
   });
   el('wk-notify')?.addEventListener('click', async (e) => {
@@ -1079,11 +1129,11 @@ async function drawWeek(camp, round, weeks) {
   // 회차 칩 상태 동기화 (오픈/종료 전환 시 칩 라벨·색 즉시 반영)
   const chip = el('weeks')?.querySelector(`.weekchip[data-r="${round}"]`);
   if (chip) {
-    const stx = wm['상태'] || '대기';
+    const wsx = weekState(wm['상태']);
     chip.classList.remove('s-open', 's-done', 's-wait');
-    chip.classList.add(stx === '오픈' ? 's-open' : stx === '마감' ? 's-done' : 's-wait');
+    chip.classList.add(wsx.cls);
     const se = chip.querySelector('.weekchip__st');
-    if (se) se.textContent = stx === '마감' ? '종료' : stx;
+    if (se) se.textContent = wsx.label;
   }
 }
 async function review(camp, phone, round, status, weeks) {
