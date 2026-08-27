@@ -443,7 +443,7 @@ tr.is-excellent { background: #FFFCF2; }
 .fmtguide[open] > summary { background: var(--color-primary-soft); border-color: var(--color-primary); }
 
 .fmtguide__pop {
-  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 30;
   width: min(440px, 82vw); background: var(--color-surface);
   border: 1px solid var(--color-border-strong); border-radius: var(--radius);
   box-shadow: var(--shadow-pop); overflow: hidden;
@@ -462,13 +462,14 @@ tr.is-excellent { background: #FFFCF2; }
 
 /* ── 캠페인 소개 2단: 입력 | 실시간 미리보기 ──
    WHY: 규칙표는 간접 설명이라 "내 글이 어떻게 나오는지"를 못 보여준다. 옆에 결과를 띄운다. */
-.split { display: grid; grid-template-columns: var(--split-left, 1fr) 14px 1fr; align-items: stretch; }
+/* 기본 미리보기 폭 400px = 휴대폰 폭. 입력칸이 남는 폭을 먹는다(minmax(0,..)로 넘침 방지) */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 14px var(--split-right, 400px); align-items: stretch; }
 .split__col { display: flex; flex-direction: column; min-width: 0; }
 /* 미리보기 내용이 길어지면 컬럼이 늘어난다 — 입력칸도 flex로 따라 늘려 아래선을 맞춘다 */
 .split__in { min-height: 260px; flex: 1; }
 /* 캡션 줄 — 좌우 컬럼이 같은 높이로 맞아야 입력칸과 미리보기의 윗선이 어긋나지 않는다.
    서식 안내는 '쓰는 곳'의 일이라 왼쪽(입력) 컬럼에 붙인다. */
-.split__cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--color-ink-faint); }
+.split__cap { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--color-ink-faint); }
 
 /* 폭 조절 핸들 */
 .split__bar { display: flex; align-items: center; justify-content: center; cursor: col-resize; touch-action: none; }
@@ -477,7 +478,7 @@ tr.is-excellent { background: #FFFCF2; }
 .split.is-dragging { user-select: none; cursor: col-resize; }
 
 @media (max-width: 900px) {
-  .split { grid-template-columns: 1fr; }
+  .split { grid-template-columns: minmax(0, 1fr); }
   .split__bar { display: none; }
 }
 

@@ -725,18 +725,26 @@ async function renderCreate(editId) {
   // WHY setPointerCapture 미사용: 이 프로젝트에서 금지 — 클릭 타깃이 바뀌어 자식 핸들러가 죽은 전례가 있다.
   const splitEl = el('d-split'), splitBar = el('d-splitbar');
   if (splitEl && splitBar) {
-    const KEY = 'challenge.admin.conceptSplit';
-    const SPLIT_MIN = 25, SPLIT_MAX = 75;
-    const clamp = (v) => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v));
-    const cur = () => parseInt(splitEl.style.getPropertyValue('--split-left'), 10) || 50;
-    const apply = (pct) => splitEl.style.setProperty('--split-left', `${Math.round(pct)}%`);
-    try { const v = Number(localStorage.getItem(KEY)); if (v >= SPLIT_MIN && v <= SPLIT_MAX) apply(v); } catch (e) {}
+    // 미리보기 폭을 직접 잡는다(px). 기본 400px = 휴대폰 폭 — 참가자는 거의 모바일로 보므로
+    // 5:5로 벌려 놓으면 실제와 다른 줄바꿈을 보고 카피를 쓰게 된다.
+    // ⚠ 저장 단위가 %에서 px로 바뀌어 옛 키를 그대로 읽으면 35 → 35px가 된다. 키를 갈아 끊는다.
+    const KEY = 'challenge.admin.conceptPrevW';
+    const PREV_DEFAULT = 400, PREV_MIN = 320, PREV_MAX = 640, IN_MIN = 320;
+    const clamp = (v) => {
+      const r = splitEl.getBoundingClientRect();
+      const room = r.width ? r.width - IN_MIN : PREV_MAX;
+      const max = Math.max(PREV_MIN, Math.min(PREV_MAX, room));
+      return Math.min(max, Math.max(PREV_MIN, v));
+    };
+    const cur = () => parseInt(splitEl.style.getPropertyValue('--split-right'), 10) || PREV_DEFAULT;
+    const apply = (px) => splitEl.style.setProperty('--split-right', `${Math.round(px)}px`);
+    try { const v = Number(localStorage.getItem(KEY)); if (v >= PREV_MIN && v <= PREV_MAX) apply(clamp(v)); } catch (e) {}
 
     const posX = (e) => (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
     const onMove = (e) => {
       const r = splitEl.getBoundingClientRect();
       if (!r.width) return;
-      apply(clamp(((posX(e) - r.left) / r.width) * 100));
+      apply(clamp(r.right - posX(e))); // 핸들을 왼쪽으로 끌면 미리보기가 넓어진다
       e.preventDefault();
     };
     const onUp = () => {
@@ -757,9 +765,13 @@ async function renderCreate(editId) {
     };
     splitBar.addEventListener('mousedown', onDown);
     splitBar.addEventListener('touchstart', onDown, { passive: false });
-    splitBar.addEventListener('dblclick', () => { apply(50); try { localStorage.setItem(KEY, '50'); } catch (e) {} });
+    // 더블클릭 = 휴대폰 폭으로 복귀
+    splitBar.addEventListener('dblclick', () => {
+      apply(clamp(PREV_DEFAULT));
+      try { localStorage.setItem(KEY, String(cur())); } catch (e) {}
+    });
     splitBar.addEventListener('keydown', (e) => {
-      const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
+      const step = e.key === 'ArrowLeft' ? 20 : e.key === 'ArrowRight' ? -20 : 0;
       if (!step) return;
       apply(clamp(cur() + step));
       try { localStorage.setItem(KEY, String(cur())); } catch (err) {}
