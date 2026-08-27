@@ -30,32 +30,34 @@ const bindPhone = (input) => { if (input) input.addEventListener('input', () => 
 const kwChips = (s) => String(s || '').split(/[,\n]/).map((k) => k.trim()).filter(Boolean)
   .map((k) => `<span class="wk-kw__chip">${esc(k[0] === '#' ? k : '#' + k)}</span>`).join('');
 
-/* 섹션 헤더 아이콘 — icon-design 규칙: viewBox 0 0 20 20, fill 전용(stroke 금지), 고채도 플랫.
-   테마(--lp-*)와 무관한 고정 팔레트다 — 이모지 대체물이라 캠페인 배색에 물들지 않는다. */
+/* 섹션 헤더 아이콘 — 테마 단색 2톤(duotone). 색은 CSS가 currentColor로 주므로
+   캠페인 배색이 바뀌면 아이콘도 같이 바뀐다. 다색 고채도는 테마와 충돌해 폐기(2026-08-27).
+   main = 불투명 / accent = opacity .32, 겹치지 않게 배치(겹치면 톤이 3개로 번진다). */
 const SVG = (b) => `<svg class="sec__ic" viewBox="0 0 20 20" fill="none" aria-hidden="true">${b}</svg>`;
 const ICON = {
-  who: SVG(`<circle cx="10" cy="5.9" r="3.5" fill="#FFC84D"/>
-    <path d="M3.3 17.1c0-3.5 3-5.7 6.7-5.7s6.7 2.2 6.7 5.7c0 .6-.4 1-1 1H4.3c-.6 0-1-.4-1-1Z" fill="#64A7FF"/>`),
-  gift: SVG(`<path d="M10 5.7C8.4 5.7 6.1 5.3 6.1 3.8c0-.9.8-1.6 1.8-1.6 1.4 0 2.1 1.5 2.1 3.5Z" fill="#EF4452"/>
-    <path d="M10 5.7c1.6 0 3.9-.4 3.9-1.9 0-.9-.8-1.6-1.8-1.6-1.4 0-2.1 1.5-2.1 3.5Z" fill="#EF4452"/>
-    <rect x="2.8" y="8.6" width="14.4" height="9.2" rx="2" fill="#FFC84D"/>
-    <rect x="2" y="5.4" width="16" height="3.8" rx="1.5" fill="#FF9000"/>
-    <rect x="8.7" y="5.4" width="2.6" height="12.4" fill="#EF4452"/>`),
-  coin: SVG(`<circle cx="10" cy="10" r="8" fill="#FFC84D"/><circle cx="10" cy="10" r="6" fill="#FF9000"/>
-    <path d="m10 5.9 1.25 2.53 2.8.41-2.03 1.97.48 2.79L10 12.28 7.5 13.6l.48-2.79-2.03-1.97 2.8-.41L10 5.9Z" fill="#fff"/>`),
-  cal: SVG(`<rect x="2.4" y="4" width="15.2" height="14" rx="2.6" fill="#64A7FF"/>
-    <path d="M2.4 6.6a2.6 2.6 0 0 1 2.6-2.6h10a2.6 2.6 0 0 1 2.6 2.6v1.9H2.4V6.6Z" fill="#313D4C"/>
-    <rect x="5.5" y="2" width="2.2" height="4.2" rx="1.1" fill="#313D4C"/>
-    <rect x="12.3" y="2" width="2.2" height="4.2" rx="1.1" fill="#313D4C"/>
-    <circle cx="6.9" cy="11.9" r="1.3" fill="#fff"/><circle cx="10" cy="11.9" r="1.3" fill="#fff"/>
-    <circle cx="13.1" cy="11.9" r="1.3" fill="#fff"/><circle cx="6.9" cy="15.1" r="1.3" fill="#fff"/>
-    <circle cx="10" cy="15.1" r="1.3" fill="#fff"/>`),
-  warn: SVG(`<path d="M8.62 2.98a1.6 1.6 0 0 1 2.76 0l7.09 12.4c.62 1.07-.16 2.4-1.38 2.4H2.91c-1.22 0-2-1.33-1.38-2.4l7.09-12.4Z" fill="#FF9000"/>
-    <rect x="9" y="6.9" width="2" height="5.5" rx="1" fill="#fff"/><circle cx="10" cy="14.6" r="1.2" fill="#fff"/>`),
-  pen: SVG(`<path d="M3.4 14.1 13.05 4.45l2.5 2.5L5.9 16.6l-3.2.7.7-3.2Z" fill="#FFC84D"/>
-    <path d="m13.05 4.45 1.35-1.35a1.77 1.77 0 0 1 2.5 2.5L15.55 6.95l-2.5-2.5Z" fill="#64A7FF"/>
-    <path d="m2.7 16.6.7-3.2 2.5 2.5-3.2.7Z" fill="#313D4C"/>`),
+  who: SVG(`<circle cx="10" cy="5.9" r="3.5" fill="currentColor" opacity=".32"/>
+    <path d="M3.3 17.1c0-3.5 3-5.7 6.7-5.7s6.7 2.2 6.7 5.7c0 .6-.4 1-1 1H4.3c-.6 0-1-.4-1-1Z" fill="currentColor"/>`),
+  gift: SVG(`<rect x="2.8" y="9.4" width="14.4" height="8.4" rx="2" fill="currentColor" opacity=".32"/>
+    <rect x="2" y="5.4" width="16" height="3.8" rx="1.5" fill="currentColor"/>
+    <path d="M10 5.4C8.4 5.4 6.1 5 6.1 3.5c0-.9.8-1.6 1.8-1.6 1.4 0 2.1 1.5 2.1 3.5Z" fill="currentColor"/>
+    <path d="M10 5.4c1.6 0 3.9-.4 3.9-1.9 0-.9-.8-1.6-1.8-1.6-1.4 0-2.1 1.5-2.1 3.5Z" fill="currentColor"/>
+    <rect x="8.8" y="9.4" width="2.4" height="8.4" fill="currentColor"/>`),
+  coin: SVG(`<circle cx="10" cy="10" r="8" fill="currentColor" opacity=".32"/>
+    <path d="m10 5.4 1.4 2.85 3.15.46-2.28 2.21.54 3.14L10 12.58l-2.81 1.48.54-3.14-2.28-2.21 3.15-.46L10 5.4Z" fill="currentColor"/>`),
+  cal: SVG(`<rect x="2.4" y="4" width="15.2" height="14" rx="2.6" fill="currentColor" opacity=".32"/>
+    <path d="M2.4 6.6a2.6 2.6 0 0 1 2.6-2.6h10a2.6 2.6 0 0 1 2.6 2.6v1.9H2.4V6.6Z" fill="currentColor"/>
+    <rect x="5.5" y="2" width="2.2" height="4.2" rx="1.1" fill="currentColor"/>
+    <rect x="12.3" y="2" width="2.2" height="4.2" rx="1.1" fill="currentColor"/>
+    <circle cx="6.9" cy="12" r="1.25" fill="currentColor"/><circle cx="10" cy="12" r="1.25" fill="currentColor"/>
+    <circle cx="13.1" cy="12" r="1.25" fill="currentColor"/><circle cx="6.9" cy="15.1" r="1.25" fill="currentColor"/>
+    <circle cx="10" cy="15.1" r="1.25" fill="currentColor"/>`),
+  warn: SVG(`<path d="M8.62 2.98a1.6 1.6 0 0 1 2.76 0l7.09 12.4c.62 1.07-.16 2.4-1.38 2.4H2.91c-1.22 0-2-1.33-1.38-2.4l7.09-12.4Z" fill="currentColor" opacity=".32"/>
+    <rect x="9" y="6.9" width="2" height="5.5" rx="1" fill="currentColor"/><circle cx="10" cy="14.6" r="1.2" fill="currentColor"/>`),
+  pen: SVG(`<path d="M3.4 14.1 13.05 4.45l2.5 2.5L5.9 16.6l-3.2.7.7-3.2Z" fill="currentColor" opacity=".32"/>
+    <path d="m13.05 4.45 1.35-1.35a1.77 1.77 0 0 1 2.5 2.5L15.55 6.95l-2.5-2.5Z" fill="currentColor"/>
+    <path d="m2.7 16.6.7-3.2 2.5 2.5-3.2.7Z" fill="currentColor"/>`),
 };
+// 공용 체크 글리프 — 글자 ✓는 기기·폰트마다 두께·위치가 달라진다. 색은 자리마다 다르므로 currentColor.
 const CHECK = (cls) => `<svg class="${cls}" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M8.05 14.6 3.9 10.45l1.45-1.45 2.7 2.7 6.6-6.6 1.45 1.45L8.05 14.6Z" fill="currentColor"/></svg>`;
 const secTitle = (ic, text, extra) => `<h2 class="sec__title">${ICON[ic]}<span>${esc(text)}</span>${extra || ''}</h2>`;
 

@@ -68,33 +68,35 @@ a { color: var(--lp-primary); }
    WHY: 다크카드/맨바닥/연회색카드/테두리표가 섞이면 같은 위계의 섹션이 서로 다른 무게로 읽힌다.
    그릇을 하나로 두고, 진짜 강조 하나(리워드)만 .sec--dark 로 뺀다. */
 .sec {
-  margin-top: 12px; background: #fff; border-radius: 18px; padding: 24px 20px;
+  margin-top: 20px; background: #fff; border-radius: 18px; padding: 26px 20px;
   box-shadow: 0 1px 3px rgba(10,10,11,.05);
 }
-.sec__title { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-size: 19px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
-.sec__ic { width: 22px; height: 22px; flex: none; }
+.sec__title { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-size: 20px; color: var(--lp-ink); margin-bottom: 18px; display: flex; align-items: center; gap: 9px; }
+/* 아이콘 색은 테마에서 상속 — 다색 고채도는 캠페인 배색과 충돌해 폐기 */
+.sec__ic { width: 22px; height: 22px; flex: none; color: var(--lp-primary); }
 .sec__badge { margin-left: auto; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--lp-surface2); color: var(--lp-primary); }
 .prose { color: #4A4F5C; line-height: 1.75; font-size: 15.5px; }
 
 /* 밴드 안 묶음 — 같은 질문에 답하는 것끼리 한 그릇에 담되 헤어라인으로만 나눈다 */
-.grp + .grp { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--color-border); }
+.grp + .grp { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--color-border); }
 
 /* 유일한 강조 밴드 — 리워드 */
 .sec--dark { background: var(--lp-hero-bg); color: #fff; box-shadow: 0 8px 22px rgba(10,10,11,.12); }
 .sec--dark .sec__title { color: #fff; }
 .sec--dark .sec__badge { background: rgba(255,255,255,.14); color: #fff; }
+.sec--dark .sec__ic { color: var(--lp-pop); }
 
 /* 부수 정보 — 밴드를 벗겨 회색 바닥 위에 얹는다(강-중-약의 '약') */
-.sec--bare { background: transparent; box-shadow: none; padding: 6px 6px 0; }
+.sec--bare { background: transparent; box-shadow: none; padding: 10px 6px 0; margin-top: 24px; }
 .sec--bare .sec__title { font-size: 16px; color: var(--color-ink-muted); margin-bottom: 12px; }
-.sec--bare .sec__ic { width: 18px; height: 18px; }
+.sec--bare .sec__ic { width: 19px; height: 19px; color: var(--color-ink-muted); }
 
 /* 참가 자격 — 한 문장뿐이면 임팩트가 없다. 문장은 키우고 대상은 칩으로 세운다 */
-.elig__lead { font-size: 18px; font-weight: 800; line-height: 1.45; letter-spacing: -0.01em; color: var(--lp-ink); }
-.elig__chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.elig__lead { font-size: 16.5px; font-weight: 600; line-height: 1.6; color: #3A3F4A; }
+.elig__chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .elig__chip { font-size: 13.5px; font-weight: 700; padding: 7px 13px; border-radius: var(--radius-pill); background: var(--lp-surface2); color: var(--lp-primary); }
 
-.benefits { list-style: none; display: flex; flex-direction: column; gap: 13px; }
+.benefits { list-style: none; display: flex; flex-direction: column; gap: 16px; }
 .benefits li { display: flex; gap: 11px; align-items: flex-start; }
 .benefits li .chk { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--lp-primary); color: #fff; display: flex; align-items: center; justify-content: center; }
 /* 체크 글리프 — 글자 ✓는 폰트가 그려 기기마다 두께·위치가 흔들린다. 색만 자리에서 상속(currentColor) */
@@ -115,7 +117,7 @@ a { color: var(--lp-primary); }
 .reward-note { margin-top: 12px; color: rgba(255,255,255,.7); font-size: 13px; }
 
 /* 참여 방법 Step 1·2·3 */
-.steps { display: flex; flex-direction: column; gap: 12px; }
+.steps { display: flex; flex-direction: column; gap: 14px; }
 .step { display: flex; gap: 16px; align-items: flex-start; background: var(--lp-surface2); border-radius: 16px; padding: 18px; }
 .step__n { width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--lp-primary); color: #fff; font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; }
 .step__t { font-weight: 800; font-size: 16px; color: var(--lp-ink); }
@@ -130,7 +132,7 @@ a { color: var(--lp-primary); }
 .sched tbody tr:nth-child(even) { background: var(--lp-surface2); }
 
 /* 주의사항 */
-.cautions { list-style: none; counter-reset: ca; display: flex; flex-direction: column; gap: 10px; }
+.cautions { list-style: none; counter-reset: ca; display: flex; flex-direction: column; gap: 13px; }
 .cautions li { counter-increment: ca; position: relative; padding-left: 32px; color: #5A5F6B; font-size: 14px; line-height: 1.6; }
 .cautions li::before { content: counter(ca); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 7px; background: var(--color-surface-2); color: var(--color-ink-muted); font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 
@@ -310,7 +312,7 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .blogprev__empty { font-size: 13px; color: var(--color-ink-muted); }
 
 /* 신청 */
-.apply-card { margin-top: 12px; scroll-margin-top: 16px; }
+.apply-card { margin-top: 20px; scroll-margin-top: 16px; }
 /* 밴드 자체가 그릇이라 내부 .card 껍데기는 걷어낸다(박스 인 박스 방지) */
 .apply-card .card { border: 0; padding: 0; box-shadow: none; background: transparent; border-radius: 0; }
 .cta-fixed { position: sticky; bottom: 0; padding: 14px 0 8px; background: linear-gradient(to top, #fff 64%, transparent); }
