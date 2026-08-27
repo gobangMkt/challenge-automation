@@ -11,10 +11,12 @@ import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stage
 // WHY: 운영자가 평문을 쓰면 파서가 자동으로 굵기·크기·목록을 붙인다.
 //      규칙이 화면 어디에도 없으면 "왜 여기만 노란 볼드지"를 알 수 없다. 규칙 수정 시 이 표도 같이 고친다.
 // [앞칸, 결과]. code 안에는 기호(ASCII)만 — 한글을 mono에 넣으면 폴백돼 자간이 깨진다.
+// 마커 문자군은 landing.js의 BULLET 상수와 반드시 일치시킬 것(누락되면 "왜 서식이 걸렸지"가 된다).
 const FMT_ROWS = [
   ['빈 줄', '문단이 나뉘고 위아래 여백이 생겨요'],
   ['줄바꿈 1번', '같은 문단 안에서 줄만 내려가요'],
-  ['<code>-</code> 로 시작', '★ 카드 목록이 돼요'],
+  ['<code>-</code> <code>*</code> <code>&#9733;</code> 로 시작',
+    '★ 카드 목록이 돼요. <b>줄머리 기호는 지워지고</b> ★가 다시 붙어요<br><span class="fmtguide__set">인식하는 기호: - • * · – — ▪ ◦ ‣ ★ ☆ ◆ ▶ ▷ ✓ ✔</span>'],
   ['<code>1.</code> 로 시작', '번호 목록이 돼요'],
   ['<code>**</code> 로 감싸기', '감싼 부분만 굵게 표시돼요'],
   ['문장 끝에 <code>!</code>', '⚠ 그 줄 <b>전체</b>가 포인트색 굵게 돼요'],
@@ -22,11 +24,21 @@ const FMT_ROWS = [
   ['<code>---</code> 한 줄', '가로 구분선이 돼요'],
 ];
 const FMT_GUIDE = `<details class="fmtguide">
-  <summary>서식 안내 — 이렇게 쓰면 이렇게 보여요</summary>
-  <table class="fmtguide__tbl"><tbody>${FMT_ROWS.map(([a, b]) =>
-    `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>
-  <p class="fmtguide__note"><b>첫 문단</b>은 자동으로 크게(리드) 보여요. 둘째 문단부터는 작아집니다.</p>
+  <summary>서식 안내</summary>
+  <div class="fmtguide__pop">
+    <table class="fmtguide__tbl"><tbody>${FMT_ROWS.map(([a, b]) =>
+      `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>
+    <p class="fmtguide__note"><b>첫 문단</b>은 자동으로 크게(리드) 보여요. 둘째 문단부터는 작아집니다.<br>
+      참가 자격 · 일정 안내에도 똑같이 적용돼요.</p>
+  </div>
 </details>`;
+// 팝오버가 입력칸을 덮으므로 바깥을 누르면 닫는다(열어둔 채 타이핑하다 가려지는 것 방지).
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('details.fmtguide[open]').forEach((d) => {
+    if (!d.contains(e.target)) d.removeAttribute('open');
+  });
+});
+
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
 const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false, cache: { detail: {}, board: {} } };
@@ -626,16 +638,14 @@ async function renderCreate(editId) {
     <div class="card"><div class="card__title">③ 신청 상세페이지 콘텐츠</div>
       <div class="field"><label class="field__label">한 줄 태그라인</label>
         <input class="input" id="d-tag" placeholder="자격증 말고 블로그로 스펙 쌓기" /></div>
-      <div class="field"><label class="field__label">캠페인 소개</label>
-        <textarea class="textarea" id="d-concept" placeholder="누가·무엇을·왜"></textarea>
-        ${FMT_GUIDE}</div>
+      <div class="field">
+        <div class="field__head"><label class="field__label" for="d-concept">캠페인 소개</label>${FMT_GUIDE}</div>
+        <textarea class="textarea" id="d-concept" placeholder="누가·무엇을·왜"></textarea></div>
       <div class="field"><label class="field__label">참가 혜택 (한 줄에 하나씩)</label>
         <textarea class="textarea" id="d-benefits" placeholder="실무 스터디 자료&#10;매주 화요일 아티클&#10;작성 개수만큼 네이버페이"></textarea></div>
       <div class="row2">
-        <div class="field"><label class="field__label">참가 자격</label><input class="input" id="d-elig" placeholder="개인 블로그 운영 중인 누구나" />
-          <div class="field__hint">위 <b>서식 안내</b>가 여기에도 똑같이 적용돼요.</div></div>
-        <div class="field"><label class="field__label">일정 안내</label><input class="input" id="d-sched" placeholder="신청~발표~10주" />
-          <div class="field__hint">위 <b>서식 안내</b>가 여기에도 똑같이 적용돼요.</div></div>
+        <div class="field"><label class="field__label">참가 자격</label><input class="input" id="d-elig" placeholder="개인 블로그 운영 중인 누구나" /></div>
+        <div class="field"><label class="field__label">일정 안내</label><input class="input" id="d-sched" placeholder="신청~발표~10주" /></div>
       </div>
     </div>
 
