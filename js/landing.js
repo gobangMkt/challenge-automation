@@ -255,6 +255,45 @@ function rewardSection(d, c) {
     <b>${amt.toLocaleString()}P</b><br><span style="color:rgba(255,255,255,.7)">네이버페이 · 우수활동자 ×2</span></section>`;
 }
 
+/* 신청 바텀시트 — 플로팅 CTA로 연다. 배경 스크롤 잠금·ESC·포커스 트랩 포함. */
+function bindSheet() {
+  const sheet = $('#a-sheet'), openBtn = $('#a-open');
+  if (!sheet || !openBtn) return;
+  const FOCUSABLE = 'button:not([disabled]),input:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
+  let lastFocus = null;
+
+  const close = () => {
+    sheet.hidden = true;
+    sheet.classList.remove('is-open');
+    document.body.classList.remove('is-locked');
+    if (lastFocus) lastFocus.focus();
+  };
+  const open = () => {
+    lastFocus = document.activeElement;
+    sheet.hidden = false;
+    document.body.classList.add('is-locked');
+    // hidden 해제 직후 같은 프레임에 클래스를 주면 트랜지션이 안 걸린다
+    requestAnimationFrame(() => {
+      sheet.classList.add('is-open');
+      const first = sheet.querySelector('#a-name');
+      if (first) first.focus();
+    });
+  };
+
+  openBtn.addEventListener('click', open);
+  $('#a-close').addEventListener('click', close);
+  $('#a-scrim').addEventListener('click', close);
+  sheet.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key !== 'Tab') return;
+    const items = [...sheet.querySelectorAll(FOCUSABLE)].filter((x) => x.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+  });
+}
+
 /* ---------- 랜딩 + 신청 ---------- */
 function renderLanding() {
   const c = DATA.challenge, d = DATA.detail || {};
@@ -286,28 +325,45 @@ function renderLanding() {
       ${howBand(c, d)}
       ${cautionsSection(d)}
 
-      <section class="sec apply-card" id="apply">
-        ${secTitle('pen', '참가 신청')}
-        ${closed ? `<div class="card center muted">모집이 마감되었습니다.</div>` : `
-        <div class="card">
-          <div class="field"><label class="field__label">성함 <span class="req">*</span></label>
+      ${c.openchatUrl ? `<p class="center" style="margin-top:24px"><a class="btn btn--secondary btn--sm" href="${esc(c.openchatUrl)}" target="_blank">오픈카톡 문의</a></p>` : ''}
+    </div>
+    <!-- 플로팅 CTA — 페이지 어디서든 항상 보인다. 마감이어도 숨기지 않고 상태를 말한다. -->
+    <div class="cta-dock">
+      <button class="btn btn--primary btn--block cta-dock__btn" id="a-open"${closed ? ' disabled' : ''}>
+        ${closed ? '모집 마감' : '신청하기'}
+      </button>
+    </div>
+    ${closed ? '' : `
+    <div class="sheet" id="a-sheet" hidden>
+      <div class="sheet__scrim" id="a-scrim"></div>
+      <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="a-sheet-t">
+        <div class="sheet__head">
+          <h2 class="sheet__title" id="a-sheet-t">참가 신청</h2>
+          <button type="button" class="sheet__x" id="a-close" aria-label="닫기">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5.4 4 10 8.6 14.6 4 16 5.4 11.4 10l4.6 4.6-1.4 1.4L10 11.4 5.4 16 4 14.6 8.6 10 4 5.4 5.4 4Z" fill="currentColor"/></svg>
+          </button>
+        </div>
+        <div class="sheet__body">
+          <div class="field"><label class="field__label" for="a-name">성함 <span class="req">*</span></label>
             <input class="input" id="a-name" placeholder="예) 김고방" /><div class="field__hint">띄어쓰기 없이 입력해 주세요.</div></div>
-          <div class="field"><label class="field__label">휴대폰 번호 <span class="req">*</span></label>
+          <div class="field"><label class="field__label" for="a-phone">휴대폰 번호 <span class="req">*</span></label>
             <input class="input tnum" id="a-phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" /><div class="field__hint">결과·리워드 안내를 받을 번호예요.</div></div>
-          <div class="field"><label class="field__label">참가할 블로그 URL <span class="req">*</span></label>
+          <div class="field"><label class="field__label" for="a-blog">참가할 블로그 URL <span class="req">*</span></label>
             <div class="blogrow"><input class="input" id="a-blog" type="url" placeholder="https://blog.naver.com/..." />
               <button type="button" class="btn btn--secondary" id="a-blogcheck">확인</button></div>
             <div class="field__hint">본인 명의 블로그 1개 (도배·어뷰징 불가). URL 입력 후 <b>확인</b>으로 내 블로그가 맞는지 봐주세요.</div>
             <div id="a-blogprev" class="blogprev" style="display:none"></div></div>
           <label class="checkrow"><input type="checkbox" id="a-agree" /><span>성명·휴대폰 번호 수집 및 이벤트 종료 시까지 보유에 동의합니다. (필수)</span></label>
           <div class="field__err" id="a-err" style="display:none"></div>
-          <div class="cta-fixed"><button class="btn btn--primary btn--block" id="a-submit">신청하기</button></div>
-        </div>`}
-      </section>
-      ${c.openchatUrl ? `<p class="center" style="margin-top:24px"><a class="btn btn--secondary btn--sm" href="${esc(c.openchatUrl)}" target="_blank">오픈카톡 문의</a></p>` : ''}
-    </div>`;
+        </div>
+        <div class="sheet__foot">
+          <button class="btn btn--primary btn--block" id="a-submit">신청하기</button>
+        </div>
+      </div>
+    </div>`}`;
 
   if (closed) return;
+  bindSheet();
   bindPhone($('#a-phone'));
   // 블로그 URL 미리보기(크롤링) — 본인 블로그 확인용
   const checkBlog = async () => {
@@ -355,6 +411,7 @@ function renderLanding() {
 
 function renderDone(title, sub) {
   const c = DATA.challenge;
+  document.body.classList.remove('is-locked'); // 시트에서 제출했으면 잠금이 남아 있다
   app.innerHTML = `<div class="wrap"><div class="done">
     <div class="done__icon">${CHECK('done__ic')}</div>
     <h1 class="done__title">${esc(title)}</h1>
