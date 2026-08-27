@@ -56,6 +56,7 @@ const ICON = {
     <path d="m13.05 4.45 1.35-1.35a1.77 1.77 0 0 1 2.5 2.5L15.55 6.95l-2.5-2.5Z" fill="#64A7FF"/>
     <path d="m2.7 16.6.7-3.2 2.5 2.5-3.2.7Z" fill="#313D4C"/>`),
 };
+const CHECK = (cls) => `<svg class="${cls}" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M8.05 14.6 3.9 10.45l1.45-1.45 2.7 2.7 6.6-6.6 1.45 1.45L8.05 14.6Z" fill="currentColor"/></svg>`;
 const secTitle = (ic, text, extra) => `<h2 class="sec__title">${ICON[ic]}<span>${esc(text)}</span>${extra || ''}</h2>`;
 
 // 태그라인 자동: 입력값 우선 → 소개 첫 문장(짧으면) → 회차 템플릿
@@ -150,7 +151,7 @@ function aboutBand(d) {
   if (!elig && !benefits.length) return '';
   const who = elig ? `<div class="grp">${secTitle('who', '이런 분께 딱이에요')}${elig}</div>` : '';
   const gift = benefits.length ? `<div class="grp">${secTitle('gift', '이런 걸 드려요')}
-    <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></div>` : '';
+    <ul class="benefits">${benefits.map((b) => `<li><span class="chk">${CHECK('chk__ic')}</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></div>` : '';
   return `<section class="sec">${who}${gift}</section>`;
 }
 
@@ -325,7 +326,7 @@ function renderLanding() {
       <div class="blogprev__body">
         <div class="blogprev__t">${esc(r.title || '제목 없음')}</div>
         ${r.desc ? `<div class="blogprev__d">${esc(r.desc)}</div>` : ''}
-        <div class="blogprev__ok">✓ 이 블로그가 맞나요?</div>
+        <div class="blogprev__ok">${CHECK('ico-inline')} 이 블로그가 맞나요?</div>
       </div>`;
   };
   $('#a-blogcheck').addEventListener('click', checkBlog);
@@ -353,7 +354,7 @@ function renderLanding() {
 function renderDone(title, sub) {
   const c = DATA.challenge;
   app.innerHTML = `<div class="wrap"><div class="done">
-    <div class="done__icon">✓</div>
+    <div class="done__icon">${CHECK('done__ic')}</div>
     <h1 class="done__title">${esc(title)}</h1>
     <p class="muted" style="margin-top:12px">${esc(sub)}</p>
     <div class="linkbtns">
@@ -435,7 +436,7 @@ function weekCard(w, d, excellent) {
   const stBadge = isOpen ? '<span class="wk-badge wk-badge--open">오픈</span>'
     : isClosed ? '<span class="wk-badge wk-badge--closed">마감</span>'
       : '<span class="wk-badge wk-badge--soon">예정</span>';
-  const subBadge = w.submitted ? '<span class="wk-badge wk-badge--done">✓ 제출완료</span>'
+  const subBadge = w.submitted ? `<span class="wk-badge wk-badge--done">${CHECK('ico-inline')} 제출완료</span>`
     : (isOpen ? '<span class="wk-badge wk-badge--todo">미제출</span>' : '');
   const openMd = w['오픈일'] ? fmtMD(w['오픈일']) : '';
   const closeMd = w['마감일'] ? fmtMD(w['마감일']) : '';
