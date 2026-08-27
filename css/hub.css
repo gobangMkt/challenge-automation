@@ -425,15 +425,33 @@ tr.is-excellent { background: #FFFCF2; }
 }
 @media (prefers-reduced-motion: reduce) { .grid .camp-card { animation: none; } }
 
-/* ── 본문 서식 치트시트 (상세페이지 텍스트 필드 공통) ──
-   WHY: richText() 자동 변환 규칙을 운영자가 알 방법이 화면에 없었다. */
-.fmtguide { margin-top: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-2); }
-.fmtguide summary { padding: 9px 12px; font-size: 13px; font-weight: 600; color: var(--color-primary); cursor: pointer; list-style: none; }
-.fmtguide summary::-webkit-details-marker { display: none; }
-.fmtguide summary::before { content: '▸ '; }
-.fmtguide[open] summary::before { content: '▾ '; }
+/* ── 본문 서식 치트시트 — 필드 라벨 줄에 얹는다(줄을 새로 쌓지 않는다) ──
+   WHY: richText() 자동 변환 규칙을 운영자가 알 방법이 화면에 없었다.
+   펼침은 팝오버(absolute)라 열어도 폼 레이아웃이 밀리지 않는다. */
+.field__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.field__head .field__label { margin-bottom: 0; }
+
+.fmtguide { position: relative; flex: none; }
+.fmtguide > summary {
+  list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 600;
+  color: var(--color-ink-muted); padding: 2px 0;
+}
+.fmtguide > summary::-webkit-details-marker { display: none; }
+.fmtguide > summary::after { content: ' ⌄'; }
+.fmtguide[open] > summary { color: var(--color-primary); }
+.fmtguide[open] > summary::after { content: ' ⌃'; }
+.fmtguide > summary:hover { color: var(--color-ink); }
+
+.fmtguide__pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+  width: min(440px, 82vw); background: var(--color-surface);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius);
+  box-shadow: var(--shadow-pop); overflow: hidden;
+}
 .fmtguide__tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-.fmtguide__tbl td { padding: 7px 12px; border-top: 1px solid var(--color-border); color: var(--color-ink-muted); vertical-align: top; }
-.fmtguide__tbl td:first-child { width: 132px; white-space: nowrap; color: var(--color-ink); font-weight: 600; }
-.fmtguide__tbl code { font-family: var(--font-mono); font-size: 12px; background: #fff; border: 1px solid var(--color-border); border-radius: 4px; padding: 1px 6px; color: var(--color-ink); }
-.fmtguide__note { padding: 9px 12px 11px; font-size: 12.5px; color: var(--color-ink-muted); border-top: 1px solid var(--color-border); }
+.fmtguide__tbl td { padding: 8px 12px; border-top: 1px solid var(--color-border); color: var(--color-ink-muted); vertical-align: top; line-height: 1.5; }
+.fmtguide__tbl tr:first-child td { border-top: 0; }
+.fmtguide__tbl td:first-child { width: 124px; white-space: nowrap; color: var(--color-ink); font-weight: 600; }
+.fmtguide__tbl code { font-family: var(--font-mono); font-size: 12px; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 4px; padding: 1px 5px; color: var(--color-ink); }
+.fmtguide__set { display: block; margin-top: 3px; font-size: 12px; color: var(--color-ink-faint); white-space: normal; }
+.fmtguide__note { padding: 9px 12px 11px; font-size: 12.5px; line-height: 1.55; color: var(--color-ink-muted); background: var(--color-surface-2); border-top: 1px solid var(--color-border); }
