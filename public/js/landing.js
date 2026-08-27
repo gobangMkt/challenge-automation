@@ -209,21 +209,28 @@ function rewardSection(d, c) {
   d = d || {};
   if (d.rewardType === 'grade' && Array.isArray(d.rewardTiers) && d.rewardTiers.length) {
     const tiers = d.rewardTiers.slice().sort((a, b) => a.min - b.min);
-    const rows = tiers.map((t, i) => {
+    // 구간 범위는 전체 티어로 계산하되, 0P 구간은 표에서 빼고 각주로 내린다.
+    // WHY: 표 첫 행이 '0P'면 리워드 섹션에서 눈이 처음 닿는 값이 0이 된다.
+    const all = tiers.map((t, i) => {
       const next = tiers[i + 1];
       const range = next ? (next.min - 1 > t.min ? `${t.min}~${next.min - 1}개` : `${t.min}개`) : `${t.min}개 이상`;
-      return `<tr><td>${esc(range)} 작성</td><td class="num"><b>${Number(t.amount).toLocaleString()}P</b></td></tr>`;
-    }).join('');
-    return `<section class="sec"><div class="infocard"><h2 class="sec__title">리워드</h2>
+      return { amount: Number(t.amount) || 0, min: Number(t.min) || 0, range };
+    });
+    const paid = all.filter((t) => t.amount > 0);
+    if (!paid.length) return '';
+    const rows = paid.map((t) => `<tr><td>${esc(t.range)} 작성</td><td class="num"><b>${t.amount.toLocaleString()}P</b></td></tr>`).join('');
+    const floor = (all.length > paid.length && paid[0].min > 0)
+      ? `<p class="reward-note">${paid[0].min}개 미만 작성 시에는 지급되지 않아요.</p>` : '';
+    return `<section class="sec sec--dark"><h2 class="sec__title">리워드</h2>
       <table class="reward-table"><thead><tr>
         <th>작성 개수</th><th class="num">네이버페이 포인트</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="reward-note">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 <b style="color:var(--lp-pop)">×2</b></p></div></section>`;
+      <p class="reward-note">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 <b style="color:var(--lp-pop)">×2</b></p>${floor}</section>`;
   }
   const amt = Number(d.rewardAmount || c.rewardPerPost || 0);
   if (!amt) return '';
-  return `<section class="sec"><div class="infocard reward-card" style="text-align:center">
+  return `<section class="sec sec--dark reward-card" style="text-align:center">
     ${d.rewardType === 'per_milestone' ? '목표 달성 시 리워드 지급' : '제출 1건당 리워드 적립'}<br>
-    <b>${amt.toLocaleString()}P</b><br><span style="color:rgba(255,255,255,.7)">네이버페이 · 우수활동자 ×2</span></div></section>`;
+    <b>${amt.toLocaleString()}P</b><br><span style="color:rgba(255,255,255,.7)">네이버페이 · 우수활동자 ×2</span></section>`;
 }
 
 /* ---------- 랜딩 + 신청 ---------- */
@@ -253,8 +260,8 @@ function renderLanding() {
       ${d.concept ? `<div class="hero__sub reveal reveal-4">${richText(d.concept)}</div>` : ''}
     </header>
     <div class="wrap">
-      ${benefits.length ? `<section class="sec"><div class="infocard"><h2 class="sec__title">참가 혜택</h2>
-        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></div></section>` : ''}
+      ${benefits.length ? `<section class="sec"><h2 class="sec__title">참가 혜택</h2>
+        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></section>` : ''}
       ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><div class="prose">${richText(d.eligibility)}</div></section>` : ''}
       ${rewardSection(d, c)}
       ${stepsSection(c)}
