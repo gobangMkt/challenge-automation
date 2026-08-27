@@ -53,6 +53,10 @@ design-system/ MASTER.md (테마: 갓생 코랄)
   - 사이드바 hub: 캠페인 허브 · 캠페인 생성 · 관리·마케팅 · 운영(주차). 운영 토큰으로 인증.
 - **참가자 신청 상세페이지**: https://gobangmkt.github.io/challenge-automation/?c=`<challengeId>`
   - 리치 랜딩(태그라인·혜택·일정·활동비) + 신청. `#submit` 주차제출 · `#wrapup` 마무리.
+  - **신청 동선**: 하단 고정 CTA(`.cta-dock`, `position: fixed`) → 탭하면 신청 폼이 바텀시트(`.sheet`)로 열린다.
+    모집 마감이어도 CTA를 **숨기지 않고** 비활성 `모집 마감`으로 둔다 — 숨기면 '불가능'과 '못 찾음'이 구분되지 않는다.
+    ⚠️ `sticky`로 만들면 그 조상 박스가 뷰포트에 걸친 동안만 붙어 사실상 안 보인다(과거 버그). 시트는 `hidden` +
+    `.sheet[hidden]{display:none}` 필수 — `display:flex`가 UA 기본을 덮어써 숨긴 스크림이 전 화면 클릭을 먹는다.
   - 레이아웃 = **면분리**(회색 캔버스 위 흰 밴드) + **강약 3단**. 강=리워드 다크(`.sec--dark`, 유일) / 중=흰 밴드(`.sec`) /
     약=바닥 위 저강도(`.sec--bare`, 주의사항). 같은 질문에 답하는 섹션은 한 밴드 안 `.grp`으로 묶는다 — 밴드를 늘리지 말 것.
   - 섹션 헤더 아이콘은 `landing.js`의 `ICON` — icon-design 규칙(viewBox 20, fill 전용, 고채도)이며 테마와 무관한 고정 팔레트다.
