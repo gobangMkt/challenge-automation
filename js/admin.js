@@ -6,6 +6,27 @@ import { STATUS, normalizeStatus, tabNotice } from './lib/status.js';
 import { normalizeBlogUrl } from './lib/blog-url.js';
 import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stageActions, stageTransitionFailed, validateCampaignForm, recruitEndNotice } from './lib/statusui.js';
 
+
+// 상세페이지 본문 서식 치트시트 — landing.js richText()의 변환 규칙과 1:1 대응.
+// WHY: 운영자가 평문을 쓰면 파서가 자동으로 굵기·크기·목록을 붙인다.
+//      규칙이 화면 어디에도 없으면 "왜 여기만 노란 볼드지"를 알 수 없다. 규칙 수정 시 이 표도 같이 고친다.
+// [앞칸, 결과]. code 안에는 기호(ASCII)만 — 한글을 mono에 넣으면 폴백돼 자간이 깨진다.
+const FMT_ROWS = [
+  ['빈 줄', '문단이 나뉘고 위아래 여백이 생겨요'],
+  ['줄바꿈 1번', '같은 문단 안에서 줄만 내려가요'],
+  ['<code>-</code> 로 시작', '★ 카드 목록이 돼요'],
+  ['<code>1.</code> 로 시작', '번호 목록이 돼요'],
+  ['<code>**</code> 로 감싸기', '감싼 부분만 굵게 표시돼요'],
+  ['문장 끝에 <code>!</code>', '⚠ 그 줄 <b>전체</b>가 포인트색 굵게 돼요'],
+  ['<code>##</code> 로 시작', '소제목이 돼요'],
+  ['<code>---</code> 한 줄', '가로 구분선이 돼요'],
+];
+const FMT_GUIDE = `<details class="fmtguide">
+  <summary>서식 안내 — 이렇게 쓰면 이렇게 보여요</summary>
+  <table class="fmtguide__tbl"><tbody>${FMT_ROWS.map(([a, b]) =>
+    `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>
+  <p class="fmtguide__note"><b>첫 문단</b>은 자동으로 크게(리드) 보여요. 둘째 문단부터는 작아집니다.</p>
+</details>`;
 /* ---------- 상태 ---------- */
 const TOKEN_KEY = 'challenge.opToken';
 const state = { token: localStorage.getItem(TOKEN_KEY) || '', campaigns: [], loaded: false, cache: { detail: {}, board: {} } };
@@ -606,12 +627,15 @@ async function renderCreate(editId) {
       <div class="field"><label class="field__label">한 줄 태그라인</label>
         <input class="input" id="d-tag" placeholder="자격증 말고 블로그로 스펙 쌓기" /></div>
       <div class="field"><label class="field__label">캠페인 소개</label>
-        <textarea class="textarea" id="d-concept" placeholder="누가·무엇을·왜"></textarea></div>
+        <textarea class="textarea" id="d-concept" placeholder="누가·무엇을·왜"></textarea>
+        ${FMT_GUIDE}</div>
       <div class="field"><label class="field__label">참가 혜택 (한 줄에 하나씩)</label>
         <textarea class="textarea" id="d-benefits" placeholder="실무 스터디 자료&#10;매주 화요일 아티클&#10;작성 개수만큼 네이버페이"></textarea></div>
       <div class="row2">
-        <div class="field"><label class="field__label">참가 자격</label><input class="input" id="d-elig" placeholder="개인 블로그 운영 중인 누구나" /></div>
-        <div class="field"><label class="field__label">일정 안내</label><input class="input" id="d-sched" placeholder="신청~발표~10주" /></div>
+        <div class="field"><label class="field__label">참가 자격</label><input class="input" id="d-elig" placeholder="개인 블로그 운영 중인 누구나" />
+          <div class="field__hint">위 <b>서식 안내</b>가 여기에도 똑같이 적용돼요.</div></div>
+        <div class="field"><label class="field__label">일정 안내</label><input class="input" id="d-sched" placeholder="신청~발표~10주" />
+          <div class="field__hint">위 <b>서식 안내</b>가 여기에도 똑같이 적용돼요.</div></div>
       </div>
     </div>
 
@@ -621,7 +645,7 @@ async function renderCreate(editId) {
     </div>`;
 
   // 리워드 티어
-  const DEFAULT_TIERS = [{ min: 0, amount: 0 }, { min: 2, amount: 3000 }, { min: 6, amount: 5000 }, { min: 10, amount: 10000 }];
+  const DEFAULT_TIERS = [{ min: 2, amount: 3000 }, { min: 6, amount: 5000 }, { min: 10, amount: 10000 }];
   const tbody = el('tier-tbl').querySelector('tbody');
   const tierRow = (t) => {
     const tr = document.createElement('tr');
