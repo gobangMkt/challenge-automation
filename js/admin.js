@@ -193,6 +193,13 @@ const toDateInput = (v) => { const m = String(v == null ? '' : v).match(/(\d{4})
 // 주차별 우수(운영에서 지정) — note의 'exw=6,8' 토큰. 우수 주차가 하나라도 있으면 우수활동자(리워드 ×배수).
 const exWeeks_ = (note) => { const m = String(note == null ? '' : note).match(/exw=([\d,]+)/); return m ? m[1].split(',').map(Number).filter((n) => !isNaN(n)) : []; };
 const isExcellent_ = (note) => exWeeks_(note).length > 0;
+/* 화면에서 참가자를 구분하는 단서 — 휴대폰번호를 감춘 자리를 블로그 아이디가 대신한다(동명이인 구분).
+   판정용 정본(normalizeBlogUrl)을 그대로 쓴다 — 표시용 사본을 두면 '중복' 배지와 눈에 보이는 값이 어긋난다. */
+const blogLabel_ = (u) => {
+  const k = normalizeBlogUrl(u);
+  if (!k) return '–';
+  return k.indexOf('naver:') === 0 ? k.slice(6) : k.replace(/^https?:\/\/(www\.)?/, '');
+};
 function rewardPolicy_(detail, challenge) {
   const d = detail || {}, c = challenge || {};
   // excellentMultiplier는 campaignDetail에 미노출 → 앱 기본·랜딩 표기와 동일하게 2배
@@ -608,10 +615,6 @@ async function renderCreate(editId) {
       </div>
     </div>
 
-    <div class="card"><div class="card__title">④ 회차 미션</div>
-      <p class="muted">회차 미션·참고 아티클은 캠페인 생성 후 <b>운영 탭</b>에서 매주 발송 전에 입력합니다. 여기서는 위 총 회차 수만큼 빈 회차만 생성됩니다.</p>
-    </div>
-
     <div style="display:flex;gap:10px;margin-top:8px">
       <button class="btn btn--primary" id="save">캠페인 생성</button>
       <button class="btn btn--secondary" id="cancel2">취소</button>
@@ -743,6 +746,57 @@ const CUSTOM_SITES_KEY = 'challenge.usites.custom';
 const getCustomSites = () => { try { return JSON.parse(localStorage.getItem(CUSTOM_SITES_KEY) || '[]'); } catch (e) { return []; } };
 const setCustomSites = (arr) => localStorage.setItem(CUSTOM_SITES_KEY, JSON.stringify(arr));
 
+/* ---------- 접이식 카드 (foldcard) 펼침 상태 기억 ---------- */
+const MKT_INFO_OPEN_KEY = 'challenge.mkt.infoOpen';
+const MKT_SITES_OPEN_KEY = 'challenge.mkt.sitesOpen';
+// 기본값이 화면마다 다르다(정보=접힘, 체크리스트=펼침) → 저장값이 없을 때의 기본을 인자로 받는다.
+const foldOpen = (key, dflt) => { const v = localStorage.getItem(key); return v == null ? dflt : v === '1'; };
+function bindFold(id, key) {
+  const d = el(id);
+  if (d) d.addEventListener('toggle', () => localStorage.setItem(key, d.open ? '1' : '0'));
+}
+
+/* ---------- 캠페인 정보 미리보기 (준비 탭) ---------- */
+/* 배포 전 점검용이라 빈 항목을 감추지 않는다 — '미입력'으로 드러내고 개수를 요약에 올린다. */
+function kvList_(pairs) {
+  let miss = 0;
+  const body = pairs.map(([k, v]) => {
+    const empty = v == null || String(v).trim() === '';
+    if (empty) miss += 1;
+    return `<dt>${esc(k)}</dt><dd>${empty ? '<span class="kv__miss">미입력</span>' : esc(v)}</dd>`;
+  }).join('');
+  return { html: `<dl class="kv">${body}</dl>`, miss };
+}
+function campInfoHtml_(ch, d) {
+  const tiers = Array.isArray(d.rewardTiers) ? d.rewardTiers.slice().sort((a, b) => Number(a.min) - Number(b.min)) : [];
+  const basic = kvList_([
+    ['캠페인명', ch.name],
+    ['총 회차', ch.totalRounds ? `${ch.totalRounds}회` : ''],
+    ['모집 시작', ch['모집시작']],
+    ['모집 마감', ch['모집마감']],
+    ['발표일', ch['발표일']],
+    ['시작일', ch['시작일']],
+    ['오픈카톡 문의', ch.openchatUrl],
+  ]);
+  const reward = kvList_([
+    ['지급 기준', tiers.map((t) => `${t.min}개 이상 → ${won(t.amount)}`).join('\n')],
+    ['지급 수단', d.rewardUnit],
+  ]);
+  const content = kvList_([
+    ['한 줄 태그라인', d.tagline],
+    ['캠페인 소개', d.concept],
+    ['참가 혜택', Array.isArray(d.benefits) ? d.benefits.join('\n') : ''],
+    ['참가 자격', d.eligibility],
+    ['일정 안내', d.scheduleText],
+  ]);
+  return {
+    miss: basic.miss + reward.miss + content.miss,
+    html: `<div class="op-sectit">기본 정보</div>${basic.html}
+      <div class="op-sectit">리워드</div>${reward.html}
+      <div class="op-sectit">신청 상세페이지 콘텐츠</div>${content.html}`,
+  };
+}
+
 /* ---------- 탭: 준비 (라우트 키는 mkt 유지) ---------- */
 async function drawMarketing(camp) {
   const id = camp.challengeId;
@@ -766,9 +820,16 @@ async function drawMarketing(camp) {
   el('content').innerHTML = `
     ${sechead('mkt')}
     <div id="stageBox" class="stagelead"></div>
-    <div class="card"><div class="card__title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span>신청 상세페이지 배포</span>
-      <button class="btn btn--ghost btn--sm" id="editCamp" title="상세 내용 수정" aria-label="상세 내용 수정" style="padding:7px 9px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13.1 2.5a1.5 1.5 0 0 1 2.1 0l2.3 2.3a1.5 1.5 0 0 1 0 2.1l-8.6 8.6-4.5 1.2 1.2-4.5z" fill="currentColor"/></svg></button></div>
+    <details class="foldcard" id="campInfo"${foldOpen(MKT_INFO_OPEN_KEY, false) ? ' open' : ''}>
+      <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
+        <span class="card__title">캠페인 정보</span>
+        <span class="foldcard__note">기본정보 · 리워드 · 상세페이지 콘텐츠</span>
+        <span class="foldcard__act"><span id="campMiss"></span>
+          <a class="golink" id="editCamp" href="#/edit/${encodeURIComponent(id)}">캠페인 수정${ICON.arrowRight}</a></span>
+      </summary>
+      <div class="foldcard__body" id="campInfoBody">${loading('캠페인 정보 불러오는 중…')}</div>
+    </details>
+    <div class="card"><div class="card__title">신청 상세페이지 배포</div>
       <p class="muted" style="margin-bottom:14px">이 링크를 오픈카톡·SNS·블로그에 공유하면 참가자가 바로 신청합니다.</p>
       <div class="deploy">
         <div class="deploy__prev">
@@ -817,7 +878,12 @@ async function drawMarketing(camp) {
         </div>
       </div>
     </div>
-    <div class="card"><div class="card__title">업로드할 사이트 <span id="uploadCount" class="mono" style="color:var(--color-ink-faint);font-size:13px;font-weight:500"></span></div>
+    <details class="foldcard" id="usiteFold"${foldOpen(MKT_SITES_OPEN_KEY, true) ? ' open' : ''}>
+      <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
+        <span class="card__title">업로드할 사이트</span>
+        <span class="foldcard__act"><span id="uploadCount" class="foldcard__n tnum"></span></span>
+      </summary>
+      <div class="foldcard__body">
       <p class="muted" style="margin-bottom:14px">상세페이지 링크를 아래 사이트에 등록하세요. 체크하면 진행 상황이 이 기기에 저장됩니다.</p>
       <ul class="usites">${sitesHtml}</ul>
       <div class="usite-add">
@@ -826,19 +892,27 @@ async function drawMarketing(camp) {
         <input class="input" id="us-id" placeholder="로그인 ID (선택)" />
         <button class="btn btn--secondary btn--sm" id="us-add">+ 사이트 추가</button>
       </div>
-    </div>`;
+      </div>
+    </details>`;
   renderStageBox(camp, el('stageBox'), 'mkt');
+  bindFold('campInfo', MKT_INFO_OPEN_KEY);
+  bindFold('usiteFold', MKT_SITES_OPEN_KEY);
+  // summary 안의 이동 링크는 펼침 토글을 겸하지 않는다 — 클릭이 summary까지 가지 않게 막는다.
+  el('editCamp').addEventListener('click', (e) => { e.stopPropagation(); });
   // GAS 응답이 느려 로드 전엔 자리만 잡아둔다
   el('prevLanding')?.addEventListener('load', () => el('prevFrameBox')?.classList.add('is-ready'));
   el('copy').addEventListener('click', () => { navigator.clipboard.writeText(link); toast('신청 페이지 링크 복사됨'); });
   el('copySubmit').addEventListener('click', () => { navigator.clipboard.writeText(`${link}#submit`); toast('주차 제출 링크 복사됨'); });
   el('copyWrapupMkt')?.addEventListener('click', () => { navigator.clipboard.writeText(`${link}#wrapup`); toast('마무리 폼 링크 복사됨'); });
-  el('editCamp').addEventListener('click', () => { location.hash = `#/edit/${encodeURIComponent(id)}`; });
 
   // 썸네일·포스터 (상세 캐시 + html2canvas로 미리보기 이미지 + 다운로드)
   (async () => {
     const det = await loadDetail(id);
     const cc = det.challenge || camp; const dd = det.detail || {};
+    // 캠페인 정보 미리보기 — 같은 campaignDetail 응답을 쓴다(추가 왕복 없음)
+    const info = campInfoHtml_(cc, dd);
+    if (el('campInfoBody')) el('campInfoBody').innerHTML = info.html;
+    if (el('campMiss')) el('campMiss').innerHTML = info.miss ? `<span class="badge badge--danger">미입력 ${info.miss}</span>` : '';
     async function renderInto(boxId, node, dispW) {
       const box = el(boxId); if (!box) return;
       const stage = document.createElement('div'); stage.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1';
@@ -931,7 +1005,9 @@ async function drawManage(camp) {
   rows.forEach((p) => { const k = digits_(p.phone); if (k) phoneCnt[k] = (phoneCnt[k] || 0) + 1; const bk = normBlog(p.blogUrl); if (bk) blogCnt[bk] = (blogCnt[bk] || 0) + 1; });
   const dupP = Object.values(phoneCnt).filter((n) => n > 1).length;
   const dupB = Object.values(blogCnt).filter((n) => n > 1).length;
-  const DUP = '<span class="badge badge--danger" style="margin-left:6px;font-size:10px;padding:1px 6px">중복</span>';
+  const DUP = '<span class="badge badge--danger dupbadge">중복</span>';
+  // 번호는 화면에 안 띄우므로 무엇이 겹쳤는지 배지 라벨이 대신 말해준다(내보내기에서 확인).
+  const DUP_P = '<span class="badge badge--danger dupbadge" title="같은 휴대폰번호로 중복 신청 — 내보내기 CSV에서 번호 확인">번호 중복</span>';
   el('content').innerHTML = `
     ${sechead('manage')}
     ${noticeHtml(camp, 'manage')}
@@ -942,7 +1018,7 @@ async function drawManage(camp) {
       <button class="btn btn--secondary btn--sm statbar__act" id="csvRoster"${rows.length ? '' : ' disabled'}>${ICON.download} CSV 내보내기</button>
     </div>
     <div class="card" style="padding:0;overflow:auto">
-      <table class="table"><thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>선발/탈락</th><th>우수활동자</th><th>예상 리워드</th><th>삭제</th></tr></thead><tbody>
+      <table class="table"><thead><tr><th>성함</th><th>블로그</th><th>제출</th><th>선발/탈락</th><th>우수활동자</th><th>예상 리워드</th><th>삭제</th></tr></thead><tbody>
       ${rows.length ? rows.map((p) => {
         const sel = p.status === 'selected' || p.status === '선발';
         const rej = p.status === 'rejected' || p.status === '탈락';
@@ -952,8 +1028,8 @@ async function drawManage(camp) {
         const pDup = phoneCnt[digits_(p.phone)] > 1;
         const bDup = blogCnt[normBlog(p.blogUrl)] > 1;
         return `<tr data-phone="${esc(p.phone)}" data-count="${cnt}" class="${isEx ? 'is-excellent' : ''}${(pDup || bDup) ? ' is-dup' : ''}">
-          <td>${esc(p.name)}</td><td class="tnum">${esc(p.phone)}${pDup ? DUP : ''}</td>
-          <td><a href="${esc(p.blogUrl)}" target="_blank">블로그</a>${bDup ? DUP : ''}</td>
+          <td><span class="js-nm">${esc(p.name)}</span>${pDup ? DUP_P : ''}</td>
+          <td><a class="blogid" href="${esc(p.blogUrl)}" target="_blank" rel="noopener" title="${esc(p.blogUrl)}">${esc(blogLabel_(p.blogUrl))}</a>${bDup ? DUP : ''}</td>
           <td class="tnum js-sub">${sel ? `${cnt}/${totalW}` : '–'}</td>
           <td><span class="seg">
             <button class="seg__btn js-sel ${sel ? 'is-on' : ''}">선발</button>
@@ -962,7 +1038,7 @@ async function drawManage(camp) {
           <td class="tnum js-amt">${sel ? won(rewardFor_(cnt, isEx, pol)) : '–'}</td>
           <td><button class="btn btn--ghost btn--sm js-pdel" style="color:var(--color-danger)">삭제</button></td>
         </tr>`;
-      }).join('') : '<tr><td colspan="8" class="empty">신청자가 없습니다.</td></tr>'}
+      }).join('') : '<tr><td colspan="7" class="empty">신청자가 없습니다.</td></tr>'}
       </tbody></table>
     </div>
     <p class="muted" style="margin-top:10px;font-size:12px">제출수=실제 제출 건수 · 예상 리워드=${pol.type === 'grade' ? '제출갯수 티어' : '제출수×단가'} 기준, 우수활동자 ×${pol.mult}. <b>우수활동자는 운영 탭의 주차별 제출 검수에서 지정</b>하며 여기서는 표시만 됩니다. 확정 정산은 <b>리워드</b> 탭 참고.</p>`;
@@ -980,7 +1056,7 @@ async function drawManage(camp) {
     tr.querySelector('.js-sel')?.addEventListener('click', async () => { await decide(camp, phone, 'selected', tr); refreshRow(tr); });
     tr.querySelector('.js-rej')?.addEventListener('click', async () => { await decide(camp, phone, 'rejected', tr); refreshRow(tr); });
     tr.querySelector('.js-pdel')?.addEventListener('click', async () => {
-      const name = tr.querySelector('td')?.textContent || '';
+      const name = tr.querySelector('.js-nm')?.textContent || '';
       const ok = await confirmModal({ title: `'${name}' 신청자를 삭제할까요?`, message: '신청·제출 기록이 함께 삭제됩니다.', confirmLabel: '삭제', danger: true });
       if (!ok) return;
       const r2 = await apiPost(op({ action: 'deleteParticipant', challengeId: id, phone })).catch(() => ({ ok: false }));
@@ -1026,8 +1102,7 @@ async function drawReward(camp) {
     const sum = amt * list.length;
     const body = list.map((x) => `<tr>
       <td>${esc(x.name)}${x.excellent ? ' <span class="exstar">★</span>' : ''}</td>
-      <td class="tnum">${esc(x.phone)}</td>
-      <td><a href="${esc(x.blogUrl)}" target="_blank">블로그</a></td>
+      <td><a class="blogid" href="${esc(x.blogUrl)}" target="_blank" rel="noopener" title="${esc(x.blogUrl)}">${esc(blogLabel_(x.blogUrl))}</a></td>
       <td class="tnum">${x.count}/${totalW}</td>
       <td class="tnum">${x.excellent ? 'Y' : 'N'}</td></tr>`).join('');
     return `<div class="rwd-group">
@@ -1037,9 +1112,9 @@ async function drawReward(camp) {
         <span class="rwd-group__sum">합계 ${won(sum)}</span>
       </div>
       <div class="card" style="padding:0;overflow:auto;margin:0">
-        <table class="table" style="table-layout:fixed">
-        <colgroup><col style="width:22%"/><col style="width:26%"/><col/><col style="width:13%"/><col style="width:11%"/></colgroup>
-        <thead><tr><th>성함</th><th>휴대폰</th><th>블로그</th><th>제출</th><th>우수</th></tr></thead>
+        <table class="table table--fixed">
+        <colgroup><col style="width:28%"/><col/><col style="width:14%"/><col style="width:12%"/></colgroup>
+        <thead><tr><th>성함</th><th>블로그</th><th>제출</th><th>우수</th></tr></thead>
         <tbody>${body}</tbody></table>
       </div>
     </div>`;
@@ -1063,7 +1138,8 @@ async function drawReward(camp) {
 async function drawOperate(camp) {
   const id = camp.challengeId;
   const myHash = location.hash;
-  el('content').innerHTML = `${sechead('operate')}${noticeHtml(camp, 'operate')}<div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div><div id="opStatus"></div>`;
+  // 챌린지 상태(stagebox)는 캠페인 전역 설정이라 회차 작업보다 위 — 준비 탭과 같은 자리(.stagelead)다.
+  el('content').innerHTML = `${sechead('operate')}${noticeHtml(camp, 'operate')}<div id="opStatus" class="stagelead"></div><div id="opGlobal"></div><div id="weeks">${loading('주차 불러오는 중…')}</div><div id="weekPane"></div>`;
   const [r, det] = await Promise.all([
     apiGet({ action: 'missions', token: state.token, challengeId: id }),
     loadDetail(id),
@@ -1073,7 +1149,9 @@ async function drawOperate(camp) {
   const hasGlobal = !!(gd.eduUrl || gd.guide || gd.notice);
   el('opGlobal').innerHTML = `
     <details class="foldcard"${hasGlobal ? '' : ' open'}>
-      <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span><span class="card__title" style="margin:0">전역 설정 <span class="muted" style="font-size:13px;font-weight:500">교육자료·작성가이드·유의사항 (매주 공통)</span></span></summary>
+      <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
+        <span class="card__title">전역 설정</span>
+        <span class="foldcard__note">교육자료·작성가이드·유의사항 (매주 공통)</span></summary>
       <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
@@ -1157,7 +1235,14 @@ async function drawWeek(camp, round, weeks) {
       </div>
     </div>
     <div class="card">
-      <div class="card__title">제출 <span class="muted" style="font-size:13px;font-weight:500">${submitted.length}명</span></div>
+      <div class="cardhead">
+        <div class="card__title">제출 현황</div>
+        <div class="filterseg" role="group" aria-label="제출 현황 보기">
+          <button class="filterseg__btn is-on" data-view="sub" aria-pressed="true">제출 <b class="tnum">${submitted.length}</b></button>
+          <button class="filterseg__btn" data-view="miss" aria-pressed="false">미제출 <b class="tnum">${missing.length}</b></button>
+        </div>
+      </div>
+      <div data-pane="sub">
       ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed">
         <colgroup><col style="width:30%"/><col style="width:14%"/><col style="width:24%"/><col style="width:16%"/><col style="width:16%"/></colgroup>
         <thead><tr><th>성함</th><th>게시물</th><th>제출일</th><th class="ta-c">상태</th><th class="ta-c">처리</th></tr></thead><tbody>
@@ -1174,11 +1259,20 @@ async function drawWeek(camp, round, weeks) {
         </tr>`;
       }).join('')}
       </tbody></table></div>` : '<p class="empty">아직 제출이 없습니다.</p>'}
-    </div>
-    <div class="card">
-      <div class="card__title">미제출 <span class="muted" style="font-size:13px;font-weight:500">${missing.length}명</span></div>
+      </div>
+      <div data-pane="miss" hidden>
       ${missing.length ? `<div class="namechips">${missing.map((m) => `<span class="namechip">${esc(m.name)}</span>`).join('')}</div>` : '<p class="empty">선발자 전원 제출 완료!</p>'}
+      </div>
     </div>`;
+  // 전환은 그리기가 아니라 감추기다 — 두 목록을 모두 DOM에 두고 hidden만 바꿔 이벤트 핸들러를 살린다.
+  pane.querySelectorAll('.filterseg__btn').forEach((b) => b.addEventListener('click', () => {
+    pane.querySelectorAll('.filterseg__btn').forEach((x) => {
+      const on = x === b;
+      x.classList.toggle('is-on', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    pane.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== b.dataset.view; });
+  }));
   el('wk-save')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     if (btn.dataset.mode === 'edit') { // 잠금 해제 → 수정 모드
