@@ -148,7 +148,9 @@
 .camp-card__name { font-size: 17px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 상태 배지 + 진행기간 — 카드 상단은 제목·액션만 두고 상태/일정은 이 줄이 맡는다 */
 .camp-card__meta { display: flex; align-items: center; gap: 8px; margin-top: -4px; min-width: 0; }
-.camp-card__period { font-family: var(--font-mono); font-size: 12px; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 카드는 여러 캠페인을 훑는 화면이라 상태·기간이 목록에서 바로 읽혀야 한다 */
+.camp-card__meta .badge { height: 26px; padding: 0 10px; font-size: 12.5px; }
+.camp-card__period { font-family: var(--font-mono); font-size: 13px; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .camp-card__stats { display: flex; gap: 20px; }
 .stat__n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; display: block; }
 .stat__l { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-faint); }
