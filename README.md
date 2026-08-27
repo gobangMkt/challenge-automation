@@ -13,6 +13,9 @@
 - **데이터(시트 6탭)**: Challenges / WeekMissions / Participants / Submissions / Wrapup / NotifyLog.
 - **자동화**: GAS 시간트리거 매일 1회 — 회차 오픈+알림톡, 마감 D-1 미제출 리마인드, 마감→다음회차.
 - **아티클**: 노션 「작성기록」 DB에서 `type=혼잘주거` read-only. 회차별 수동 배정 + 미배정 시 최신순 자동.
+- **상세페이지 본문 서식**: 운영자가 넣는 평문(캠페인 소개·참가 자격·일정 안내)을 `public/js/landing.js`의 `richText()`가
+  자동 변환한다 — 빈 줄=문단, `- `=★목록, `**…**`=굵게, **줄 끝 `!`=포인트색 굵게(자동)**, `##`=소제목, `---`=구분선.
+  첫 문단은 위치 기반으로 리드(19px)가 된다. 규칙표는 admin 「캠페인 소개」의 **서식 안내**(`FMT_ROWS`)와 1:1 — 규칙을 고치면 둘 다 고친다.
 - **정산**: 제출 갯수 × 단가, 우수활동자 2배.
 - **내보내기**: 관리 탭=신청자 명단(성함·휴대폰·블로그·선발상태), 리워드 탭=정산표(성함·휴대폰·제출수·우수·지급액). CSV(UTF-8 BOM·CRLF)로 엑셀에서 바로 열리고, 휴대폰은 하이픈을 넣어 앞자리 0이 유지된다.
 
@@ -44,6 +47,7 @@ design-system/ MASTER.md (테마: 갓생 코랄)
   - 사이드바 hub: 캠페인 허브 · 캠페인 생성 · 관리·마케팅 · 운영(주차). 운영 토큰으로 인증.
 - **참가자 신청 상세페이지**: https://gobangmkt.github.io/challenge-automation/?c=`<challengeId>`
   - 리치 랜딩(태그라인·혜택·일정·활동비) + 신청. `#submit` 주차제출 · `#wrapup` 마무리.
+  - 레이아웃 = **면분리**(회색 캔버스 위 흰 밴드). 섹션 그릇은 `.sec` 하나, 다크 강조는 리워드(`.sec--dark`) 1곳만. 새 섹션도 이 어휘를 따른다.
 - **GitHub repo**: https://github.com/gobangMkt/challenge-automation
 - **GAS Web App 엔드포인트**: `public/js/config.js`의 `GAS_ENDPOINT` (시트 바인딩 Apps Script, 익명 접근)
 - **데이터 시트**: container-bound 스프레드시트 (Participants/Challenges/WeekMissions/Submissions/Wrapup/NotifyLog/Campaigns)
