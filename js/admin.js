@@ -4,32 +4,37 @@ import { thumbNode, posterNode, downloadNode, ensureHtml2Canvas } from './assets
 import { rosterCsv, payoutCsv, csvFileName } from './lib/csv.js';
 import { STATUS, normalizeStatus, tabNotice } from './lib/status.js';
 import { normalizeBlogUrl } from './lib/blog-url.js';
+import { richText, BULLET_CHARS } from './lib/rich-text.js';
+import { pickTheme } from './themes.js';
 import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stageActions, stageTransitionFailed, validateCampaignForm, recruitEndNotice } from './lib/statusui.js';
 
 
-// 상세페이지 본문 서식 치트시트 — landing.js richText()의 변환 규칙과 1:1 대응.
-// WHY: 운영자가 평문을 쓰면 파서가 자동으로 굵기·크기·목록을 붙인다.
-//      규칙이 화면 어디에도 없으면 "왜 여기만 노란 볼드지"를 알 수 없다. 규칙 수정 시 이 표도 같이 고친다.
-// [앞칸, 결과]. code 안에는 기호(ASCII)만 — 한글을 mono에 넣으면 폴백돼 자간이 깨진다.
-// 마커 문자군은 landing.js의 BULLET 상수와 반드시 일치시킬 것(누락되면 "왜 서식이 걸렸지"가 된다).
-const FMT_ROWS = [
-  ['빈 줄', '문단이 나뉘고 위아래 여백이 생겨요'],
-  ['줄바꿈 1번', '같은 문단 안에서 줄만 내려가요'],
-  ['<code>-</code> <code>*</code> <code>&#9733;</code> 로 시작',
-    '★ 카드 목록이 돼요. <b>줄머리 기호는 지워지고</b> ★가 다시 붙어요<br><span class="fmtguide__set">인식하는 기호: - • * · – — ▪ ◦ ‣ ★ ☆ ◆ ▶ ▷ ✓ ✔</span>'],
-  ['<code>1.</code> 로 시작', '번호 목록이 돼요'],
-  ['<code>**</code> 로 감싸기', '감싼 부분만 굵게 표시돼요'],
-  ['문장 끝에 <code>!</code>', '⚠ 그 줄 <b>전체</b>가 포인트색 굵게 돼요'],
-  ['<code>##</code> 로 시작', '소제목이 돼요'],
-  ['<code>---</code> 한 줄', '가로 구분선이 돼요'],
+// 상세페이지 본문 서식 치트시트 — landing/미리보기와 같은 파서(lib/rich-text.js)의 규칙 표.
+// WHY: 사고는 '자동으로 걸리는 규칙'에서만 난다("서식 안 썼는데 왜 굵어졌지").
+//      그래서 자동/수동을 갈라 자동을 위에 둔다. 마커 목록은 파서 상수에서 직접 뽑아 드리프트를 막는다.
+const FMT_AUTO = [
+  ['첫 문단', '자동으로 <b>크게(리드)</b> 보여요. 둘째 문단부터 작아집니다'],
+  ['줄 끝 <code>!</code>', '그 줄 <b>전체</b>가 포인트색 굵게 돼요'],
+  ['줄머리 <code>&#9733;</code> <code>-</code> <code>*</code> …',
+    '★ 카드 목록이 돼요. <b>줄머리 기호는 지워지고</b> ★가 다시 붙어요'
+    + `<span class="fmtguide__set">${BULLET_CHARS.join(' ')} (${BULLET_CHARS.length}종)</span>`],
+  ['빈 줄 / 줄바꿈', '빈 줄=문단 나눔 · 줄바꿈 1번=같은 문단 안에서 줄만 내려감'],
 ];
+const FMT_MANUAL = [
+  ['<code>**</code> 로 감싸기', '감싼 부분만 굵게'],
+  ['<code>1.</code> 로 시작', '번호 목록'],
+  ['<code>##</code> 로 시작', '소제목'],
+  ['<code>---</code> 한 줄', '가로 구분선'],
+];
+const fmtRows = (rows) => rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
 const FMT_GUIDE = `<details class="fmtguide">
-  <summary>서식 안내</summary>
+  <summary><svg class="fmtguide__ic" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#64A7FF"/><rect x="9" y="8.5" width="2" height="6" rx="1" fill="#fff"/><circle cx="10" cy="5.8" r="1.25" fill="#fff"/></svg>서식 안내</summary>
   <div class="fmtguide__pop">
-    <table class="fmtguide__tbl"><tbody>${FMT_ROWS.map(([a, b]) =>
-      `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</tbody></table>
-    <p class="fmtguide__note"><b>첫 문단</b>은 자동으로 크게(리드) 보여요. 둘째 문단부터는 작아집니다.<br>
-      참가 자격 · 일정 안내에도 똑같이 적용돼요.</p>
+    <div class="fmtguide__cap fmtguide__cap--warn">따로 지정 안 해도 자동으로 걸려요</div>
+    <table class="fmtguide__tbl"><tbody>${fmtRows(FMT_AUTO)}</tbody></table>
+    <div class="fmtguide__cap">직접 지정하는 서식</div>
+    <table class="fmtguide__tbl"><tbody>${fmtRows(FMT_MANUAL)}</tbody></table>
+    <p class="fmtguide__note">참가 자격 · 일정 안내에도 똑같이 적용돼요.</p>
   </div>
 </details>`;
 // 팝오버가 입력칸을 덮으므로 바깥을 누르면 닫는다(열어둔 채 타이핑하다 가려지는 것 방지).
@@ -640,7 +645,13 @@ async function renderCreate(editId) {
         <input class="input" id="d-tag" placeholder="자격증 말고 블로그로 스펙 쌓기" /></div>
       <div class="field">
         <div class="field__head"><label class="field__label" for="d-concept">캠페인 소개</label>${FMT_GUIDE}</div>
-        <textarea class="textarea" id="d-concept" placeholder="누가·무엇을·왜"></textarea></div>
+        <div class="split">
+          <textarea class="textarea split__in" id="d-concept" placeholder="누가·무엇을·왜"></textarea>
+          <div class="split__side">
+            <div class="split__cap">상세페이지에서 이렇게 보여요</div>
+            <div class="lp-prev" id="d-concept-prev"><span class="lp-prev__empty">왼쪽에 입력하면 여기에 나타납니다.</span></div>
+          </div>
+        </div></div>
       <div class="field"><label class="field__label">참가 혜택 (한 줄에 하나씩)</label>
         <textarea class="textarea" id="d-benefits" placeholder="실무 스터디 자료&#10;매주 화요일 아티클&#10;작성 개수만큼 네이버페이"></textarea></div>
       <div class="row2">
@@ -669,6 +680,9 @@ async function renderCreate(editId) {
   DEFAULT_TIERS.forEach(tierRow);
   el('tier-add').addEventListener('click', () => tierRow({ min: 0, amount: 0 }));
 
+  // 랜딩은 pickTheme(캠페인명, detail.theme)로 배색을 정한다. 미리보기가 같은 색이 되려면 theme도 필요.
+  let loadedTheme = '';
+
   // 수정 모드: 기존 값 불러와 채우기
   if (editing) {
     el('content').style.opacity = '.5';
@@ -680,11 +694,27 @@ async function renderCreate(editId) {
     setv('f-name', ch.name); setv('f-rounds', ch.totalRounds || 10);
     setv('f-rs', ch['모집시작']); setv('f-re', ch['모집마감']); setv('f-ann', ch['발표일']); setv('f-start', ch['시작일']);
     if (ch.openchatUrl) setv('f-chat', ch.openchatUrl);
+    loadedTheme = d.theme || '';
     setv('d-tag', d.tagline); setv('d-concept', d.concept);
     setv('d-benefits', Array.isArray(d.benefits) ? d.benefits.join('\n') : '');
     setv('d-elig', d.eligibility); setv('d-sched', d.scheduleText);
     if (Array.isArray(d.rewardTiers) && d.rewardTiers.length) { tbody.innerHTML = ''; d.rewardTiers.slice().sort((a, b) => a.min - b.min).forEach(tierRow); }
   }
+
+  // 캠페인 소개 실시간 미리보기 — 랜딩과 같은 파서(lib/rich-text.js)를 쓰므로 구조가 100% 일치한다.
+  const conceptPrev = () => {
+    const ta = el('d-concept'); const box = el('d-concept-prev');
+    if (!ta || !box) return;
+    // 배색은 캠페인명으로 정해지므로 실제 랜딩과 같은 테마를 입힌다(고정색이면 미리보기가 거짓말이 된다)
+    const t = pickTheme((el('f-name') || {}).value || '', loadedTheme);
+    box.style.setProperty('--prev-bg', t.heroBg);
+    box.style.setProperty('--prev-pop', t.pop);
+    const v = ta.value.trim();
+    box.innerHTML = v ? richText(v) : '<span class="lp-prev__empty">왼쪽에 입력하면 여기에 나타납니다.</span>';
+  };
+  if (el('d-concept')) el('d-concept').addEventListener('input', conceptPrev);
+  if (el('f-name')) el('f-name').addEventListener('input', conceptPrev);
+  conceptPrev();
 
   // 빠른 채우기
   el('autofill').addEventListener('click', () => {
@@ -699,6 +729,7 @@ async function renderCreate(editId) {
     if (d.benefits.length) { el('d-benefits').value = d.benefits.join('\n'); n += 1; }
     if (d.totalRounds) { el('f-rounds').value = d.totalRounds; n += 1; }
     if (d.tiers.length) { tbody.innerHTML = ''; d.tiers.sort((a, b) => a.min - b.min).forEach(tierRow); n += 1; }
+    conceptPrev();
     toast(n ? `${n}개 항목 자동 채움 — 빈 곳을 확인하세요` : '추출된 항목이 없습니다', !n);
   });
 

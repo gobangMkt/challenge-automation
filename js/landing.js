@@ -2,6 +2,7 @@ import { apiGet, apiPost } from './api.js';
 import { pickTheme, DISPLAY_FONTS } from './themes.js';
 import { VIEW, landingView, canApply, upcomingOpenDate } from './lib/landing-view.js';
 import { toYmd } from './lib/status.js';
+import { richText, stripMarker } from './lib/rich-text.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const app = document.getElementById('app');
@@ -29,50 +30,33 @@ const bindPhone = (input) => { if (input) input.addEventListener('input', () => 
 const kwChips = (s) => String(s || '').split(/[,\n]/).map((k) => k.trim()).filter(Boolean)
   .map((k) => `<span class="wk-kw__chip">${esc(k[0] === '#' ? k : '#' + k)}</span>`).join('');
 
-// 줄머리 불렛/번호 마커 제거 (★·☆·▶ 등 포함)
-const BULLET = '[-•*·–—▪◦‣★☆◆▶▷✓✔]';
-const stripMarker = (s) => String(s || '').replace(new RegExp(`^\\s*(?:${BULLET}|\\d+[.)])\\s+`), '').trim();
-
-// 평문 렌더: 빈 줄=문단, 단일 줄바꿈=<br>, 줄단위로 -/•/1.=리스트(연속 묶음),
-// ★★…★★=소제목, ---=구분선, **굵게**·느낌표 문장=강조.
-function richText(str) {
-  const lines = String(str == null ? '' : str).replace(/\r/g, '').split('\n');
-  const ulRe = new RegExp(`^${BULLET}\\s+`);
-  const olRe = /^\d+[.)]\s+/;
-  const hrRe = /^[-–—_▬=]{3,}$/;
-  const hdRe = /^[★☆]{1,3}\s*(.+?)\s*[★☆]{1,3}$/;
-  const mdHdRe = /^#{1,6}\s*(.+?)\s*#*$/; // 마크다운식 ## 제목
-  const line = (l) => {
-    let h = esc(l).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    if (/[!！]\s*$/.test(l)) h = `<strong class="hl-line">${h}</strong>`;
-    return h;
-  };
-  let html = '', pbuf = [], lbuf = [], lt = null, olCount = 0, blanked = false;
-  const flushP = () => { if (pbuf.length) { html += `<p class="rich-p">${pbuf.join('<br>')}</p>`; pbuf = []; } };
-  const flushL = () => {
-    if (!lbuf.length) return;
-    const attr = lt === 'ol' ? ` style="counter-reset:ri ${olCount}"` : '';
-    html += `<${lt} class="rich-list"${attr}>${lbuf.map((x) => `<li>${x}</li>`).join('')}</${lt}>`;
-    if (lt === 'ol') olCount += lbuf.length;
-    lbuf = []; lt = null;
-  };
-  const flush = () => { flushP(); flushL(); };
-  for (const raw of lines) {
-    const l = raw.trim();
-    if (!l) { flush(); blanked = true; continue; }
-    if (blanked) { if (html) html += '<div class="rich-blank"></div>'; blanked = false; }
-    if (hrRe.test(l)) { flush(); html += '<hr class="rich-hr">'; continue; }
-    const hd = l.match(hdRe);
-    if (hd) { flush(); html += `<div class="rich-h">${line(hd[1])}</div>`; continue; }
-    const mhd = l.match(mdHdRe);
-    if (mhd) { flush(); html += `<div class="rich-h">${line(mhd[1])}</div>`; continue; }
-    if (ulRe.test(l)) { flushP(); if (lt !== 'ul') flushL(), (lt = 'ul'); lbuf.push(line(l.replace(ulRe, ''))); continue; }
-    if (olRe.test(l)) { flushP(); if (lt !== 'ol') flushL(), (lt = 'ol'); lbuf.push(line(l.replace(olRe, ''))); continue; }
-    flushL(); pbuf.push(line(l));
-  }
-  flush();
-  return html;
-}
+/* 섹션 헤더 아이콘 — icon-design 규칙: viewBox 0 0 20 20, fill 전용(stroke 금지), 고채도 플랫.
+   테마(--lp-*)와 무관한 고정 팔레트다 — 이모지 대체물이라 캠페인 배색에 물들지 않는다. */
+const SVG = (b) => `<svg class="sec__ic" viewBox="0 0 20 20" fill="none" aria-hidden="true">${b}</svg>`;
+const ICON = {
+  who: SVG(`<circle cx="10" cy="5.9" r="3.5" fill="#FFC84D"/>
+    <path d="M3.3 17.1c0-3.5 3-5.7 6.7-5.7s6.7 2.2 6.7 5.7c0 .6-.4 1-1 1H4.3c-.6 0-1-.4-1-1Z" fill="#64A7FF"/>`),
+  gift: SVG(`<path d="M10 5.7C8.4 5.7 6.1 5.3 6.1 3.8c0-.9.8-1.6 1.8-1.6 1.4 0 2.1 1.5 2.1 3.5Z" fill="#EF4452"/>
+    <path d="M10 5.7c1.6 0 3.9-.4 3.9-1.9 0-.9-.8-1.6-1.8-1.6-1.4 0-2.1 1.5-2.1 3.5Z" fill="#EF4452"/>
+    <rect x="2.8" y="8.6" width="14.4" height="9.2" rx="2" fill="#FFC84D"/>
+    <rect x="2" y="5.4" width="16" height="3.8" rx="1.5" fill="#FF9000"/>
+    <rect x="8.7" y="5.4" width="2.6" height="12.4" fill="#EF4452"/>`),
+  coin: SVG(`<circle cx="10" cy="10" r="8" fill="#FFC84D"/><circle cx="10" cy="10" r="6" fill="#FF9000"/>
+    <path d="m10 5.9 1.25 2.53 2.8.41-2.03 1.97.48 2.79L10 12.28 7.5 13.6l.48-2.79-2.03-1.97 2.8-.41L10 5.9Z" fill="#fff"/>`),
+  cal: SVG(`<rect x="2.4" y="4" width="15.2" height="14" rx="2.6" fill="#64A7FF"/>
+    <path d="M2.4 6.6a2.6 2.6 0 0 1 2.6-2.6h10a2.6 2.6 0 0 1 2.6 2.6v1.9H2.4V6.6Z" fill="#313D4C"/>
+    <rect x="5.5" y="2" width="2.2" height="4.2" rx="1.1" fill="#313D4C"/>
+    <rect x="12.3" y="2" width="2.2" height="4.2" rx="1.1" fill="#313D4C"/>
+    <circle cx="6.9" cy="11.9" r="1.3" fill="#fff"/><circle cx="10" cy="11.9" r="1.3" fill="#fff"/>
+    <circle cx="13.1" cy="11.9" r="1.3" fill="#fff"/><circle cx="6.9" cy="15.1" r="1.3" fill="#fff"/>
+    <circle cx="10" cy="15.1" r="1.3" fill="#fff"/>`),
+  warn: SVG(`<path d="M8.62 2.98a1.6 1.6 0 0 1 2.76 0l7.09 12.4c.62 1.07-.16 2.4-1.38 2.4H2.91c-1.22 0-2-1.33-1.38-2.4l7.09-12.4Z" fill="#FF9000"/>
+    <rect x="9" y="6.9" width="2" height="5.5" rx="1" fill="#fff"/><circle cx="10" cy="14.6" r="1.2" fill="#fff"/>`),
+  pen: SVG(`<path d="M3.4 14.1 13.05 4.45l2.5 2.5L5.9 16.6l-3.2.7.7-3.2Z" fill="#FFC84D"/>
+    <path d="m13.05 4.45 1.35-1.35a1.77 1.77 0 0 1 2.5 2.5L15.55 6.95l-2.5-2.5Z" fill="#64A7FF"/>
+    <path d="m2.7 16.6.7-3.2 2.5 2.5-3.2.7Z" fill="#313D4C"/>`),
+};
+const secTitle = (ic, text, extra) => `<h2 class="sec__title">${ICON[ic]}<span>${esc(text)}</span>${extra || ''}</h2>`;
 
 // 태그라인 자동: 입력값 우선 → 소개 첫 문장(짧으면) → 회차 템플릿
 function autoTagline(c, d) {
@@ -117,23 +101,57 @@ function stepsSection(c) {
     { t: '참가자 선발', d: `발표일에 선발 결과를 개별 안내드려요.${c['발표일'] ? ` (${fmtMD(c['발표일'])} 발표)` : ''}` },
     { t: '주차별 실습', d: `시작일부터 ${c.totalRounds || 10}주간 미션을 수행합니다.${c['시작일'] ? ` (${fmtMD(c['시작일'])} 시작)` : ''}` },
   ];
-  return `<section class="sec"><h2 class="sec__title">참여 방법</h2><div class="steps">
+  return `<div class="steps">
     ${steps.map((s, i) => `<div class="step"><div class="step__n">${i + 1}</div>
       <div><div class="step__t">${esc(s.t)}</div><div class="step__d">${esc(s.d)}</div></div></div>`).join('')}
-  </div></section>`;
+  </div>`;
 }
 
 /* 일정 — 시작일 있으면 주차별 표, 없으면 scheduleText 프로즈 */
-function scheduleSection(c, d) {
+function scheduleBlock(c, d) {
   const rounds = Number(c.totalRounds) || 0;
   if (c['시작일'] && rounds) {
     const rows = Array.from({ length: rounds }, (_, i) =>
       `<tr><td>${i + 1}주차</td><td>${addDays(c['시작일'], i * 7)} 시작</td></tr>`).join('');
-    return `<section class="sec"><h2 class="sec__title">챌린지 일정 <span class="badge" style="background:var(--lp-surface2);color:var(--lp-primary);border:0">총 ${rounds}주</span></h2>
-      <table class="sched"><thead><tr><th>회차</th><th>시작일</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    return `<table class="sched"><thead><tr><th>회차</th><th>시작일</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
-  if (d.scheduleText) return `<section class="sec"><h2 class="sec__title">일정</h2><div class="prose">${richText(d.scheduleText)}</div></section>`;
+  if (d.scheduleText) return `<div class="prose">${richText(d.scheduleText)}</div>`;
   return '';
+}
+
+/* "이렇게 진행돼요" 밴드 — 참여 방법(3스텝) + 주차 일정은 같은 질문(어떻게 진행되나)의 답이라 한 그릇 */
+function howBand(c, d) {
+  const rounds = Number(c.totalRounds) || 0;
+  const sched = scheduleBlock(c, d);
+  const badge = rounds ? `<span class="sec__badge">총 ${rounds}주</span>` : '';
+  return `<section class="sec">
+    ${secTitle('cal', '이렇게 진행돼요', badge)}
+    <div class="grp">${stepsSection(c)}</div>
+    ${sched ? `<div class="grp">${sched}</div>` : ''}
+  </section>`;
+}
+
+/* 참가 자격 — 한 문장뿐이라 임팩트가 없다. `본문 (A, B, C)` 꼴이면 대상을 칩으로 세운다.
+   괄호가 없는 캠페인도 있으므로 폴백은 기존 프로즈. */
+function eligibilityBlock(d) {
+  const raw = String(d.eligibility || '').trim();
+  if (!raw) return '';
+  const m = raw.match(/^([^(（]+)[(（]([^)）]+)[)）]\s*$/);
+  const chips = m ? m[2].split(/[,，·]/).map((x) => x.trim().replace(/\s*환영$/, '')).filter(Boolean) : [];
+  if (!m || !chips.length) return `<div class="prose">${richText(raw)}</div>`;
+  return `<p class="elig__lead">${esc(stripMarker(m[1]).trim())}</p>
+    <div class="elig__chips">${chips.map((x) => `<span class="elig__chip">${esc(x)}</span>`).join('')}</div>`;
+}
+
+/* "누가·무엇을 얻나" 밴드 — 참가 자격과 참가 혜택을 한 그릇에 두 묶음으로 */
+function aboutBand(d) {
+  const elig = eligibilityBlock(d);
+  const benefits = Array.isArray(d.benefits) ? d.benefits : [];
+  if (!elig && !benefits.length) return '';
+  const who = elig ? `<div class="grp">${secTitle('who', '이런 분께 딱이에요')}${elig}</div>` : '';
+  const gift = benefits.length ? `<div class="grp">${secTitle('gift', '이런 걸 드려요')}
+    <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></div>` : '';
+  return `<section class="sec">${who}${gift}</section>`;
 }
 
 /* 주의사항 (기본값, detail.cautions 배열로 덮어쓰기) */
@@ -146,8 +164,9 @@ function cautionsList(d) {
   ];
   return `<ul class="cautions">${items.map((x) => `<li>${esc(stripMarker(x))}</li>`).join('')}</ul>`;
 }
+// 부수 정보라 밴드를 벗겨 회색 바닥 위에 얹는다(강-중-약 리듬의 '약')
 function cautionsSection(d) {
-  return `<section class="sec"><h2 class="sec__title">꼭 확인하세요</h2>${cautionsList(d)}</section>`;
+  return `<section class="sec sec--bare">${secTitle('warn', '꼭 확인하세요')}${cautionsList(d)}</section>`;
 }
 
 const challengeStatus = () => (DATA && DATA.challenge ? DATA.challenge.status : '');
@@ -221,7 +240,7 @@ function rewardSection(d, c) {
     const rows = paid.map((t) => `<tr><td>${esc(t.range)} 작성</td><td class="num"><b>${t.amount.toLocaleString()}P</b></td></tr>`).join('');
     const floor = (all.length > paid.length && paid[0].min > 0)
       ? `<p class="reward-note">${paid[0].min}개 미만 작성 시에는 지급되지 않아요.</p>` : '';
-    return `<section class="sec sec--dark"><h2 class="sec__title">리워드</h2>
+    return `<section class="sec sec--dark">${secTitle('coin', '리워드')}
       <table class="reward-table"><thead><tr>
         <th>작성 개수</th><th class="num">네이버페이 포인트</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="reward-note">작성 개수가 많을수록 리워드 ↑ · 우수활동자는 <b style="color:var(--lp-pop)">×2</b></p>${floor}</section>`;
@@ -237,7 +256,6 @@ function rewardSection(d, c) {
 function renderLanding() {
   const c = DATA.challenge, d = DATA.detail || {};
   const closed = !canApply(c.status);
-  const benefits = Array.isArray(d.benefits) ? d.benefits : [];
   const reward = d.rewardAmount || c.rewardPerPost;
   const rounds = c.totalRounds || 10;
   const recruit = (c['모집시작'] && c['모집마감']) ? `모집 ${fmtMD(c['모집시작'])} – ${fmtMD(c['모집마감'])}`
@@ -260,16 +278,13 @@ function renderLanding() {
       ${d.concept ? `<div class="hero__sub reveal reveal-4">${richText(d.concept)}</div>` : ''}
     </header>
     <div class="wrap">
-      ${benefits.length ? `<section class="sec"><h2 class="sec__title">참가 혜택</h2>
-        <ul class="benefits">${benefits.map((b) => `<li><span class="chk">✓</span><span>${esc(stripMarker(b))}</span></li>`).join('')}</ul></section>` : ''}
-      ${d.eligibility ? `<section class="sec"><h2 class="sec__title">참가 자격</h2><div class="prose">${richText(d.eligibility)}</div></section>` : ''}
+      ${aboutBand(d)}
       ${rewardSection(d, c)}
-      ${stepsSection(c)}
-      ${scheduleSection(c, d)}
+      ${howBand(c, d)}
       ${cautionsSection(d)}
 
       <section class="sec apply-card" id="apply">
-        <h2 class="sec__title">참가 신청</h2>
+        ${secTitle('pen', '참가 신청')}
         ${closed ? `<div class="card center muted">모집이 마감되었습니다.</div>` : `
         <div class="card">
           <div class="field"><label class="field__label">성함 <span class="req">*</span></label>
