@@ -428,9 +428,6 @@ tr.is-excellent { background: #FFFCF2; }
 /* ── 본문 서식 치트시트 — 필드 라벨 줄에 얹는다(줄을 새로 쌓지 않는다) ──
    WHY: richText() 자동 변환 규칙을 운영자가 알 방법이 화면에 없었다.
    펼침은 팝오버(absolute)라 열어도 폼 레이아웃이 밀리지 않는다. */
-.field__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.field__head .field__label { margin-bottom: 0; }
-
 .fmtguide { position: relative; flex: none; }
 .fmtguide > summary {
   display: inline-flex; align-items: center; gap: 5px; list-style: none; cursor: pointer;
@@ -465,11 +462,24 @@ tr.is-excellent { background: #FFFCF2; }
 
 /* ── 캠페인 소개 2단: 입력 | 실시간 미리보기 ──
    WHY: 규칙표는 간접 설명이라 "내 글이 어떻게 나오는지"를 못 보여준다. 옆에 결과를 띄운다. */
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
-.split__in { min-height: 260px; }
-.split__side { display: flex; flex-direction: column; min-width: 0; }
-.split__cap { font-size: 12px; font-weight: 700; color: var(--color-ink-faint); margin-bottom: 6px; }
-@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+.split { display: grid; grid-template-columns: var(--split-left, 1fr) 14px 1fr; align-items: stretch; }
+.split__col { display: flex; flex-direction: column; min-width: 0; }
+/* 미리보기 내용이 길어지면 컬럼이 늘어난다 — 입력칸도 flex로 따라 늘려 아래선을 맞춘다 */
+.split__in { min-height: 260px; flex: 1; }
+/* 캡션 줄 — 좌우 컬럼이 같은 높이로 맞아야 입력칸과 미리보기의 윗선이 어긋나지 않는다.
+   서식 안내는 '쓰는 곳'의 일이라 왼쪽(입력) 컬럼에 붙인다. */
+.split__cap { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--color-ink-faint); }
+
+/* 폭 조절 핸들 */
+.split__bar { display: flex; align-items: center; justify-content: center; cursor: col-resize; touch-action: none; }
+.split__bar::before { content: ''; width: 3px; height: 46px; border-radius: 2px; background: var(--color-border-strong); transition: background .12s, height .12s; }
+.split__bar:hover::before, .split__bar:focus-visible::before, .split.is-dragging .split__bar::before { background: var(--color-primary); height: 70px; }
+.split.is-dragging { user-select: none; cursor: col-resize; }
+
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; }
+  .split__bar { display: none; }
+}
 
 /* 미리보기 면 — 랜딩 히어로(다크) 위 .hero__sub 규격을 옮긴 것.
    HTML 구조는 lib/rich-text.js 공유라 동일하고, 여기선 배색·크기만 재현한다.
