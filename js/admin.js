@@ -644,11 +644,16 @@ async function renderCreate(editId) {
       <div class="field"><label class="field__label">한 줄 태그라인</label>
         <input class="input" id="d-tag" placeholder="자격증 말고 블로그로 스펙 쌓기" /></div>
       <div class="field">
-        <div class="field__head"><label class="field__label" for="d-concept">캠페인 소개</label>${FMT_GUIDE}</div>
-        <div class="split">
-          <textarea class="textarea split__in" id="d-concept" placeholder="누가·무엇을·왜"></textarea>
-          <div class="split__side">
-            <div class="split__cap">상세페이지에서 이렇게 보여요</div>
+        <label class="field__label" for="d-concept">캠페인 소개</label>
+        <div class="split" id="d-split">
+          <div class="split__col">
+            <div class="split__cap"><span>작성</span>${FMT_GUIDE}</div>
+            <textarea class="textarea split__in" id="d-concept" placeholder="누가·무엇을·왜"></textarea>
+          </div>
+          <div class="split__bar" id="d-splitbar" role="separator" aria-orientation="vertical"
+            aria-label="입력·미리보기 폭 조절" title="드래그해서 폭 조절 (←/→ 키도 가능)" tabindex="0"></div>
+          <div class="split__col">
+            <div class="split__cap"><span>상세페이지에서 이렇게 보여요</span></div>
             <div class="lp-prev" id="d-concept-prev"><span class="lp-prev__empty">왼쪽에 입력하면 여기에 나타납니다.</span></div>
           </div>
         </div></div>
@@ -715,6 +720,52 @@ async function renderCreate(editId) {
   if (el('d-concept')) el('d-concept').addEventListener('input', conceptPrev);
   if (el('f-name')) el('f-name').addEventListener('input', conceptPrev);
   conceptPrev();
+
+  // 입력/미리보기 폭 조절. 고른 폭은 이 기기에 기억한다.
+  // WHY setPointerCapture 미사용: 이 프로젝트에서 금지 — 클릭 타깃이 바뀌어 자식 핸들러가 죽은 전례가 있다.
+  const splitEl = el('d-split'), splitBar = el('d-splitbar');
+  if (splitEl && splitBar) {
+    const KEY = 'challenge.admin.conceptSplit';
+    const SPLIT_MIN = 25, SPLIT_MAX = 75;
+    const clamp = (v) => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, v));
+    const cur = () => parseInt(splitEl.style.getPropertyValue('--split-left'), 10) || 50;
+    const apply = (pct) => splitEl.style.setProperty('--split-left', `${Math.round(pct)}%`);
+    try { const v = Number(localStorage.getItem(KEY)); if (v >= SPLIT_MIN && v <= SPLIT_MAX) apply(v); } catch (e) {}
+
+    const posX = (e) => (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
+    const onMove = (e) => {
+      const r = splitEl.getBoundingClientRect();
+      if (!r.width) return;
+      apply(clamp(((posX(e) - r.left) / r.width) * 100));
+      e.preventDefault();
+    };
+    const onUp = () => {
+      splitEl.classList.remove('is-dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchend', onUp);
+      try { localStorage.setItem(KEY, String(cur())); } catch (e) {}
+    };
+    const onDown = (e) => {
+      splitEl.classList.add('is-dragging');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchend', onUp);
+      e.preventDefault();
+    };
+    splitBar.addEventListener('mousedown', onDown);
+    splitBar.addEventListener('touchstart', onDown, { passive: false });
+    splitBar.addEventListener('dblclick', () => { apply(50); try { localStorage.setItem(KEY, '50'); } catch (e) {} });
+    splitBar.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
+      if (!step) return;
+      apply(clamp(cur() + step));
+      try { localStorage.setItem(KEY, String(cur())); } catch (err) {}
+      e.preventDefault();
+    });
+  }
 
   // 빠른 채우기
   el('autofill').addEventListener('click', () => {
