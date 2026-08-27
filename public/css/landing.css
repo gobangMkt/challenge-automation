@@ -71,12 +71,28 @@ a { color: var(--lp-primary); }
   margin-top: 12px; background: #fff; border-radius: 18px; padding: 24px 20px;
   box-shadow: 0 1px 3px rgba(10,10,11,.05);
 }
-.sec__title { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-size: 19px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.sec__title { font-family: var(--font-ui); font-weight: 800; letter-spacing: -0.02em; font-size: 19px; color: var(--lp-ink); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
+.sec__ic { width: 22px; height: 22px; flex: none; }
+.sec__badge { margin-left: auto; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--lp-surface2); color: var(--lp-primary); }
 .prose { color: #4A4F5C; line-height: 1.75; font-size: 15.5px; }
+
+/* 밴드 안 묶음 — 같은 질문에 답하는 것끼리 한 그릇에 담되 헤어라인으로만 나눈다 */
+.grp + .grp { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--color-border); }
 
 /* 유일한 강조 밴드 — 리워드 */
 .sec--dark { background: var(--lp-hero-bg); color: #fff; box-shadow: 0 8px 22px rgba(10,10,11,.12); }
 .sec--dark .sec__title { color: #fff; }
+.sec--dark .sec__badge { background: rgba(255,255,255,.14); color: #fff; }
+
+/* 부수 정보 — 밴드를 벗겨 회색 바닥 위에 얹는다(강-중-약의 '약') */
+.sec--bare { background: transparent; box-shadow: none; padding: 6px 6px 0; }
+.sec--bare .sec__title { font-size: 16px; color: var(--color-ink-muted); margin-bottom: 12px; }
+.sec--bare .sec__ic { width: 18px; height: 18px; }
+
+/* 참가 자격 — 한 문장뿐이면 임팩트가 없다. 문장은 키우고 대상은 칩으로 세운다 */
+.elig__lead { font-size: 18px; font-weight: 800; line-height: 1.45; letter-spacing: -0.01em; color: var(--lp-ink); }
+.elig__chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.elig__chip { font-size: 13.5px; font-weight: 700; padding: 7px 13px; border-radius: var(--radius-pill); background: var(--lp-surface2); color: var(--lp-primary); }
 
 .benefits { list-style: none; display: flex; flex-direction: column; gap: 13px; }
 .benefits li { display: flex; gap: 11px; align-items: flex-start; }
