@@ -221,13 +221,10 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-badge--star { background: #FFF0C2; color: #9A6B00; }
 .wk-due { margin-left: auto; font-size: 13px; color: var(--color-ink-muted); }
 .wk-submitbox { background: color-mix(in srgb, var(--lp-primary) 9%, #fff); border-radius: 14px; padding: 16px; margin-top: 18px; }
-/* 작성가이드가 접힌 상태가 기본이라, 제출 직전에 한 번 더 환기한다 */
-.wk-warn {
-  /* ⚠ --lp-pop-ink는 'pop 원색 위'에 얹는 글자색이다. 여기 배경은 pop을 22%로 희석한 연한 면이라
-     indigo·pine 테마(popInk=#FFF)에서 대비 1.2:1로 사실상 안 보였다. 배경 밝기와 무관한 잉크를 쓴다. */
-  background: color-mix(in srgb, var(--lp-pop) 22%, #fff); color: var(--lp-ink);
-  font-size: 13px; line-height: 1.5; border-radius: 10px; padding: 10px 12px; margin: 0 0 12px;
-}
+/* 제출 각주 — 경고 색면으로 강조하면 정작 CTA(제출 버튼)와 무게가 겹친다.
+   입력칸 아래 각주로 낮춘다(※ 표기 + 보조 잉크). */
+.wk-note { margin: 10px 2px 0; font-size: 12.5px; line-height: 1.55; color: var(--color-ink-muted); }
+.wk-note b { color: var(--lp-ink); font-weight: 700; }
 .wk-submit__label { font-size: 14px; font-weight: 800; color: var(--lp-ink); margin: 0 0 10px; }
 .wk-submit__done { color: #1A9D54; font-weight: 700; }
 .wk-submit { display: flex; gap: 8px; margin-top: 0; }
@@ -259,13 +256,18 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wkchip.is-active .wkchip__n { color: var(--lp-primary); }
 .wk-dday { color: var(--lp-primary); }
 /* 작성가이드 접이식(공통, 1회) */
-.wkguide { margin-top: 14px; border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; }
-.wkguide summary { padding: 14px 2px; font-weight: 700; cursor: pointer; color: var(--lp-primary); list-style: none; }
+/* 접이식 카드(작성가이드·유의사항) — 흰 바닥에 테두리만 두르면 섹션 경계가 안 읽힌다.
+   면(배경)으로 구분하고, 펼치면 본문만 흰 면으로 떠올려 읽는 구간을 분리한다. */
+.wkguide { margin-top: 12px; border: 1px solid var(--color-border); border-radius: 12px; padding: 0 16px; background: var(--lp-surface2); overflow: hidden; }
+.wkguide[open] { box-shadow: 0 1px 3px rgba(10,10,11,.05); }
+.wkguide summary { padding: 15px 2px; font-weight: 800; cursor: pointer; color: var(--lp-primary); list-style: none; }
 .wkguide summary::-webkit-details-marker { display: none; }
 .wkguide summary::before { content: '▸ '; }
 .wkguide[open] summary::before { content: '▾ '; }
-.wkguide[open] summary { border-bottom: 1px solid var(--color-border); }
-.wkguide .wk-body { padding: 14px 0 16px; }
+.wkguide[open] summary { border-bottom: 1px solid var(--color-border-strong); }
+.wkguide .wk-body, .wkguide .wk-cautions {
+  margin: 0 -16px; padding: 16px; background: #fff; border-top: 1px solid var(--color-border);
+}
 .wkguide__badge { display: inline-block; margin-left: 6px; background: var(--lp-primary); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; vertical-align: 1px; }
 /* 섹션 — 학습 자료 / 이번 주 미션 (시스템 구획) */
 .ssec { margin-top: 28px; }

@@ -1279,20 +1279,27 @@ async function drawOperate(camp) {
     <details class="foldcard"${hasGlobal ? '' : ' open'}>
       <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
         <span class="card__title">전역 설정</span>
-        <span class="foldcard__note">교육자료·작성가이드·유의사항 (매주 공통)</span></summary>
+        <span class="foldcard__note">교육자료 · 작성가이드 · 유의사항 (매주 공통)</span></summary>
       <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
         ${gd.eduUrl ? '<div class="field__hint">✓ 설정됨 — 제출 화면 상단에 상시 노출</div>' : '<div class="field__hint">참가자 제출 화면 상단에 상시 노출됩니다.</div>'}</div>
-      <div class="field"><label class="field__label">안내문 (작성가이드 + 유의사항 · 매주 공통)</label>
-        <textarea class="textarea" id="g-guide" style="min-height:340px" placeholder="작성가이드 · 제출 마감 · 리워드 · 우등생 선정기준 · 제외 대상 등 매주 동일하게 노출될 내용 전체를 한 번에 붙여넣기">${esc(gd.guide || gd.notice || '')}</textarea>
-        <div class="field__hint">자동 서식: ★★소제목★★ / ------- 구분선 / - · 1. 리스트 / **굵게**(bold) / 느낌표 문장(강조색).</div></div>
+      <div class="field"><label class="field__label">작성가이드 (매주 공통)</label>
+        <textarea class="textarea" id="g-guide" style="min-height:260px" placeholder="글을 어떻게 쓰는지 — 필수 포함 항목 · 분량 · 키워드 배치 · 예시 등">${esc(gd.guide || '')}</textarea>
+        <div class="field__hint">참가자 제출 화면 <b>학습 자료 → 작성가이드</b>에 그대로 나옵니다.</div></div>
+      <div class="field"><label class="field__label">유의사항 (매주 공통)</label>
+        <textarea class="textarea" id="g-notice" style="min-height:180px" placeholder="지키지 않으면 불이익이 있는 것 — 제출 마감 · 반려 사유 · 제외 대상 · 리워드 조건 등">${esc(gd.notice || '')}</textarea>
+        <div class="field__hint">참가자 제출 화면 <b>학습 자료 → 유의사항</b>에 나옵니다. ${gd.notice ? '' : '<b>비워두면 기본 문구 4줄</b>이 대신 노출됩니다.'}</div></div>
+      <div class="field__hint" style="margin:-8px 0 14px">두 칸 모두 자동 서식 적용: <code>##</code> 소제목 · <code>---</code> 구분선 · <code>-</code> <code>1.</code> 목록 · <code>**굵게**</code> · 줄 끝 <code>!</code> 강조색.</div>
       <button class="btn btn--secondary btn--sm" id="g-save">전역 설정 저장</button>
       </div>
     </details>`;
   el('g-save').addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
-    const rr = await apiPost(op({ action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(), guide: el('g-guide').value })).catch(() => ({ ok: false }));
+    const rr = await apiPost(op({
+      action: 'saveCampaignMeta', challengeId: id, eduUrl: el('g-edu').value.trim(),
+      guide: el('g-guide').value, notice: el('g-notice').value,
+    })).catch(() => ({ ok: false }));
     e.target.disabled = false; e.target.textContent = '전역 설정 저장';
     if (rr.ok) { state.cache.detail[id] = null; toast('전역 설정 저장됨' + (rr.eduName ? ` · 교재: ${rr.eduName}` : '')); drawOperate(camp); } else toast('저장 실패', true);
   });
