@@ -512,12 +512,12 @@ function weekCard(w, d, excellent) {
   const kw = w.body ? `<div class="wk-row wk-row--kw"><span class="wk-row__tag">키워드</span><div class="wk-row__val">${kwChips(w.body)}</div></div>` : '';
   const material = (articleRef || kw) ? `<div class="wk-set">${articleRef}${kw}</div>` : '';
   const form = isOpen ? `<div class="wk-submitbox">
-      <p class="wk-warn">제출 전 <b>작성가이드</b>를 꼭 확인하세요. 지키지 않은 글은 반려될 수 있어요.</p>
       <div class="wk-submit__label">이번 주 작성한 게시물 URL${w.submitted ? ' <span class="wk-submit__done">· 제출완료</span>' : ''}</div>
       <div class="wk-submit">
         <input class="input" id="s-url-${esc(w.week)}" type="url" placeholder="https://blog.naver.com/.../게시물" value="${esc(w.submittedUrl || '')}"${w.submitted ? ' disabled' : ''} />
         <button class="btn ${w.submitted ? 'btn--secondary' : 'btn--primary'}" data-week="${esc(w.week)}">${w.submitted ? '수정' : '제출하기'}</button>
-      </div></div>`
+      </div>
+      <p class="wk-note">※ 제출 전 <b>작성가이드</b>를 꼭 확인하세요. 지키지 않은 글은 반려될 수 있어요.</p></div>`
     : (w.submittedUrl ? `<div class="wk-done-url"><a href="${esc(w.submittedUrl)}" target="_blank" rel="noopener">제출한 게시물 ↗</a></div>` : '');
   return `<div class="wk-card ${isOpen ? 'is-open' : ''}">${head}${material}${form}</div>`;
 }
@@ -574,7 +574,7 @@ function renderDashboard(r, phone) {
   const learnSection = `<section class="ssec">
     <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
     ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
-    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${cautionsList(d)}</div></details>
+    <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${d.notice ? richText(d.notice) : cautionsList(d)}</div></details>
   </section>`;
 
   box.innerHTML = eduSection + weekSection + learnSection;
