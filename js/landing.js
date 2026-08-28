@@ -573,7 +573,7 @@ function renderDashboard(r, phone) {
 
   const learnSection = `<section class="ssec">
     <h2 class="ssec__h">${ICO_BOOK}학습 자료</h2>
-    ${d.guide ? `<details class="wkguide"><summary>작성가이드</summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
+    ${d.guide ? `<details class="wkguide"><summary>작성가이드<span class="wkguide__badge">필수</span></summary><div class="prose wk-body">${richText(d.guide)}</div></details>` : ''}
     <details class="wkguide"><summary>유의사항</summary><div class="wk-cautions">${d.notice ? richText(d.notice) : cautionsList(d)}</div></details>
   </section>`;
 
