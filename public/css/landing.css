@@ -223,7 +223,9 @@ ol.rich-list li::before { content: counter(ri); position: absolute; left: 0; top
 .wk-submitbox { background: color-mix(in srgb, var(--lp-primary) 9%, #fff); border-radius: 14px; padding: 16px; margin-top: 18px; }
 /* 작성가이드가 접힌 상태가 기본이라, 제출 직전에 한 번 더 환기한다 */
 .wk-warn {
-  background: color-mix(in srgb, var(--lp-pop) 22%, #fff); color: var(--lp-pop-ink);
+  /* ⚠ --lp-pop-ink는 'pop 원색 위'에 얹는 글자색이다. 여기 배경은 pop을 22%로 희석한 연한 면이라
+     indigo·pine 테마(popInk=#FFF)에서 대비 1.2:1로 사실상 안 보였다. 배경 밝기와 무관한 잉크를 쓴다. */
+  background: color-mix(in srgb, var(--lp-pop) 22%, #fff); color: var(--lp-ink);
   font-size: 13px; line-height: 1.5; border-radius: 10px; padding: 10px 12px; margin: 0 0 12px;
 }
 .wk-submit__label { font-size: 14px; font-weight: 800; color: var(--lp-ink); margin: 0 0 10px; }

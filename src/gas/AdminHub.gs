@@ -114,7 +114,15 @@ function saveCampaign_(body) {
       totalRounds: totalRounds, missions: body.missions,
     });
   }
-  saveCampaignDetail_(challengeId, body.detail || {});
+  // detail은 통째로 교체하면 안 된다. guide·notice·eduUrl 등은 운영 탭(saveCampaignMeta_)에서
+  // 따로 저장되는 필드라 캠페인 수정 폼이 보내지 않는다 — 그대로 덮어쓰면 작성가이드가 지워진다.
+  // 폼이 보낸 키만 갱신하고, 모르는 키는 기존 값을 살린다.
+  var prevDetail = campaignDetailObj_(challengeId) || {};
+  var nextDetail = body.detail || {};
+  Object.keys(prevDetail).forEach(function (k) {
+    if (!Object.prototype.hasOwnProperty.call(nextDetail, k)) nextDetail[k] = prevDetail[k];
+  });
+  saveCampaignDetail_(challengeId, nextDetail);
   return json_({ ok: true, challengeId: challengeId, totalRounds: totalRounds });
 }
 
