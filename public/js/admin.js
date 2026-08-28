@@ -1279,7 +1279,9 @@ async function drawOperate(camp) {
     <details class="foldcard"${hasGlobal ? '' : ' open'}>
       <summary class="foldcard__sum"><span class="foldcard__chev" aria-hidden="true">›</span>
         <span class="card__title">전역 설정</span>
-        <span class="foldcard__note">교육자료 · 작성가이드 · 유의사항 (매주 공통)</span></summary>
+        <span class="foldcard__note">교육자료 · 작성가이드 · 유의사항 (매주 공통)</span>
+        <span class="foldcard__act">
+          <a class="golink" id="g-gosubmit" href="${esc(landingUrl(id))}#submit" target="_blank" rel="noopener">제출페이지 열기${ICON.arrowRight}</a></span></summary>
       <div class="foldcard__body">
       <div class="field"><label class="field__label">교육자료(교재) 링크</label>
         <input class="input" id="g-edu" value="${esc(gd.eduUrl || '')}" placeholder="https://... (SEO 교재·교육자료)" />
@@ -1294,6 +1296,7 @@ async function drawOperate(camp) {
       <button class="btn btn--secondary btn--sm" id="g-save">전역 설정 저장</button>
       </div>
     </details>`;
+  el('g-gosubmit').addEventListener('click', (e) => { e.stopPropagation(); });
   el('g-save').addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = '저장 중…';
     const rr = await apiPost(op({
