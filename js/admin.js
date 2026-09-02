@@ -1393,7 +1393,7 @@ async function drawWeek(camp, round, weeks) {
             <button class="exbtn js-wex ${s.excellent ? 'is-ex' : ''}" title="우수활동자 지정/해제" aria-label="우수활동자"><span class="exbtn__star">${s.excellent ? '★' : '☆'}</span>${s.excellent ? '<span class="exbtn__t">우수</span>' : ''}</button>
             <span class="op-name__t">${esc(s.name)}</span></span></td>
           <td class="ellip"><a class="blogid" href="${esc(s.blogUrl)}" target="_blank" rel="noopener" title="${esc(s.blogUrl)}">${esc(blogLabel_(s.blogUrl))}</a></td>
-          <td class="tnum">${esc(maskPhone_(s.phone))}</td>
+          <td class="tnum"><button type="button" class="phonetoggle js-phone" data-full="${esc(s.phone)}" data-masked="${esc(maskPhone_(s.phone))}" title="클릭하면 전체 번호 보기">${esc(maskPhone_(s.phone))}</button></td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
           <td class="ta-c"><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
@@ -1467,6 +1467,12 @@ async function drawWeek(camp, round, weeks) {
     tr.querySelector('.js-wex')?.addEventListener('click', async () => {
       const r2 = await apiPost(op({ action: 'setWeekExcellent', challengeId: id, round, phone })).catch(() => ({ ok: false }));
       if (r2.ok) { toast(r2.excellent ? `${round}주차 우수 지정` : '우수 해제'); drawWeek(camp, round, weeks); } else toast('실패', true);
+    });
+    tr.querySelector('.js-phone')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      const shown = btn.textContent === btn.dataset.full;
+      btn.textContent = shown ? btn.dataset.masked : btn.dataset.full;
+      btn.title = shown ? '클릭하면 전체 번호 보기' : '클릭하면 다시 가리기';
     });
   });
   // 회차 칩 상태 동기화 (오픈/종료 전환 시 칩 라벨·색 즉시 반영)
