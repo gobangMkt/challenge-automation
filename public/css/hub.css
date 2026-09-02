@@ -79,6 +79,9 @@
 .exbtn__star { font-size: 18px; display: inline-block; transition: transform .12s; }
 .exbtn__t { font-size: 12px; font-weight: 800; }
 .exbtn.is-ex { color: #F5A623; }
+/* 제출현황 — 마스킹된 연락처 클릭 토글 */
+.phonetoggle { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.phonetoggle:hover { color: var(--color-primary); }
 /* 관리 — 우수활동자 읽기전용 태그 */
 .ex-cell { white-space: nowrap; }
 .ex-tag { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 13px; color: #B54708; background: #FEF0DC; padding: 3px 9px; border-radius: var(--radius-pill); }
