@@ -1383,8 +1383,8 @@ async function drawWeek(camp, round, weeks) {
         </div>
       </div>
       <div data-pane="sub">
-      ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed">
-        <colgroup><col style="width:18%"/><col style="width:20%"/><col style="width:12%"/><col style="width:12%"/><col style="width:16%"/><col style="width:11%"/><col style="width:11%"/></colgroup>
+      ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed submittbl">
+        <colgroup><col style="width:17%"/><col style="width:19%"/><col style="width:12%"/><col style="width:14%"/><col style="width:16%"/><col style="width:11%"/><col style="width:11%"/></colgroup>
         <thead><tr><th>성함</th><th>블로그</th><th>연락처</th><th>게시물</th><th>제출일</th><th class="ta-c">상태</th><th class="ta-c">처리</th></tr></thead><tbody>
         ${submitted.map((s) => {
         const rej = s.검수상태 === '반려';

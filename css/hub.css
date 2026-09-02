@@ -68,6 +68,8 @@
 .table--fixed td.ellip { overflow: hidden; text-overflow: ellipsis; }
 /* 가운데 정렬 열 (상태·처리) — 헤더·셀 동일 정렬 */
 .table--fixed th.ta-c, .table--fixed td.ta-c { text-align: center; }
+/* 제출현황 표 — 연락처(3열)와 게시물(4열)이 붙어 보여 4열 앞에 여백을 더 준다 */
+.submittbl th:nth-child(4), .submittbl td:nth-child(4) { padding-left: 28px; }
 /* 성함 + 우수 토글 (이름 좌측, 고정폭으로 성함 정렬 유지) */
 .op-name { display: inline-flex; align-items: center; gap: 9px; min-width: 0; width: 100%; }
 .op-name__t { overflow: hidden; text-overflow: ellipsis; }
