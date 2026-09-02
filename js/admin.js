@@ -227,6 +227,8 @@ async function loadBoard(id, force) {
 /* ---------- 리워드 계산 (정책: 갯수 티어 or 제출수×단가, 우수활동자 ×배수) ---------- */
 const won = (n) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
 const digits_ = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+// 공지 발송 시 뒷자리 조회용 — 앞자리(통신사 prefix)만 남기고 중간을 가린다.
+const maskPhone_ = (v) => { const d = digits_(v); return d.length <= 4 ? (d || '–') : `${d.slice(0, 3)}-****-${d.slice(-4)}`; };
 const toDateInput = (v) => { const m = String(v == null ? '' : v).match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : ''; };
 // 주차별 우수(운영에서 지정) — note의 'exw=6,8' 토큰. 우수 주차가 하나라도 있으면 우수활동자(리워드 ×배수).
 const exWeeks_ = (note) => { const m = String(note == null ? '' : note).match(/exw=([\d,]+)/); return m ? m[1].split(',').map(Number).filter((n) => !isNaN(n)) : []; };
@@ -1382,14 +1384,16 @@ async function drawWeek(camp, round, weeks) {
       </div>
       <div data-pane="sub">
       ${submitted.length ? `<div style="overflow-x:auto"><table class="table table--fixed">
-        <colgroup><col style="width:30%"/><col style="width:14%"/><col style="width:24%"/><col style="width:16%"/><col style="width:16%"/></colgroup>
-        <thead><tr><th>성함</th><th>게시물</th><th>제출일</th><th class="ta-c">상태</th><th class="ta-c">처리</th></tr></thead><tbody>
+        <colgroup><col style="width:18%"/><col style="width:20%"/><col style="width:12%"/><col style="width:12%"/><col style="width:16%"/><col style="width:11%"/><col style="width:11%"/></colgroup>
+        <thead><tr><th>성함</th><th>블로그</th><th>연락처</th><th>게시물</th><th>제출일</th><th class="ta-c">상태</th><th class="ta-c">처리</th></tr></thead><tbody>
         ${submitted.map((s) => {
         const rej = s.검수상태 === '반려';
         return `<tr data-phone="${esc(s.phone)}" class="${rej ? 'is-rejected' : ''}">
           <td class="ellip"><span class="op-name">
             <button class="exbtn js-wex ${s.excellent ? 'is-ex' : ''}" title="우수활동자 지정/해제" aria-label="우수활동자"><span class="exbtn__star">${s.excellent ? '★' : '☆'}</span>${s.excellent ? '<span class="exbtn__t">우수</span>' : ''}</button>
             <span class="op-name__t">${esc(s.name)}</span></span></td>
+          <td class="ellip"><a class="blogid" href="${esc(s.blogUrl)}" target="_blank" rel="noopener" title="${esc(s.blogUrl)}">${esc(blogLabel_(s.blogUrl))}</a></td>
+          <td class="tnum">${esc(maskPhone_(s.phone))}</td>
           <td><a href="${esc(s.postUrl)}" target="_blank">게시물</a></td>
           <td class="tnum">${esc(s.제출일시)}</td>
           <td class="ta-c"><span class="badge ${rej ? 'badge--danger' : 'badge--success'}">${rej ? '반려' : '정상'}</span></td>
