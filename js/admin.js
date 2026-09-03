@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './api.js';
+import { apiGet as rawApiGet, apiPost as rawApiPost } from './api.js';
 import { openVocModal } from './voc-widget.js';
 import { thumbNode, posterNode, downloadNode, ensureHtml2Canvas } from './assets.js';
 import { rosterCsv, payoutCsv, csvFileName } from './lib/csv.js';
@@ -7,6 +7,7 @@ import { normalizeBlogUrl } from './lib/blog-url.js';
 import { richText, BULLET_CHARS } from './lib/rich-text.js';
 import { pickTheme } from './themes.js';
 import { statusBadgeClass, campaignPhaseLabel, weekState, noticeRouteTabs, stageActions, stageTransitionFailed, validateCampaignForm, recruitEndNotice } from './lib/statusui.js';
+import { isAuthExpired, gateErrorMessage } from './lib/session.js';
 
 
 // 상세페이지 본문 서식 치트시트 — landing/미리보기와 같은 파서(lib/rich-text.js)의 규칙 표.
@@ -54,6 +55,24 @@ const landingUrl = (id) => `${location.origin}${base}?c=${encodeURIComponent(id)
 const el = (id) => document.getElementById(id);
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const op = (extra) => ({ token: state.token, ...extra });
+
+/* 인증 만료를 한 곳에서 잡는다.
+   WHY: 호출부마다 `.catch(() => ({ ok: false }))` + `r.ok ? rows : []`로 실패를 삼켜,
+   토큰이 끊겨도 '캠페인 0개'인 멀쩡한 화면이 그려졌다(운영자가 배포 사고로 오인).
+   네트워크 실패는 netError로 표시만 하고 토큰은 건드리지 않는다 — 일시 장애에 로그아웃시키지 않기 위해. */
+let authExpiredShown = false;
+function guardAuth(res) {
+  if (!isAuthExpired(res, !!localStorage.getItem(TOKEN_KEY)) || authExpiredShown) return res;
+  authExpiredShown = true;
+  localStorage.removeItem(TOKEN_KEY);
+  state.token = ''; state.loaded = false; state.campaigns = [];
+  state.cache = { detail: {}, board: {} };
+  toast('운영 세션이 만료되었습니다. 토큰을 다시 입력해 주세요.', true);
+  renderGate();
+  return res;
+}
+const apiGet = async (p) => guardAuth(await rawApiGet(p).catch(() => ({ ok: false, netError: true })));
+const apiPost = async (p) => guardAuth(await rawApiPost(p).catch(() => ({ ok: false, netError: true })));
 const loading = (t = '불러오는 중…') => `<div class="loading"><span class="spinner"></span> ${t}</div>`;
 function toast(msg, err) {
   const t = el('toast'); t.textContent = msg; t.className = 'toast is-show' + (err ? ' toast--err' : '');
@@ -205,6 +224,8 @@ function parseRecruit(text) {
 async function loadCampaigns(force) {
   if (state.loaded && !force) return state.campaigns;
   const r = await apiGet({ action: 'campaigns', token: state.token });
+  // 실패를 빈 목록으로 넘기면 '캠페인 0개'인 정상 화면과 구분되지 않는다 — 사유를 남긴다.
+  state.loadError = r.ok ? '' : (r.netError ? '서버에 연결하지 못했습니다' : (r.error || '불러오지 못했습니다'));
   state.campaigns = r.ok ? r.rows : [];
   if (r && r.dbUrl) state.dbUrl = r.dbUrl;
   state.loaded = true;
@@ -417,9 +438,9 @@ function renderGate() {
     const v = el('tok').value.trim();
     if (!v) return;
     state.token = v; state.loaded = false;
-    const r = await apiGet({ action: 'campaigns', token: v }).catch(() => ({ ok: false }));
-    if (r.ok) { localStorage.setItem(TOKEN_KEY, v); location.hash = '#/'; route(); }
-    else toast('토큰이 올바르지 않습니다.', true);
+    const r = await apiGet({ action: 'campaigns', token: v });
+    if (r.ok) { localStorage.setItem(TOKEN_KEY, v); authExpiredShown = false; location.hash = '#/'; route(); }
+    else toast(gateErrorMessage(r), true);
   };
   el('enter').addEventListener('click', submit);
   el('tok').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
@@ -532,11 +553,20 @@ function campCard(x) {
 async function renderHome() {
   appbarHome();
   el('content').innerHTML = loading();
-  paintHome(await loadCampaigns(true)); // 홈은 항상 최신
+  const rows = await loadCampaigns(true); // 홈은 항상 최신
+  if (!state.token) return; // 세션 만료 → 게이트가 이미 그려졌다
+  if (state.loadError) {
+    el('content').innerHTML = `<div class="card">캠페인을 불러오지 못했습니다 · ${esc(state.loadError)}
+      <div class="gate__retry"><button class="btn" id="retry">다시 시도</button></div></div>`;
+    el('retry').addEventListener('click', renderHome);
+    return;
+  }
+  paintHome(rows);
 }
 
 /* 정렬 변경은 다시 그리기만 한다 — 재조회 없이 state.campaigns를 재사용. */
 function paintHome(c) {
+  if (!state.token) return; // 세션 만료로 게이트가 그려졌다 — 덮어쓰지 않는다
   const tApplied = c.reduce((s, x) => s + (x.applied || 0), 0);
   const tSel = c.reduce((s, x) => s + (x.selected || 0), 0);
   const sortKey = sortKeyOf(localStorage.getItem(SORT_KEY));
@@ -596,6 +626,7 @@ function paintHome(c) {
 
 /* ---------- 캠페인 생성 ---------- */
 async function renderCreate(editId) {
+  if (!state.token) return; // 세션 만료로 게이트가 그려졌다 — 덮어쓰지 않는다
   appbarBare();
   const editing = !!editId;
   el('content').innerHTML = `
@@ -844,6 +875,7 @@ async function renderCreate(editId) {
 
 /* ---------- 캠페인 작업공간 ---------- */
 async function renderWorkspace(id, tab) {
+  if (!state.token) return; // 세션 만료로 게이트가 그려졌다 — 덮어쓰지 않는다
   el('content').innerHTML = loading();
   await loadCampaigns();
   let camp = findCamp(id);
