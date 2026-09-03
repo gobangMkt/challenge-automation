@@ -46,6 +46,10 @@ design-system/ MASTER.md (테마: 갓생 코랄)
 - **로컬 프론트 미리보기**: `시작 3060.bat` → http://localhost:3060 (python http.server)
 - **테스트**: `npm test` (node 내장 test runner, 의존성 0)
 - **GAS 배포**: Apps Script Web App 배포(모든 사용자). 시크릿은 Script Properties(SOLAPI 키/템플릿ID, Notion 토큰, operatorToken).
+- **배포 전 대조(필수)**: `npm run check:deploy` — `public/js/config.js`의 `GAS_ENDPOINT`가 가리키는
+  배포가 최신 버전인지 `clasp`으로 확인한다. exit 1이면 배포하지 말고 안내된 명령으로 슬롯을 정렬할 것.
+  ⚠️ **운영 URL의 유일한 기준은 `config.js`다** — 문서·메모리에 적힌 deploymentId를 믿고 배포하면
+  프론트가 호출하지 않는 슬롯에 붙는다(2026-08-28 실제 사고: fix가 6일간 실운영에 없었다).
 - **포트**: 3060 (로컬 정적 서버)
 
 ## 배포링크

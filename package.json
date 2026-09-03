@@ -6,6 +6,7 @@
   "description": "블로그 챌린지 운영·자동화 앱 (GAS + Google Sheets + GitHub Pages + SOLAPI)",
   "scripts": {
     "test": "node --test",
-    "serve": "python -m http.server 3060 --directory public"
+    "serve": "python -m http.server 3060 --directory public",
+    "check:deploy": "node scripts/check-deploy.mjs"
   }
 }
